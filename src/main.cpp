@@ -11,7 +11,7 @@ using namespace DNest4;
 //make
 int main(int argc, char** argv)
 {
-    Data::get_instance().load("/home/ilya/github/bam/data/test.txt");
+    Data::get_instance().load("/home/ilya/github/bam/data/good_difmap.txt");
     // set the sampler and run it!
     Sampler<DNestModel> sampler = setup<DNestModel>(argc, argv);
     sampler.run();

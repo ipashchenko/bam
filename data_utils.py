@@ -142,27 +142,29 @@ def radplot(df, fig=None, color=None, label=None, style="ap"):
 
 if __name__ == "__main__":
     # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/J2001+2416_K_2006_06_11_yyk_vis.fits"
-    uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/0716+714.u.2013_08_20.uvf"
-    out_fname = "/home/ilya/github/bam/test.txt"
+    # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/0716+714.u.2013_08_20.uvf"
+    uvfits_fname = "/home/ilya/github/bam/data/good_difmap.uvf"
+    out_fname = "/home/ilya/github/bam/data/good_difmap.txt"
 
     df = create_data_file(uvfits_fname)
 
-    # Zero observed data
-    df["vis_re"] = 0
-    df["vis_im"] = 0
-    # Add model
-    re, im = gaussian_circ_ft(flux=2.0, dx=0.0, dy=0.0, bmaj=0.1, uv=df[["u", "v"]].values)
-    df["vis_re"] += re
-    df["vis_im"] += im
-    re, im = gaussian_circ_ft(flux=1.0, dx=0.5, dy=0.0, bmaj=0.2, uv=df[["u", "v"]].values)
-    df["vis_re"] += re
-    df["vis_im"] += im
+    # # Zero observed data
+    # df["vis_re"] = 0
+    # df["vis_im"] = 0
+    # # Add model
+    # re, im = gaussian_circ_ft(flux=2.0, dx=0.0, dy=0.0, bmaj=0.1, uv=df[["u", "v"]].values)
+    # df["vis_re"] += re
+    # df["vis_im"] += im
+    # re, im = gaussian_circ_ft(flux=1.0, dx=0.5, dy=0.0, bmaj=0.2, uv=df[["u", "v"]].values)
+    # df["vis_re"] += re
+    # df["vis_im"] += im
 
     # Plot model only
-    fig = radplot(df, label="Sky Model")
+    fig = radplot(df, label="Data")
 
-    # Add noise and plot
-    df_updated = add_noise(df, use_global_median_noise=True)
-    fig = radplot(df_updated, color="#ff7f0e", fig=fig, label="With noise")
+    # # Add noise and plot
+    # df_updated = add_noise(df, use_global_median_noise=True)
+    # fig = radplot(df_updated, color="#ff7f0e", fig=fig, label="With noise")
+    df_updated = df
     df_updated.to_csv(out_fname, sep=" ", index=False, header=False)
 
