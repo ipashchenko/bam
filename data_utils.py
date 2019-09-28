@@ -58,16 +58,26 @@ def create_data_file(uvfits, outfile=None):
         if abs(u) < 1.:
             u *= freq
             v *= freq
-        data = group["DATA"].squeeze()
-        weights = data[:, 2]
+        # IF, STOKES, COMPLEX
+        # data_ = group["DATA"].squeeze()
+        data_ = group["DATA"][0, 0, :, 0, :, :]
+        weights = data_[:, :, 2]
         mask = weights <= 0
+        mask = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
+        masked_data = np.ma.array(data_, mask=mask)
         if np.alltrue(weights <= 0):
             continue
-        weights = np.ma.array(weights, mask=mask)
+        weights = np.ma.array(weights, mask=mask[..., 0])
         weight = np.ma.sum(weights)
         error = 1/np.sqrt(weight)
-        vis_re = np.ma.array(data[:, 0], mask=mask)
-        vis_im = np.ma.array(data[:, 1], mask=mask)
+        if data_.shape[1] > 1:
+            # print("Stokes I")
+            vis_re = 0.5*(masked_data[:, 0, 0] + masked_data[:, 1, 0])
+            vis_im = 0.5*(masked_data[:, 0, 1] + masked_data[:, 1, 1])
+        else:
+            # print("Stokes RR or LL")
+            vis_re = masked_data[:, 0, 0]
+            vis_im = masked_data[:, 0, 1]
         vis_re = np.ma.mean(vis_re)
         vis_im = np.ma.mean(vis_im)
         df_ = pd.Series({"u": u, "v": v, "vis_re": vis_re, "vis_im": vis_im, "error": error})
@@ -78,7 +88,7 @@ def create_data_file(uvfits, outfile=None):
     return df
 
 
-def add_noise(df, use_global_median_noise=True):
+def add_noise(df, use_global_median_noise=True, global_noise_scale=None):
     """
     Add noise as specified in ``error`` columns to ``vis_re`` and ``vis_im`` columns.
 
@@ -94,6 +104,9 @@ def add_noise(df, use_global_median_noise=True):
 
     if use_global_median_noise:
         error = df_["error"].median()
+        if global_noise_scale is not None:
+            error = global_noise_scale*error
+            df_["error"] *= global_noise_scale
         df_["vis_re"] += np.random.normal(0, error, size=df.shape[0])
         df_["vis_im"] += np.random.normal(0, error, size=df.shape[0])
     # Use individual visibilities noise estimated
@@ -101,6 +114,7 @@ def add_noise(df, use_global_median_noise=True):
         df_["vis_re"] += df_["error"].map(lambda x: np.random.normal(0, x, size=1)[0])
         df_["vis_im"] += df_["error"].map(lambda x: np.random.normal(0, x, size=1)[0])
     return df_
+
 
 def radplot(df, fig=None, color=None, label=None, style="ap"):
     uv = df[["u", "v"]].values
@@ -143,8 +157,9 @@ def radplot(df, fig=None, color=None, label=None, style="ap"):
 if __name__ == "__main__":
     # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/J2001+2416_K_2006_06_11_yyk_vis.fits"
     # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/0716+714.u.2013_08_20.uvf"
-    uvfits_fname = "/home/ilya/github/bam/data/good_difmap.uvf"
-    out_fname = "/home/ilya/github/bam/data/good_difmap.txt"
+    # uvfits_fname = "/home/ilya/github/bam/data/smallest.uvf"
+    uvfits_fname = "/home/ilya/github/bam/data/1819.uvf"
+    out_fname = "/home/ilya/github/bam/data/1819.txt"
 
     df = create_data_file(uvfits_fname)
 
@@ -158,13 +173,30 @@ if __name__ == "__main__":
     # re, im = gaussian_circ_ft(flux=1.0, dx=0.5, dy=0.0, bmaj=0.2, uv=df[["u", "v"]].values)
     # df["vis_re"] += re
     # df["vis_im"] += im
+    # re, im = gaussian_circ_ft(flux=0.5, dx=1.5, dy=1.0, bmaj=0.3, uv=df[["u", "v"]].values)
+    # df["vis_re"] += re
+    # df["vis_im"] += im
+    # re, im = gaussian_circ_ft(flux=0.25, dx=3.5, dy=2.0, bmaj=0.5, uv=df[["u", "v"]].values)
+    # df["vis_re"] += re
+    # df["vis_im"] += im
+    # re, im = gaussian_circ_ft(flux=0.125, dx=5, dy=5.0, bmaj=0.5, uv=df[["u", "v"]].values)
+    # df["vis_re"] += re
+    # df["vis_im"] += im
+    # re, im = gaussian_circ_ft(flux=0.075, dx=7.5, dy=8.0, bmaj=0.5, uv=df[["u", "v"]].values)
+    # df["vis_re"] += re
+    # df["vis_im"] += im
+    # re, im = gaussian_circ_ft(flux=0.05, dx=8.0, dy=9.0, bmaj=0.75, uv=df[["u", "v"]].values)
+    # df["vis_re"] += re
+    # df["vis_im"] += im
+    # re, im = gaussian_circ_ft(flux=0.035, dx=9.0, dy=9.5, bmaj=0.75, uv=df[["u", "v"]].values)
+    # df["vis_re"] += re
+    # df["vis_im"] += im
 
     # Plot model only
     fig = radplot(df, label="Data")
-
-    # # Add noise and plot
-    # df_updated = add_noise(df, use_global_median_noise=True)
+    #
+    # # # Add noise and plot
+    # df_updated = add_noise(df, use_global_median_noise=True, global_noise_scale=10)
     # fig = radplot(df_updated, color="#ff7f0e", fig=fig, label="With noise")
     df_updated = df
     df_updated.to_csv(out_fname, sep=" ", index=False, header=False)
-
