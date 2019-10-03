@@ -158,8 +158,8 @@ if __name__ == "__main__":
     # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/J2001+2416_K_2006_06_11_yyk_vis.fits"
     # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/0716+714.u.2013_08_20.uvf"
     # uvfits_fname = "/home/ilya/github/bam/data/smallest.uvf"
-    uvfits_fname = "/home/ilya/github/bam/data/1819.uvf"
-    out_fname = "/home/ilya/github/bam/data/1819.txt"
+    uvfits_fname = "/home/ilya/github/bam/data/1800_S.uvf"
+    out_fname = "/home/ilya/github/bam/data/1800_S.txt"
 
     df = create_data_file(uvfits_fname)
 
