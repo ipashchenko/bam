@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 project(bam)
 
-include_directories("/usr/include/eigen3", "/home/ilya/github/DNest4/code", "/home/ilya/github/stats/include",
-        "/home/ilya/github/gcem/include", "src")
+include_directories("/usr/include/eigen3", "/home/ilya/github/DNest4/code", "src")
 
 
 set(CMAKE_CXX_STANDARD 14)
