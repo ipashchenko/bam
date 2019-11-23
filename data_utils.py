@@ -158,8 +158,9 @@ if __name__ == "__main__":
     # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/J2001+2416_K_2006_06_11_yyk_vis.fits"
     # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/0716+714.u.2013_08_20.uvf"
     # uvfits_fname = "/home/ilya/github/bam/data/smallest.uvf"
-    uvfits_fname = "/home/ilya/github/bam/data/1800_S.uvf"
-    out_fname = "/home/ilya/github/bam/data/1800_S.txt"
+    # uvfits_fname = "/home/ilya/github/bam/data/1800_S.uvf"
+    uvfits_fname = "/home/ilya/data/silke/1502+106.u.2019_10_11.120s.uvf"
+    out_fname = "/home/ilya/github/bam/data/1502+106.u.2019_10_11.120s.txt"
 
     df = create_data_file(uvfits_fname)
 
@@ -192,8 +193,11 @@ if __name__ == "__main__":
     # df["vis_re"] += re
     # df["vis_im"] += im
 
-    # Plot model only
-    fig = radplot(df, label="Data")
+    try:
+        fig = radplot(df, label="Data")
+    except AttributeError:
+        fig = radplot(df, label="Data", style="reim")
+
     #
     # # # Add noise and plot
     # df_updated = add_noise(df, use_global_median_noise=True, global_noise_scale=10)

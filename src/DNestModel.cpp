@@ -6,7 +6,6 @@
 
 
 DNestModel::DNestModel() :
-// logjitter(0.0),
 components(4, 20, false, MyConditionalPrior(5.0), DNest4::PriorType::log_uniform)
 {}
 
@@ -17,7 +16,6 @@ void DNestModel::from_prior(DNest4::RNG &rng) {
     mu_real = zero;
     mu_imag = zero;
 
-    logjitter = -4.0 + 2.0*rng.randn();
     components.from_prior(rng);
     calculate_sky_mu(false);
 }
@@ -26,34 +24,17 @@ void DNestModel::from_prior(DNest4::RNG &rng) {
 double DNestModel::perturb(DNest4::RNG &rng) {
     double logH = 0.;
 
-    // Perturb jitter
-    if(rng.rand() <= 0.1) {
-        logH -= -0.5*pow((logjitter+4)/2.0, 2.0);
-        logjitter += rng.randh();
-        logH += -0.5*pow((logjitter+4)/2.0, 2.0);
-
-        // Pre-reject
-        if(rng.rand() >= exp(logH)) {
-            return -1E300;
-        }
-        else
-            logH = 0.0;
-        // No need to re-calculate model. Just calculate loglike.
-    }
-
     // Perturb SkyModel
-    else {
-        logH += components.perturb(rng);
+    logH += components.perturb(rng);
 
-        // Pre-reject
-        if(rng.rand() >= exp(logH))
-            return -1E300;
-        else
-            logH = 0.0;
+    // Pre-reject
+    if(rng.rand() >= exp(logH))
+        return -1E300;
+    else
+        logH = 0.0;
 
-        // This shouldn't be called in case of pre-rejection
-        calculate_sky_mu(false);
-    }
+    // This shouldn't be called in case of pre-rejection
+    calculate_sky_mu(false);
     return logH;
 }
 
@@ -103,8 +84,8 @@ double DNestModel::log_likelihood() const {
     // Variance
     const std::valarray<double> var = sigma*sigma;
     // Complex Gaussian sampling distribution
-    std::valarray<double> result = -log(2*M_PI*(var+exp(2.0*logjitter))) - 0.5*(pow(vis_real - mu_real, 2) +
-        pow(vis_imag - mu_imag, 2))/(var+exp(2.0*logjitter))   ;
+    std::valarray<double> result = -log(2*M_PI*var) - 0.5*(pow(vis_real - mu_real, 2) +
+        pow(vis_imag - mu_imag, 2))/var   ;
     double loglik = result.sum();
     return loglik;
 
@@ -112,7 +93,6 @@ double DNestModel::log_likelihood() const {
 
 
 void DNestModel::print(std::ostream &out) const {
-    out << logjitter << '\t';
     // This will be printed by RJObject
     components.print(out); out << '\t';
 }
@@ -122,11 +102,8 @@ std::string DNestModel::description() const
 {
     std::string descr;
 
-    // Anything printed by DNestModel::print (except the last line)
-    descr += "logjitter ";
-
     // The rest is all what happens when you call .print on an RJObject
-    descr += " dim_components max_num_components ";
+    descr += "dim_components max_num_components ";
 
     // Then the hyperparameters (i.e. whatever MyConditionalPrior::print prints)
     descr += " typical_flux dev_log_flux typical_radius dev_log_radius ";
