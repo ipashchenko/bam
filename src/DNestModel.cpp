@@ -7,7 +7,7 @@
 
 DNestModel::DNestModel() :
 // logjitter(0.0),
-components(4, 20, false, MyConditionalPrior(-15, 15, -15, 15), DNest4::PriorType::log_uniform)
+components(4, 20, false, MyConditionalPrior(5.0), DNest4::PriorType::log_uniform)
 {}
 
 void DNestModel::from_prior(DNest4::RNG &rng) {
@@ -17,7 +17,7 @@ void DNestModel::from_prior(DNest4::RNG &rng) {
     mu_real = zero;
     mu_imag = zero;
 
-    logjitter = -3.0 + 2.0*rng.randn();
+    logjitter = -4.0 + 2.0*rng.randn();
     components.from_prior(rng);
     calculate_sky_mu(false);
 }
@@ -28,9 +28,9 @@ double DNestModel::perturb(DNest4::RNG &rng) {
 
     // Perturb jitter
     if(rng.rand() <= 0.1) {
-        logH -= -0.5*pow((logjitter+3)/2.0, 2.0);
+        logH -= -0.5*pow((logjitter+4)/2.0, 2.0);
         logjitter += rng.randh();
-        logH += -0.5*pow((logjitter+3)/2.0, 2.0);
+        logH += -0.5*pow((logjitter+4)/2.0, 2.0);
 
         // Pre-reject
         if(rng.rand() >= exp(logH)) {
