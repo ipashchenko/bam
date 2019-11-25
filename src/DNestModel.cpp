@@ -7,7 +7,7 @@
 
 DNestModel::DNestModel() :
 // logjitter(0.0),
-components(4, 20, false, MyConditionalPrior(-100, 100, -100, 100), DNest4::PriorType::log_uniform)
+components(4, 20, false, MyConditionalPrior(-15, 15, -15, 15), DNest4::PriorType::log_uniform)
 {}
 
 void DNestModel::from_prior(DNest4::RNG &rng) {

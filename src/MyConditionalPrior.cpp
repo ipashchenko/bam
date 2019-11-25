@@ -15,10 +15,10 @@ MyConditionalPrior::MyConditionalPrior(double x_min, double x_max,
 
 void MyConditionalPrior::from_prior(RNG& rng)
 {
-    const DNest4::Gaussian gauss1(0.0, 0.25);
+    const DNest4::Gaussian gauss1(0.00, 0.05);
     typical_flux = gauss1.generate(rng);
 
-    const DNest4::Gaussian gauss2(1.00, 0.10);
+    const DNest4::Gaussian gauss2(0.50, 0.05);
     dev_log_flux = gauss2.generate(rng);
 
     const DNest4::Gaussian gauss3(-2.0, 0.25);
@@ -36,12 +36,12 @@ double MyConditionalPrior::perturb_hyperparameters(RNG& rng)
 
     if(which == 0)
     {
-        const DNest4::Gaussian gauss1(0.0, 0.25);
+        const DNest4::Gaussian gauss1(0.00, 0.05);
         logH += gauss1.perturb(typical_flux, rng);
     }
     else if(which == 1)
     {
-        const DNest4::Gaussian gauss2(1.0, 0.10);
+        const DNest4::Gaussian gauss2(0.50, 0.05);
         logH += gauss2.perturb(dev_log_flux, rng);
     }
     else if(which == 2)
