@@ -3,12 +3,8 @@
 
 using namespace DNest4;
 
-MyConditionalPrior::MyConditionalPrior(double x_min, double x_max,
-                                       double y_min, double y_max)
-    :x_min(x_min)
-    ,x_max(x_max)
-    ,y_min(y_min)
-    ,y_max(y_max)
+MyConditionalPrior::MyConditionalPrior(double std)
+    :std(std)
 {
 
 }
@@ -64,8 +60,10 @@ double MyConditionalPrior::log_pdf(const std::vector<double>& vec) const
     double logp = 0.0;
 
     // Position
-    if(vec[0] < x_min || vec[0] > x_max || vec[1] < y_min || vec[1] > y_max)
-        return -1E300;
+    DNest4::Gaussian gaussx(0.0, std);
+    DNest4::Gaussian gaussy(0.0, std);
+    logp += gaussx.log_pdf(vec[0]);
+    logp += gaussy.log_pdf(vec[1]);
 
     // Flux
     // DNest4::Laplace laplace1(typical_flux, dev_log_flux);
@@ -85,8 +83,10 @@ double MyConditionalPrior::log_pdf(const std::vector<double>& vec) const
 void MyConditionalPrior::from_uniform(std::vector<double>& vec) const
 {
     // Position
-    vec[0] = x_min + (x_max - x_min)*vec[0];
-    vec[1] = y_min + (y_max - y_min)*vec[1];
+    DNest4::Gaussian gaussx(0.0, std);
+    vec[0] = gaussx.cdf_inverse(vec[0]);
+    DNest4::Gaussian gaussy(0.0, std);
+    vec[1] = gaussy.cdf_inverse(vec[1]);
 
     // Flux
     // DNest4::Laplace laplace1(typical_flux, dev_log_flux);
@@ -103,8 +103,10 @@ void MyConditionalPrior::from_uniform(std::vector<double>& vec) const
 void MyConditionalPrior::to_uniform(std::vector<double>& vec) const
 {
     // Position
-    vec[0] = (vec[0] - x_min)/(x_max - x_min);
-    vec[1] = (vec[1] - y_min)/(y_max - y_min);
+    DNest4::Gaussian gaussx(0.0, std);
+    vec[0] = gaussx.cdf(vec[0]);
+    DNest4::Gaussian gaussy(0.0, std);
+    vec[1] = gaussy.cdf(vec[1]);
 
     // Flux
     // DNest4::Laplace laplace1(typical_flux, dev_log_flux);
