@@ -32,7 +32,6 @@ class DNestModel {
         std::string description() const;
 
     private:
-        double logjitter;
         SkyModel* sky_model{};
         // Prediction of SkyModel only
         std::valarray<double> mu_real;
