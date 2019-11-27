@@ -20,12 +20,12 @@ void DFComponent::ft(std::valarray<double> u, std::valarray<double> v)
     mu_imag = exp(logflux_)*sin(theta);
 }
 
-void DFComponent::set_param_vec(std::valarray<double> param)
-{
-    dx_ = param[0];
-    dy_ = param[1];
-    logflux_ = param[2];
-}
+//void DFComponent::set_param_vec(std::valarray<double> param)
+//{
+//    dx_ = param[0];
+//    dy_ = param[1];
+//    logflux_ = param[2];
+//}
 
 void DFComponent::print(std::ostream &out) const
 {
@@ -57,15 +57,15 @@ void EGComponent::ft(std::valarray<double> u, std::valarray<double> v)
     mu_imag = ft*sin(theta);
 }
 
-void EGComponent::set_param_vec(std::valarray<double> param)
-{
-    dx_ = param[0];
-    dy_ = param[1];
-    logflux_ = param[2];
-    logbmaj_ = param[3];
-    e_ = param[4];
-    bpa_ = param[5];
-}
+//void EGComponent::set_param_vec(std::valarray<double> param)
+//{
+//    dx_ = param[0];
+//    dy_ = param[1];
+//    logflux_ = param[2];
+//    logbmaj_ = param[3];
+//    e_ = param[4];
+//    bpa_ = param[5];
+//}
 
 void EGComponent::print(std::ostream &out) const
 {
@@ -77,12 +77,12 @@ void EGComponent::print(std::ostream &out) const
 CGComponent::CGComponent() : EGComponent() {}
 
 
-void CGComponent::set_param_vec(std::valarray<double> param) {
-    dx_ = param[0];
-    dy_ = param[1];
-    logflux_ = param[2];
-    logbmaj_ = param[3];
-}
+//void CGComponent::set_param_vec(std::valarray<double> param) {
+//    dx_ = param[0];
+//    dy_ = param[1];
+//    logflux_ = param[2];
+//    logbmaj_ = param[3];
+//}
 
 void CGComponent::print(std::ostream &out) const
 {
@@ -92,8 +92,8 @@ void CGComponent::print(std::ostream &out) const
 
 void CGComponent::from_prior(DNest4::RNG &rng) {
      // Normal diffuse prior for x & y
-     dx_ = 0.25*rng.randn();
-     dy_ = 0.25*rng.randn();
+     dx_ = 5.0*rng.randn();
+     dy_ = 5.0*rng.randn();
      // Log-normal prior for flux and bmaj
      logflux_ = 0.0 + 1.0*rng.randn();
      logbmaj_ = -2. + 1.0*rng.randn();
@@ -105,9 +105,9 @@ double CGComponent::perturb(DNest4::RNG &rng) {
     int which = rng.rand_int(4);
     if(which%4 == 0)
     {
-        log_H -= -0.5*pow(dx_/0.25, 2);
-        dx_ += 0.25*rng.randh();
-        log_H += -0.5*pow(dx_/0.25, 2);
+        log_H -= -0.5*pow(dx_/5.0, 2);
+        dx_ += 5.0*rng.randh();
+        log_H += -0.5*pow(dx_/5.0, 2);
 
         // Example of the proposal that keeps components sorted
         //double old = params[which];
@@ -122,15 +122,15 @@ double CGComponent::perturb(DNest4::RNG &rng) {
     }
     else if(which%4 == 1)
     {
-        log_H -= -0.5*pow(dy_/0.25, 2);
-        dy_ += 0.25*rng.randh();
-        log_H += -0.5*pow(dy_/0.25, 2);
+        log_H -= -0.5*pow(dy_/5.0, 2);
+        dy_ += 5.0*rng.randh();
+        log_H += -0.5*pow(dy_/5.0, 2);
     }
     else if(which%4 == 2)
     {
-        log_H -= -0.5*pow((logflux_-0.0)/1, 2);
-        logflux_ += 1*rng.randh();
-        log_H += -0.5*pow((logflux_-0.0)/1, 2);
+        log_H -= -0.5*pow((logflux_-0.0)/1.0, 2);
+        logflux_ += 1.0*rng.randh();
+        log_H += -0.5*pow((logflux_-0.0)/1.0, 2);
     }
     else
     {
@@ -145,11 +145,6 @@ double CGComponent::perturb(DNest4::RNG &rng) {
     //    calculate_mu();
     //std::cout << "In SkyModel::perturb with logH =" << log_H << std::endl;
     return log_H;
-}
-
-
-void CGComponent::set_x(double x) {
-    dx_ = x;
 }
 
 

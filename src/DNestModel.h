@@ -2,6 +2,7 @@
 #define BAM_DNESTMODEL_H
 
 #include <valarray>
+#include "SkyModel.h"
 #include "RNG.h"
 #include "DNest4.h"
 #include "MyConditionalPrior.h"
@@ -11,6 +12,9 @@ class DNestModel {
     public:
 
         DNestModel();
+        ~DNestModel();
+        DNestModel(const DNestModel& other);
+        DNestModel& operator=(const DNestModel& other);
 
         // Generate the point from the prior
         void from_prior(DNest4::RNG& rng);
@@ -28,8 +32,8 @@ class DNestModel {
         std::string description() const;
 
     private:
-        DNest4::RJObject<MyConditionalPrior> components;
         double logjitter;
+        SkyModel* sky_model{};
         // Prediction of SkyModel only
         std::valarray<double> mu_real;
         std::valarray<double> mu_imag;
