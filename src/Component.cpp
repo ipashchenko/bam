@@ -92,11 +92,11 @@ void CGComponent::print(std::ostream &out) const
 
 void CGComponent::from_prior(DNest4::RNG &rng) {
      // Normal diffuse prior for x & y
-     dx_ = 5.0*rng.randn();
-     dy_ = 5.0*rng.randn();
+     dx_ = 10.0*rng.randn();
+     dy_ = 10.0*rng.randn();
      // Log-normal prior for flux and bmaj
-     logflux_ = 0.0 + 1.0*rng.randn();
-     logbmaj_ = -2. + 1.0*rng.randn();
+     logflux_ = -2.0 + 1.5*rng.randn();
+     logbmaj_ = -2.0 + 1.0*rng.randn();
 }
 
 
@@ -105,9 +105,9 @@ double CGComponent::perturb(DNest4::RNG &rng) {
     int which = rng.rand_int(4);
     if(which%4 == 0)
     {
-        log_H -= -0.5*pow(dx_/5.0, 2);
-        dx_ += 5.0*rng.randh();
-        log_H += -0.5*pow(dx_/5.0, 2);
+        log_H -= -0.5*pow(dx_/10.0, 2);
+        dx_ += 10.0*rng.randh();
+        log_H += -0.5*pow(dx_/10.0, 2);
 
         // Example of the proposal that keeps components sorted
         //double old = params[which];
@@ -122,15 +122,15 @@ double CGComponent::perturb(DNest4::RNG &rng) {
     }
     else if(which%4 == 1)
     {
-        log_H -= -0.5*pow(dy_/5.0, 2);
-        dy_ += 5.0*rng.randh();
-        log_H += -0.5*pow(dy_/5.0, 2);
+        log_H -= -0.5*pow(dy_/10.0, 2);
+        dy_ += 10.0*rng.randh();
+        log_H += -0.5*pow(dy_/10.0, 2);
     }
     else if(which%4 == 2)
     {
-        log_H -= -0.5*pow((logflux_-0.0)/1.0, 2);
-        logflux_ += 1.0*rng.randh();
-        log_H += -0.5*pow((logflux_-0.0)/1.0, 2);
+        log_H -= -0.5*pow((logflux_+2.0)/1.5, 2);
+        logflux_ += 1.5*rng.randh();
+        log_H += -0.5*pow((logflux_+2.0)/1.5, 2);
     }
     else
     {
