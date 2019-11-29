@@ -7,7 +7,7 @@
 
 DNestModel::DNestModel() {
     sky_model = new SkyModel();
-    int ncomp = 6;
+    int ncomp = 3;
     for (int i=0; i<ncomp; i++) {
         auto* comp = new CGComponent();
         sky_model->add_component(comp);
