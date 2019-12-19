@@ -70,6 +70,8 @@ def create_data_file(uvfits, outfile=None):
         weights = np.ma.array(weights, mask=mask[..., 0])
         weight = np.ma.sum(weights)
         error = 1/np.sqrt(weight)
+
+        # FIXME: Comment out this block for some specific STOKES data sets (e.g. 3C84 RA)
         if data_.shape[1] > 1:
             # print("Stokes I")
             vis_re = 0.5*(masked_data[:, 0, 0] + masked_data[:, 1, 0])
@@ -78,6 +80,11 @@ def create_data_file(uvfits, outfile=None):
             # print("Stokes RR or LL")
             vis_re = masked_data[:, 0, 0]
             vis_im = masked_data[:, 0, 1]
+
+        # # For LL (3 84 RA)
+        # vis_re = masked_data[:, 1, 0]
+        # vis_im = masked_data[:, 1, 1]
+
         vis_re = np.ma.mean(vis_re)
         vis_im = np.ma.mean(vis_im)
         df_ = pd.Series({"u": u, "v": v, "vis_re": vis_re, "vis_im": vis_im, "error": error})
@@ -159,8 +166,8 @@ if __name__ == "__main__":
     # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/0716+714.u.2013_08_20.uvf"
     # uvfits_fname = "/home/ilya/github/bam/data/smallest.uvf"
     # uvfits_fname = "/home/ilya/github/bam/data/1800_S.uvf"
-    uvfits_fname = "/home/ilya/data/silke/rfc/1502+106.x.2013_07_08.120s.uvf"
-    out_fname = "/home/ilya/github/bam/data/1502+106.x.2013_07_08.120s.txt"
+    uvfits_fname = "/home/ilya/data/silke/1502+106.u.2010_11_13.60s.uvf"
+    out_fname = "/home/ilya/github/bam/data/1502+106.u.2010_11_13.60s.txt"
 
     df = create_data_file(uvfits_fname)
 
