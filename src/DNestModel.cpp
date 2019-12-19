@@ -106,6 +106,7 @@ double DNestModel::log_likelihood() const {
     const std::valarray<double>& sigma = Data::get_instance().get_sigma();
 
     // Variance
+    // TODO: Keep variance in data not to square sigma each time
     const std::valarray<double> var = sigma*sigma;
     // Complex Gaussian sampling distribution
     std::valarray<double> result = -log(2*M_PI*(var+exp(2.0*logjitter))) - 0.5*(pow(vis_real - mu_real, 2) +
