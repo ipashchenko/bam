@@ -66,6 +66,27 @@ void EGComponent::print(std::ostream &out) const
 CGComponent::CGComponent() : EGComponent() {}
 
 
+void CGComponent::ft(std::valarray<double> u, std::valarray<double> v)
+{
+    std::valarray<double> theta;
+    double c;
+    //std::valarray<double> b;
+    std::valarray<double> ft;
+
+    // Phase shift due to not being in a phase center
+    theta = 2*M_PI*mas_to_rad*(u*dx_+v*dy_);
+    // Calculate FT of a Gaussian in a phase center
+    c = pow(M_PI*exp(logbmaj_)*mas_to_rad, 2)/(4.*log(2.));
+    //b = e_*e_*pow((u*cos(bpa_) - v*sin(bpa_)), 2) + pow((u*sin(bpa_)+v*cos(bpa_)), 2);
+    // TODO: Keep u*u and v*v already computed
+    ft = exp(logflux_-c*(u*u + v*v));
+
+    // Prediction of visibilities
+    mu_real = ft*cos(theta);
+    mu_imag = ft*sin(theta);
+}
+
+
 void CGComponent::print(std::ostream &out) const
 {
     out << dx_ << '\t' << dy_ << '\t' << logflux_ << '\t' << logbmaj_ << '\t';
