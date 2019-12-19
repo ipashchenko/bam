@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.11)
 project(bam)
 
 include_directories("/usr/include/eigen3", "/home/ilya/github/DNest4/code", "src")

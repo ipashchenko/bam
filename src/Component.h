@@ -80,7 +80,6 @@ class EGComponent : public Component {
     public:
         EGComponent();
         void ft(std::valarray<double> u, std::valarray<double> v) override;
-        //void set_param_vec(std::valarray<double> param) override;
         const size_t size() const override
         {
             return 6;
@@ -103,7 +102,6 @@ class CGComponent : public EGComponent {
         CGComponent();
         void ft(std::valarray<double> u, std::valarray<double> v) override;
         CGComponent(const CGComponent& other);
-        //void set_param_vec(std::valarray<double> param) override;
         const size_t size() const override
         {
             return 4;
