@@ -9,6 +9,7 @@ DFComponent::DFComponent() : dx_(0.0), dy_(0.0), logflux_(0.0)
 
 }
 
+
 void DFComponent::ft(std::valarray<double> u, std::valarray<double> v)
 {
     std::valarray<double> theta;
@@ -20,12 +21,6 @@ void DFComponent::ft(std::valarray<double> u, std::valarray<double> v)
     mu_imag = exp(logflux_)*sin(theta);
 }
 
-//void DFComponent::set_param_vec(std::valarray<double> param)
-//{
-//    dx_ = param[0];
-//    dy_ = param[1];
-//    logflux_ = param[2];
-//}
 
 void DFComponent::print(std::ostream &out) const
 {
@@ -33,10 +28,12 @@ void DFComponent::print(std::ostream &out) const
 
 }
 
+
 EGComponent::EGComponent() : dx_(0.0), dy_(0.0), logflux_(0.0), logbmaj_(0.0), e_(1.0), bpa_(0.0)
 {
 
 }
+
 
 void EGComponent::ft(std::valarray<double> u, std::valarray<double> v)
 {
@@ -57,15 +54,6 @@ void EGComponent::ft(std::valarray<double> u, std::valarray<double> v)
     mu_imag = ft*sin(theta);
 }
 
-//void EGComponent::set_param_vec(std::valarray<double> param)
-//{
-//    dx_ = param[0];
-//    dy_ = param[1];
-//    logflux_ = param[2];
-//    logbmaj_ = param[3];
-//    e_ = param[4];
-//    bpa_ = param[5];
-//}
 
 void EGComponent::print(std::ostream &out) const
 {
@@ -76,13 +64,6 @@ void EGComponent::print(std::ostream &out) const
 
 CGComponent::CGComponent() : EGComponent() {}
 
-
-//void CGComponent::set_param_vec(std::valarray<double> param) {
-//    dx_ = param[0];
-//    dy_ = param[1];
-//    logflux_ = param[2];
-//    logbmaj_ = param[3];
-//}
 
 void CGComponent::print(std::ostream &out) const
 {
@@ -108,17 +89,6 @@ double CGComponent::perturb(DNest4::RNG &rng) {
         log_H -= -0.5*pow(dx_/10.0, 2);
         dx_ += 10.0*rng.randh();
         log_H += -0.5*pow(dx_/10.0, 2);
-
-        // Example of the proposal that keeps components sorted
-        //double old = params[which];
-        //log_H -= -0.5*pow(params[which]/5, 2);
-        //
-        //do {
-        //    double perturbation = 5*rng.randh();
-        //    params[which] = old + perturbation;
-        //    old = params[which] - perturbation;
-        //} while (!are_sorted());
-        //log_H += -0.5*pow(params[which]/5, 2);
     }
     else if(which%4 == 1)
     {
@@ -138,12 +108,6 @@ double CGComponent::perturb(DNest4::RNG &rng) {
         logbmaj_ += 1.0*rng.randh();
         log_H += -0.5*pow((logbmaj_+2.0)/1.0, 2);
     }
-
-    //// Calculate model visibilities again if Gaussian parameters changed
-    //// Here we can save calculation
-    //if(which%4 == 0 || which%4 == 1 || which%4 == 2 || which%4 == 3)
-    //    calculate_mu();
-    //std::cout << "In SkyModel::perturb with logH =" << log_H << std::endl;
     return log_H;
 }
 

@@ -74,11 +74,9 @@ double DNestModel::perturb(DNest4::RNG &rng) {
     // Perturb SkyModel
     else {
         logH += sky_model->perturb(rng);
-        //std::cout << "Perturbed SkyModel with logH =" << logH << std::endl;
 
         // Pre-reject
         if(rng.rand() >= exp(logH)) {
-            //std::cout << "Pre-rejected proposal SkyModel" << std::endl;
             return -1E300;
         }
         else
