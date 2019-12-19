@@ -25,6 +25,7 @@ class SkyModel {
 
     private:
         std::vector<Component*> components_;
+        std::vector<bool> updated_;
         // SkyModel prediction
         std::valarray<double> mu_real;
         std::valarray<double> mu_imag;

@@ -1,6 +1,6 @@
 #include <SkyModel.h>
 #include <iostream>
-
+#include "Data.h"
 
 SkyModel::SkyModel() = default;
 
@@ -52,13 +52,20 @@ void SkyModel::add_component(Component *component) {
 void SkyModel::ft(const std::valarray<double>& u, const std::valarray<double>& v) {
     std::valarray<double> real (0.0, u.size());
     std::valarray<double> imag (0.0, u.size());
+    // Traverse components and sum differences of new and old predictions for updated components.
+    // TODO: Just choose updated component without cycle
     for (auto comp : components_) {
-        comp->ft(u, v);
-        real = real + comp->get_mu_real();
-        imag = imag + comp->get_mu_imag();
+        if(comp->is_updated) {
+            comp->ft(u, v);
+            real = comp->get_mu_real() - comp->get_mu_real_old();
+            imag = comp->get_mu_imag() - comp->get_mu_imag_old();
+            comp->is_updated = false;
+            comp->update_old();
+            break;
+        }
     }
-    mu_real = real;
-    mu_imag = imag;
+    mu_real += real;
+    mu_imag += imag;
 }
 
 
@@ -71,14 +78,20 @@ void SkyModel::print(std::ostream &out) const
 
 
 void SkyModel::from_prior(DNest4::RNG &rng) {
+    const std::valarray<double>& u = Data::get_instance().get_u();
+    std::valarray<double> zero (0.0, u.size());
+    mu_real = zero;
+    mu_imag = zero;
     for (auto comp: components_) {
         comp->from_prior(rng);
+        comp->is_updated = true;
     }
 }
 
 
 double SkyModel::perturb(DNest4::RNG &rng) {
     int which = rng.rand_int(components_.size());
+    components_[which]->is_updated = true;
     return components_[which]->perturb(rng);
 }
 

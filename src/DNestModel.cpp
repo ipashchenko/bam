@@ -8,7 +8,7 @@
 DNestModel::DNestModel() : logjitter(0.0) {
 
     sky_model = new SkyModel();
-    int ncomp = 3;
+    int ncomp = 8;
     for (int i=0; i<ncomp; i++) {
         auto* comp = new CGComponent();
         sky_model->add_component(comp);
@@ -40,13 +40,13 @@ DNestModel& DNestModel::operator=(const DNestModel& other) {
 }
 
 
+// TODO: Here initialize containers with old and current per-component predictions.
 void DNestModel::from_prior(DNest4::RNG &rng) {
     // I do this because in ``calculate_sky_mu`` ``mu_real`` and ``mu_imag`` are multiplied and added.
     const std::valarray<double>& u = Data::get_instance().get_u();
     std::valarray<double> zero (0.0, u.size());
     mu_real = zero;
     mu_imag = zero;
-
     logjitter = -4.0 + 2.0*rng.randn();
     sky_model->from_prior(rng);
     calculate_sky_mu(false);

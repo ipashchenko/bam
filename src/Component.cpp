@@ -1,4 +1,5 @@
 #include "Component.h"
+#include "Data.h"
 #include <cmath>
 #include <iostream>
 #include <RNG.h>
@@ -72,6 +73,12 @@ void CGComponent::print(std::ostream &out) const
 
 
 void CGComponent::from_prior(DNest4::RNG &rng) {
+     const std::valarray<double>& u = Data::get_instance().get_u();
+     std::valarray<double> zero (0.0, u.size());
+     mu_real = zero;
+     mu_imag = zero;
+     mu_real_old = zero;
+     mu_imag_old = zero;
      // Normal diffuse prior for x & y
      dx_ = 10.0*rng.randn();
      dy_ = 10.0*rng.randn();
@@ -124,6 +131,8 @@ CGComponent::CGComponent(const CGComponent &other) {
     logbmaj_ = other.logbmaj_;
     mu_real = other.get_mu_real();
     mu_imag = other.get_mu_imag();
+    mu_real_old = other.get_mu_real_old();
+    mu_imag_old = other.get_mu_imag_old();
 }
 
 
