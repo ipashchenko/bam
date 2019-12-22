@@ -69,6 +69,21 @@ void SkyModel::ft(const std::valarray<double>& u, const std::valarray<double>& v
 }
 
 
+void SkyModel::ft_from_all(const std::valarray<double>& u, const std::valarray<double>& v) {
+    std::valarray<double> real (0.0, u.size());
+    std::valarray<double> imag (0.0, u.size());
+    for (auto comp : components_) {
+        comp->ft(u, v);
+        real = real + comp->get_mu_real();
+        imag = imag + comp->get_mu_imag();
+        comp->is_updated = false;
+        comp->update_old();
+    }
+    mu_real = real;
+    mu_imag = imag;
+}
+
+
 void SkyModel::print(std::ostream &out) const
 {
     for (auto comp: components_) {

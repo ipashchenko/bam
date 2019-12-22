@@ -33,6 +33,7 @@ class DNestModel {
 
     private:
         double logjitter;
+        size_t ft_calc_counter;
         SkyModel* sky_model{};
         // Prediction of SkyModel only
         std::valarray<double> mu_real;

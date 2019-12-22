@@ -15,6 +15,7 @@ class SkyModel {
 
         void add_component(Component* component);
         void ft(const std::valarray<double>& u, const std::valarray<double>& v);
+        void ft_from_all(const std::valarray<double>& u, const std::valarray<double>& v);
         std::valarray<double> get_mu_real() const { return mu_real; }
         std::valarray<double> get_mu_imag() const { return mu_imag; }
         void print(std::ostream& out) const;

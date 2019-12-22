@@ -13,6 +13,7 @@ DNestModel::DNestModel() : logjitter(0.0) {
         auto* comp = new CGComponent();
         sky_model->add_component(comp);
     }
+    ft_calc_counter = 0;
 }
 
 
@@ -94,7 +95,14 @@ void DNestModel::calculate_sky_mu(bool update) {
     const std::valarray<double>& v = Data::get_instance().get_v();
 
     // FT (calculate SkyModel prediction)
-    sky_model->ft(u, v);
+    if(ft_calc_counter < 30) {
+        sky_model->ft(u, v);
+        ft_calc_counter += 1;
+    } else {
+        sky_model->ft_from_all(u, v);
+        ft_calc_counter = 0;
+    }
+
     mu_real = sky_model->get_mu_real();
     mu_imag = sky_model->get_mu_imag();
 }
