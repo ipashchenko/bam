@@ -95,7 +95,7 @@ void DNestModel::calculate_sky_mu(bool update) {
     const std::valarray<double>& v = Data::get_instance().get_v();
 
     // FT (calculate SkyModel prediction)
-    if(ft_calc_counter < 30) {
+    if(update and ft_calc_counter < 30) {
         sky_model->ft(u, v);
         ft_calc_counter += 1;
     } else {
