@@ -5,15 +5,14 @@
 #include "Component.h"
 
 
-DNestModel::DNestModel() : logjitter(0.0) {
+DNestModel::DNestModel() : logjitter(0.0), ft_calc_counter(0) {
 
     sky_model = new SkyModel();
-    int ncomp = 8;
+    int ncomp = 6;
     for (int i=0; i<ncomp; i++) {
         auto* comp = new CGComponent();
         sky_model->add_component(comp);
     }
-    ft_calc_counter = 0;
 }
 
 
@@ -27,6 +26,7 @@ DNestModel::DNestModel(const DNestModel& other) {
     logjitter = other.logjitter;
     mu_real = other.mu_real;
     mu_imag = other.mu_imag;
+    ft_calc_counter = other.ft_calc_counter;
 }
 
 
@@ -36,6 +36,7 @@ DNestModel& DNestModel::operator=(const DNestModel& other) {
         logjitter = other.logjitter;
         mu_real = other.mu_real;
         mu_imag = other.mu_imag;
+        ft_calc_counter = other.ft_calc_counter;
     }
     return *this;
 }
@@ -84,7 +85,7 @@ double DNestModel::perturb(DNest4::RNG &rng) {
             logH = 0.0;
 
         // This shouldn't be called in case of pre-rejection
-        calculate_sky_mu(false);
+        calculate_sky_mu(true);
     }
     return logH;
 }
@@ -95,7 +96,7 @@ void DNestModel::calculate_sky_mu(bool update) {
     const std::valarray<double>& v = Data::get_instance().get_v();
 
     // FT (calculate SkyModel prediction)
-    if(update and ft_calc_counter < 30) {
+    if(update && ft_calc_counter < 30) {
         sky_model->ft(u, v);
         ft_calc_counter += 1;
     } else {
