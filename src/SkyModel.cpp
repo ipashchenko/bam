@@ -49,38 +49,38 @@ void SkyModel::add_component(Component *component) {
 }
 
 void SkyModel::ft(const std::valarray<double>& u, const std::valarray<double>& v) {
-    std::valarray<double> real (0.0, u.size());
-    std::valarray<double> imag (0.0, u.size());
     // Traverse components and sum differences of new and old predictions for updated components.
     for (auto comp : components_) {
         if(comp->is_updated) {
             comp->ft(u, v);
-            real = comp->get_mu_real() - comp->get_mu_real_old();
-            imag = comp->get_mu_imag() - comp->get_mu_imag_old();
+            // TODO: Here I can add to ``mu_real``, ``mu_imag`` w/o declaring new arrays. However ``mu_real/imag`` must
+            // be already initialized. They are initialized to zeros in ``SkyModel.from_prior`` and first
+            // ``ft_from_all`` fills them with predictions.
+            mu_real += (comp->get_mu_real() - comp->get_mu_real_old());
+            mu_imag += (comp->get_mu_imag() - comp->get_mu_imag_old());
             comp->is_updated = false;
             comp->update_old();
             break;
         }
     }
-    mu_real += real;
-    mu_imag += imag;
 }
 
 
 void SkyModel::ft_from_all(const std::valarray<double>& u, const std::valarray<double>& v) {
-    std::valarray<double> real (0.0, u.size());
-    std::valarray<double> imag (0.0, u.size());
+    // Zero prediction
+    mu_real *= 0.0;
+    mu_imag *= 0.0;
+
     for (auto comp : components_) {
         comp->ft(u, v);
-        real = real + comp->get_mu_real();
-        imag = imag + comp->get_mu_imag();
+        // TODO: Here I can add to ``mu_real``, ``mu_imag`` w/o declaring new arrays
+        mu_real += comp->get_mu_real();
+        mu_imag += comp->get_mu_imag();
         if(comp->is_updated) {
             comp->is_updated = false;
             comp->update_old();
         }
     }
-    mu_real = real;
-    mu_imag = imag;
 }
 
 
