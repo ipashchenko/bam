@@ -2,19 +2,16 @@
 #define BAM_DNESTMODEL_H
 
 #include <valarray>
-#include "SkyModel.h"
 #include "RNG.h"
 #include "DNest4.h"
 #include "MyConditionalPrior.h"
 
+const double mas_to_rad = 4.84813681109536e-09;
 
 class DNestModel {
     public:
 
         DNestModel();
-        ~DNestModel();
-        DNestModel(const DNestModel& other);
-        DNestModel& operator=(const DNestModel& other);
 
         // Generate the point from the prior
         void from_prior(DNest4::RNG& rng);
@@ -33,13 +30,11 @@ class DNestModel {
 
     private:
         double logjitter;
-        size_t ft_calc_counter;
-        SkyModel* sky_model{};
-        // Prediction of SkyModel only
+        unsigned int counter;
+        DNest4::RJObject<MyConditionalPrior> components;
         std::valarray<double> mu_real;
         std::valarray<double> mu_imag;
-        // This runs ``ft`` method of SkyModel with (u, v) from Data and updates SkyModel predictions
-        void calculate_sky_mu(bool update);
+        void calculate_sky_mu();
 };
 
 #endif //BAM_DNESTMODEL_H
