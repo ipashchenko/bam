@@ -1,8 +1,15 @@
+import os
 import numpy as np
 import astropy.io.fits as pf
 from astropy.time import Time
 from astropy import units as u
 import pandas as pd
+from tqdm import tqdm
+import sys
+sys.path.insert(0, '/home/ilya/github/agn_abc')
+from data import Data
+sys.path.insert(0, '/home/ilya/github/ve/vlbi_errors')
+from spydiff import time_average
 
 mas_to_rad = u.mas.to(u.rad)
 
@@ -95,6 +102,35 @@ def create_data_file(uvfits, outfile=None):
     return df
 
 
+def create_data_file_v2(uvfits, outfile, time_average_sec=None, error_from_weight=False):
+    """
+    :param uvfits:
+        Path to UVFITS file.
+    :param outfile:
+        Path to output txt-file.
+    """
+    if time_average_sec is not None:
+        path, fname = os.path.split(uvfits)
+        to_read_uvfits = os.path.join(path, "ta{}sec_{}".format(time_average_sec, fname))
+        time_average(uvfits, to_read_uvfits, time_sec=time_average_sec)
+    else:
+        to_read_uvfits = uvfits
+    all_data = Data(to_read_uvfits)
+    if error_from_weight:
+        error = all_data.error
+    else:
+        error = all_data.error_wt
+    df = pd.DataFrame.from_dict({"u": all_data.uv[:, 0],
+                                 "v": all_data.uv[:, 1],
+                                 "vis_re": all_data.data.real,
+                                 "vis_im": all_data.data.imag,
+                                 "error": error})
+    df = df.dropna()
+    if outfile is not None:
+        df.to_csv(outfile, sep=" ", index=False, header=False)
+    return df
+
+
 def add_noise(df, use_global_median_noise=True, global_noise_scale=None):
     """
     Add noise as specified in ``error`` columns to ``vis_re`` and ``vis_im`` columns.
@@ -166,10 +202,15 @@ if __name__ == "__main__":
     # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/0716+714.u.2013_08_20.uvf"
     # uvfits_fname = "/home/ilya/github/bam/data/smallest.uvf"
     # uvfits_fname = "/home/ilya/github/bam/data/1800_S.uvf"
-    uvfits_fname = "/home/ilya/github/bam/data/test_60s.uvf"
-    out_fname = "/home/ilya/github/bam/data/test_60s.txt"
+    import glob
+    uvfits_files = glob.glob(os.path.join("/home/ilya/github/dterms/data/mojave/", "0506+056.u*.uvf"))
+    for uvfits_file in uvfits_files:
+        fname = os.path.split(uvfits_file)[-1]
+        epoch = fname.split(".")[2]
+        out_fname = "/home/ilya/github/bam/data/0506+056_{}_120s.txt".format(epoch)
+        df = create_data_file_v2(uvfits_file, out_fname, time_average_sec=120)
 
-    df = create_data_file(uvfits_fname)
+    sys.exit(0)
 
     # # Zero observed data
     # df["vis_re"] = 0
