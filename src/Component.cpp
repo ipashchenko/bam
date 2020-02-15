@@ -104,7 +104,7 @@ void CGComponent::from_prior(DNest4::RNG &rng) {
      dx_ = 10.0*rng.randn();
      dy_ = 10.0*rng.randn();
      // Log-normal prior for flux and bmaj
-     logflux_ = -2.0 + 1.5*rng.randn();
+     logflux_ = -2.0 + 1.0*rng.randn();
      logbmaj_ = -2.0 + 1.0*rng.randn();
 }
 
@@ -126,9 +126,9 @@ double CGComponent::perturb(DNest4::RNG &rng) {
     }
     else if(which%4 == 2)
     {
-        log_H -= -0.5*pow((logflux_+2.0)/1.5, 2);
-        logflux_ += 1.5*rng.randh();
-        log_H += -0.5*pow((logflux_+2.0)/1.5, 2);
+        log_H -= -0.5*pow((logflux_+2.0)/1.0, 2);
+        logflux_ += 1.0*rng.randh();
+        log_H += -0.5*pow((logflux_+2.0)/1.0, 2);
     }
     else
     {
