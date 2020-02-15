@@ -29,7 +29,7 @@ class Data
         { return instance; }
 
         // Load data from a file
-        void load(const char* filename);
+        void load(const std::string& filename);
 
         // Access to the data points
         const std::valarray<double>& get_u() const

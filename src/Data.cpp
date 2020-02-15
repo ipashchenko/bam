@@ -12,7 +12,7 @@ Data Data::instance;
 Data::Data() = default;
 
 // TODO: Use files with header
-void Data::load(const char* filename)
+void Data::load(const std::string& filename)
 {
     // Vectors to hold the data
     std::vector<double> _u;
