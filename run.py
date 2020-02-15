@@ -1,0 +1,44 @@
+import glob
+import os
+from string import Template
+
+
+
+n_components = 3
+source = "0552+398"
+data_files = sorted(glob.glob(os.path.join("/home/ilya/github/bam/data/{}".format(source),
+                                             "{}_*.txt".format(source))))
+for data_file in data_files:
+    fname = os.path.split(data_file)[-1]
+    epoch = fname[9:19]
+    run_name = "{}_{}_ncomp{}".format(source, epoch, n_components)
+    template_options = "/home/ilya/github/bam/OPTIONS_gen"
+    result_options = "/home/ilya/github/bam/Release/OPTIONS_{}".format(run_name)
+    options = {'nparticles': 1,
+               'newlevel': 30000,
+               'saveinterval': 30000,
+               'threadsteps': 100,
+               'maxnlevels': 0,
+               'lambda': 30,
+               'beta': 100,
+               'maxnsaves': 10000,
+               'samplefile': 'sample_{}.txt'.format(run_name),
+               'sampleinfo': 'sample_info_{}.txt'.format(run_name),
+               'levelsfile': 'levels_{}.txt'.format(run_name)}
+
+    excecutables = {i: "./bam{}".format(i) for i in range(1, 11)}
+
+    filein = open(template_options)
+    src = Template(filein.read())
+    result = src.substitute(options)
+    with open(result_options, "w") as fo:
+        print(result, file=fo)
+
+    import os
+    os.chdir("/home/ilya/github/bam/Release")
+    # os.system("{} -t 4 -o {} -d {} >/dev/null 2>&1 &".format(excecutables[n_components],
+    #                                          result_options,
+    #                                          data_file))
+    os.system("{} -t 4 -o {} -d {}".format(excecutables[n_components],
+                                                        result_options,
+                                                        data_file))
