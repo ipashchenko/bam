@@ -1,17 +1,34 @@
 import glob
 import os
 from string import Template
+import pandas as pd
 
 
+def convert_mojave_epoch_inverse(epoch):
+    year = epoch.split('_')[0]
+    month = epoch.split('_')[1]
+    day = epoch.split('_')[2]
+    return "{}-{}-{}".format(year, month, day)
 
-n_components = 3
-source = "0552+398"
+
+n_components = None
+source = "0716+714"
+ncomp_file = "/home/ilya/github/bam/data/0716+714_comp_number.txt"
+df = pd.read_csv(ncomp_file, sep="\s+", names=["source", "epoch", "ncomp"])
+df_source = df.query("source == @source")
+ncomp_med = int(df_source.ncomp.median())
 data_files = sorted(glob.glob(os.path.join("/home/ilya/github/bam/data/{}".format(source),
                                              "{}_*.txt".format(source))))
 for data_file in data_files:
     fname = os.path.split(data_file)[-1]
     epoch = fname[9:19]
-    run_name = "{}_{}_ncomp{}".format(source, epoch, n_components)
+    epoch_inv = convert_mojave_epoch_inverse(epoch)
+    df_epoch = df_source.query("epoch == @epoch_inv")
+    if df_epoch.empty:
+        ncomp = ncomp_med
+    else:
+        ncomp = df_epoch.ncomp.values[0]
+    run_name = "{}_{}_ncomp{}".format(source, epoch, ncomp)
     template_options = "/home/ilya/github/bam/OPTIONS_gen"
     result_options = "/home/ilya/github/bam/Release/OPTIONS_{}".format(run_name)
     options = {'nparticles': 1,
@@ -39,6 +56,9 @@ for data_file in data_files:
     # os.system("{} -t 4 -o {} -d {} >/dev/null 2>&1 &".format(excecutables[n_components],
     #                                          result_options,
     #                                          data_file))
-    os.system("{} -t 4 -o {} -d {}".format(excecutables[n_components],
+    os.system("{} -t 5 -o {} -d {}".format(excecutables[ncomp],
                                                         result_options,
                                                         data_file))
+    # print("Running {} -t 4 -o {} -d {}".format(excecutables[ncomp],
+    #                                                     result_options,
+    #                                                     data_file))
