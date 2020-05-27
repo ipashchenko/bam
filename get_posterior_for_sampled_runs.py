@@ -11,7 +11,8 @@ source = "2200+420"
 sample_files = glob.glob(os.path.join(samples_dir, "sample_{}_*.txt".format(source)))
 epochs = list()
 for sample_file in sample_files:
-    epoch = sample_file[16:26]
+    fn = os.path.split(sample_file)
+    epoch = fn[16:26]
     epochs.append(epoch)
 
 
