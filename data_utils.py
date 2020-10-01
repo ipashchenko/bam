@@ -198,21 +198,24 @@ def radplot(df, fig=None, color=None, label=None, style="ap"):
 
 
 if __name__ == "__main__":
-    # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/J2001+2416_K_2006_06_11_yyk_vis.fits"
-    # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/0716+714.u.2013_08_20.uvf"
-    # uvfits_fname = "/home/ilya/github/bam/data/smallest.uvf"
-    # uvfits_fname = "/home/ilya/github/bam/data/1800_S.uvf"
-    import glob
-    uvfits_files = glob.glob(os.path.join("/home/ilya/github/dterms/data/mojave/", "0506+056.u*.uvf"))
-    for uvfits_file in uvfits_files:
-        fname = os.path.split(uvfits_file)[-1]
-        epoch = fname.split(".")[2]
-        out_fname = "/home/ilya/github/bam/data/0506+056_{}_120s.txt".format(epoch)
-        df = create_data_file_v2(uvfits_file, out_fname, time_average_sec=120)
 
+    # TODO: Use this to create data files for several MOJAVE epochs
+    # import glob
+    # source = "2233-148"
+    # uvfits_files = glob.glob(os.path.join("/home/ilya/github/bam/data/{}".format(source), "{}.u.*.uvf".format(source)))
+    # for uvfits_file in uvfits_files:
+    #     fname = os.path.split(uvfits_file)[-1]
+    #     epoch = fname.split(".")[2]
+    #     out_fname = "/home/ilya/github/bam/data/{}/{}_{}_120s.txt".format(source, source, epoch)
+    #     df = create_data_file_v2(uvfits_file, out_fname, time_average_sec=120)
+
+    out_fname = "/home/ilya/github/bam/data/1800+7828/1800+7828_1998_10_01_X_120s.txt"
+    uvfits_file = "/home/ilya/github/bam/data/J1800+7828_X_1998_10_01_pus_vis.fits"
+    df = create_data_file_v2(uvfits_file, out_fname, time_average_sec=120)
     sys.exit(0)
 
-    # # Zero observed data
+
+# # Zero observed data
     # df["vis_re"] = 0
     # df["vis_im"] = 0
     # # Add model
