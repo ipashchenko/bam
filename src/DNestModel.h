@@ -33,6 +33,8 @@ class DNestModel {
 
     private:
         double logjitter;
+        bool use_logjitter;
+        bool use_speedup;
         size_t ft_calc_counter;
         SkyModel* sky_model{};
         // Prediction of SkyModel only

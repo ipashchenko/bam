@@ -128,6 +128,8 @@ def create_data_file(uvfits, outfile=None, keep_header=False, time_average_sec=N
         vis_re = np.ma.mean(vis_re)
         vis_im = np.ma.mean(vis_im)
         df_ = pd.Series({"u": u, "v": v, "vis_re": vis_re, "vis_im": vis_im, "error": error})
+        if np.ma.is_masked(vis_re) or np.ma.is_masked(vis_im):
+            continue
         df = df.append(df_, ignore_index=True)
 
     if outfile is not None:
@@ -149,10 +151,6 @@ def plot_model_predictions(post_samples, data_df, jitter_first=True, style="reim
     # dr = np.max(r) - np.min(r)
     # rr = np.linspace(0, np.max(r)+0.1*dr, 1000)
     df = data_df.copy()
-
-    # Zero visibilities
-    df["vis_re"] = 0
-    df["vis_im"] = 0
 
     # Add model
     n_post, n_components = post_samples.shape
@@ -186,11 +184,13 @@ def plot_model_predictions(post_samples, data_df, jitter_first=True, style="reim
     axes = fig.get_axes()
     for sample_prediction_re, sample_prediction_im in zip(samples_predictions_re, samples_predictions_im):
         if style == "reim":
-            axes[0].plot(r, sample_prediction_re, "_", alpha=0.25, color="C1", ms=5, mew=0.2)
-            axes[1].plot(r, sample_prediction_im, "_", alpha=0.25, color="C1", ms=5, mew=0.2)
+            axes[0].plot(r, sample_prediction_re, "_", alpha=0.25, color="C1", ms=5, mew=0.2, zorder=2)
+            axes[1].plot(r, sample_prediction_im, "_", alpha=0.25, color="C1", ms=5, mew=0.2, zorder=2)
         else:
-            axes[0].plot(r, np.hypot(sample_prediction_re, sample_prediction_im), "_", alpha=0.25, color="C1", ms=5, mew=0.2)
-            axes[1].plot(r, np.arctan2(sample_prediction_im, sample_prediction_re), "_", alpha=0.25, color="C1", ms=5, mew=0.2)
+            axes[0].plot(r, np.hypot(sample_prediction_re, sample_prediction_im), "_", alpha=0.25, color="C1", ms=5,
+                         mew=0.2, zorder=2)
+            axes[1].plot(r, np.arctan2(sample_prediction_im, sample_prediction_re), "_", alpha=0.25, color="C1", ms=5,
+                         mew=0.2, zorder=2)
     if savefname is not None:
         fig.savefig(savefname, bbox_inches="tight", dpi=300)
     if show:
@@ -221,11 +221,11 @@ def radplot(df, fig=None, color=None, label=None, style="ap", savefname=None, sh
         color = "#1f77b4"
 
     if style == "ap":
-        axes[0].plot(r, value1, '.', color=color, label=label)
-        axes[1].plot(r, value2, '.', color=color)
+        axes[0].plot(r, value1, '.', color=color, label=label, zorder=1)
+        axes[1].plot(r, value2, '.', color=color, zorder=1)
     else:
-        axes[0].errorbar(r, value1, yerr=error, fmt=".", color=color, label=label)
-        axes[1].errorbar(r, value2, yerr=error, fmt=".", color=color)
+        axes[0].errorbar(r, value1, yerr=error, fmt=".", color=color, label=label, zorder=1)
+        axes[1].errorbar(r, value2, yerr=error, fmt=".", color=color, zorder=1)
     if style == "ap":
         axes[0].set_ylabel("Amp, Jy")
         axes[1].set_ylabel("Phase, rad")
@@ -244,6 +244,9 @@ def radplot(df, fig=None, color=None, label=None, style="ap", savefname=None, sh
 
 
 if __name__ == "__main__":
-    uvfits = "/home/ilya/github/bam/data/0716+714/0716+714.u.2006_12_01.uvf"
-    df = create_data_file(uvfits)
-    fig = radplot(df, style="reim")
+    # uvfits = "/home/ilya/data/BK150/CBAM/q1/ta.fits"
+    # uvfits = "/home/ilya/data/rfc/CBAM/3circ.fits"
+    uvfits = "/home/ilya/data/rfc/CBAM/ta.fits"
+
+    df = create_data_file(uvfits, "/home/ilya/data/rfc/CBAM/ta_3cg_bam.txt")
+    fig = radplot(df, style="ap")

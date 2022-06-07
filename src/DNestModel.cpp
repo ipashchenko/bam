@@ -5,10 +5,10 @@
 #include "Component.h"
 
 
-DNestModel::DNestModel() : logjitter(0.0), ft_calc_counter(0) {
+DNestModel::DNestModel() : logjitter(0.0), use_logjitter(false), use_speedup(false), ft_calc_counter(0) {
 
     sky_model = new SkyModel();
-    int ncomp = 6;
+    int ncomp = 3;
     for (int i=0; i<ncomp; i++) {
         auto* comp = new CGComponent();
         sky_model->add_component(comp);
@@ -24,6 +24,8 @@ DNestModel::~DNestModel() {
 DNestModel::DNestModel(const DNestModel& other) {
     sky_model = new SkyModel(*other.sky_model);
     logjitter = other.logjitter;
+    use_logjitter = other.use_logjitter;
+    use_speedup = other.use_speedup;
     mu_real = other.mu_real;
     mu_imag = other.mu_imag;
     ft_calc_counter = other.ft_calc_counter;
@@ -34,6 +36,8 @@ DNestModel& DNestModel::operator=(const DNestModel& other) {
     if (this != &other) {
         *(sky_model) = *(other.sky_model);
         logjitter = other.logjitter;
+        use_logjitter = other.use_logjitter;
+        use_speedup = other.use_speedup;
         mu_real = other.mu_real;
         mu_imag = other.mu_imag;
         ft_calc_counter = other.ft_calc_counter;
@@ -58,8 +62,14 @@ void DNestModel::from_prior(DNest4::RNG &rng) {
 double DNestModel::perturb(DNest4::RNG &rng) {
     double logH = 0.;
 
+    double u = rng.rand();
+    double r_logjitter = 0.0;
+    if (use_logjitter) {
+        r_logjitter = 0.1;
+    }
+
     // Perturb jitter
-    if(rng.rand() <= 0.1) {
+    if(u <= r_logjitter) {
         logH -= -0.5*pow((logjitter+4)/2.0, 2.0);
         logjitter += 2.0*rng.randh();
         logH += -0.5*pow((logjitter+4)/2.0, 2.0);
@@ -96,7 +106,7 @@ void DNestModel::calculate_sky_mu(bool update) {
     const std::valarray<double>& v = Data::get_instance().get_v();
 
     // FT (calculate SkyModel prediction)
-    if(update && ft_calc_counter < 30) {
+    if(use_speedup && update && ft_calc_counter < 30) {
         sky_model->ft(u, v);
         ft_calc_counter += 1;
     } else {
@@ -116,18 +126,24 @@ double DNestModel::log_likelihood() const {
 
     // Variance
     // TODO: Keep variance in data not to square sigma each time
-    const std::valarray<double> var = sigma*sigma;
+    std::valarray<double> var = sigma*sigma;
+
+    if(use_logjitter) {
+        var = var + exp(2.0*logjitter);
+    }
+
     // Complex Gaussian sampling distribution
-    std::valarray<double> result = -log(2*M_PI*(var+exp(2.0*logjitter))) - 0.5*(pow(vis_real - mu_real, 2) +
-        pow(vis_imag - mu_imag, 2))/(var+exp(2.0*logjitter))   ;
+    std::valarray<double> result = -log(2*M_PI*var) - 0.5*(pow(vis_real - mu_real, 2) +
+        pow(vis_imag - mu_imag, 2))/var;
     double loglik = result.sum();
     return loglik;
-
 }
 
 
 void DNestModel::print(std::ostream &out) const {
-    out << logjitter << '\t';
+    if(use_logjitter) {
+        out << logjitter << '\t';
+    }
     sky_model->print(out);
 }
 
@@ -137,7 +153,9 @@ std::string DNestModel::description() const
     std::string descr;
 
     // Anything printed by DNestModel::print (except the last line)
-    descr += "logjitter ";
+    if(use_logjitter) {
+        descr += "logjitter ";
+    }
     descr += sky_model->description();
     return descr;
 }

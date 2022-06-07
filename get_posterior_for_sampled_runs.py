@@ -8,7 +8,7 @@ from postprocess import postprocess
 samples_dir = "/home/ilya/github/bam/Release"
 source = "2200+420"
 
-sample_files = glob.glob(os.path.join(samples_dir, "sample_{}_*.txt".format(source)))
+sample_files = glob.globS(os.path.join(samples_dir, "sample_{}_*.txt".format(source)))
 epochs = list()
 for sample_file in sample_files:
     fn = os.path.split(sample_file)[-1]
