@@ -5,36 +5,16 @@
 using namespace DNest4;
 
 
-// On server
-//mkdir Release
-//cd Release
-//cmake -DCMAKE_BUILD_TYPE=Release ..
-//make
 int main(int argc, char** argv)
 {
-
-//    // Run DNest4
-//    CommandLineOptions options(argc, argv);
-//
-//    // Load sampler options from file
-//    Options sampler_options(options.get_options_file().c_str());
-//    sampler_options.print(std::cout);
-////
-//    Data::get_instance().load(options.get_data_file());
-//    Sampler<DNestModel> sampler = setup<DNestModel>(options);
-//    sampler.run();
-//
-//    //Data::get_instance().load("/home/ilya/github/bam/data/test_60s.txt");
-//    Data::get_instance().load("/home/ilya/data/BK150/CBAM/q1/ta_3cg_bam.txt");
-//    // set the sampler and run it!
-////    Sampler<DNestModel> sampler = setup<DNestModel>(argc, argv);
-//    sampler.run();
-
-
-
-
-    // From cbam
-    Data::get_instance().load("/home/ilya/data/rfc/CBAM/ta_3cg_bam.txt");
+	
+	Data::get_instance().load("c1_4.60");
+	Data::get_instance().load("c2_5.00");
+	Data::get_instance().load("x1_8.10");
+	Data::get_instance().load("x2_8.43");
+	Data::get_instance().load("u1_15.35");
+	Data::get_instance().load("k1_23.79");
+	Data::get_instance().load("q1_43.21");
     // Run DNest4
     CommandLineOptions options(argc, argv);
     // Load sampler options from file

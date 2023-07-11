@@ -12,14 +12,16 @@ class Data
     private:
         // Static "global" instance
         static Data instance;
+		std::vector<std::string> bands;
+		std::unordered_map<std::string, double> band_freq_map;
         // uv-coordinates
-        std::valarray<double> u;
-        std::valarray<double> v;
+        std::unordered_map<std::string, std::valarray<double>> u;
+        std::unordered_map<std::string, std::valarray<double>> v;
         // visibilities
-        std::valarray<double> vis_real;
-        std::valarray<double> vis_imag;
+        std::unordered_map<std::string, std::valarray<double>> vis_real;
+        std::unordered_map<std::string, std::valarray<double>> vis_imag;
         // error of real/imag part
-        std::valarray<double> sigma;
+        std::unordered_map<std::string, std::valarray<double>> sigma;
 
     public:
         // Constructor
@@ -32,16 +34,20 @@ class Data
         void load(const std::string& filename);
 
         // Access to the data points
-        const std::valarray<double>& get_u() const
-        { return u; }
-        const std::valarray<double>& get_v() const
-        { return v; }
-        const std::valarray<double>& get_vis_real() const
-        { return vis_real; }
-        const std::valarray<double>& get_vis_imag() const
-        { return vis_imag; }
-        const std::valarray<double>& get_sigma() const
-        { return sigma; }
+        std::valarray<double>& get_u(std::string band)
+        { return u[band]; }
+        std::valarray<double>& get_v(std::string band)
+        { return v[band]; }
+        std::valarray<double>& get_vis_real(std::string band)
+        { return vis_real[band]; }
+        std::valarray<double>& get_vis_imag(std::string band)
+        { return vis_imag[band]; }
+        std::valarray<double>& get_sigma(std::string band)
+        { return sigma[band]; }
+		std::unordered_map<std::string, double> get_band_freq_map()
+		{ return band_freq_map; }
+		std::vector<std::string> get_bands()
+		{ return bands; }
 };
 
 

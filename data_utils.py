@@ -2,7 +2,7 @@ import os
 import numpy as np
 import astropy.io.fits as pf
 from astropy.time import Time
-from astropy import units as u
+from astropy import units
 import pandas as pd
 from tqdm import tqdm
 import sys
@@ -11,18 +11,18 @@ from data import Data
 sys.path.insert(0, '/home/ilya/github/ve/vlbi_errors')
 from spydiff import time_average
 
-mas_to_rad = u.mas.to(u.rad)
+mas_to_rad = units.mas.to(units.rad)
 
 
-def gaussian_circ_ft(flux, dx, dy, bmaj, uv):
+def gaussian_circ_ft(flux, RA, DEC, bmaj, uv):
     """
     FT of circular gaussian at ``uv`` points.
 
     :param flux:
         Full flux of gaussian.
-    :param dx:
+    :param RA:
         Distance from phase center [mas].
-    :param dy:
+    :param DEC:
         Distance from phase center [mas].
     :param bmaj:
         FWHM of a gaussian [mas].
@@ -31,8 +31,8 @@ def gaussian_circ_ft(flux, dx, dy, bmaj, uv):
     :return:
         Tuple of real and imaginary visibilities parts.
     """
-    shift = [dx*mas_to_rad, dy*mas_to_rad]
-    result = np.exp(-2.0*np.pi*1j*(uv @ shift))
+    shift = [RA*mas_to_rad, DEC*mas_to_rad]
+    result = np.exp(2.0*np.pi*1j*(uv @ shift))
     c = (np.pi*bmaj*mas_to_rad)**2/(4. * np.log(2.))
     b = uv[:, 0]**2 + uv[:, 1]**2
     ft = flux*np.exp(-c*b)
@@ -160,7 +160,9 @@ def add_noise(df, use_global_median_noise=True, global_noise_scale=None):
 
 
 def radplot(df, fig=None, color=None, label=None, style="ap"):
-    uv = df[["u", "v"]].values
+    u = df["u"].values
+    v = df["v"].values
+    uv = np.vstack((u, v)).T
     r = np.hypot(uv[:, 0], uv[:, 1])
 
     if style == "ap":

@@ -2,6 +2,7 @@
 #define BAM_DNESTMODEL_H
 
 #include <valarray>
+#include <map>
 #include "SkyModel.h"
 #include "RNG.h"
 #include "DNest4.h"
@@ -23,7 +24,7 @@ class DNestModel {
         double perturb(DNest4::RNG& rng);
 
         // Likelihood function
-        double log_likelihood() const;
+        double log_likelihood();
 
         // Print to stream
         void print(std::ostream& out) const;
@@ -34,14 +35,16 @@ class DNestModel {
     private:
         double logjitter;
         bool use_logjitter;
-        bool use_speedup;
-        size_t ft_calc_counter;
+		// Per-band position of the jet base relative to the phase center
+		std::map<std::string, double> jet_origin_x;
+		std::map<std::string, double> jet_origin_y;
         SkyModel* sky_model{};
         // Prediction of SkyModel only
-        std::valarray<double> mu_real;
-        std::valarray<double> mu_imag;
+        std::unordered_map<std::string, std::valarray<double>> mu_real;
+        std::unordered_map<std::string, std::valarray<double>> mu_imag;
         // This runs ``ft`` method of SkyModel with (u, v) from Data and updates SkyModel predictions
-        void calculate_sky_mu(bool update);
+        void calculate_sky_mu();
+		void shift_sky_mu();
 };
 
 #endif //BAM_DNESTMODEL_H
