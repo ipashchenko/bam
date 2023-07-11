@@ -416,7 +416,7 @@ double CoreGaussianComponent::perturb(DNest4::RNG &rng)
 	int which = rng.rand_int(6);
 	if(which == 0)
 	{
-		DNest4::TruncatedCauchy cauchy_pos(0.0, 0.1, 0.0, 1.0);
+		DNest4::TruncatedCauchy cauchy_pos(0.0, 1.0, 0.0, 10.0);
 		log_H += cauchy_pos.perturb(a_, rng);
 	}
 	else if(which == 1)
