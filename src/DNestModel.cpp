@@ -126,7 +126,7 @@ double DNestModel::perturb(DNest4::RNG &rng)
 		int n_bands = bands.size();
 		int which = rng.rand_int(n_bands);
 		std::string band = bands[which];
-		DNest4::Gaussian gaussian_origin(0.0, 0.25);
+		DNest4::Gaussian gaussian_origin(0.0, 1.0);
 		int which_xy = rng.rand_int(2);
 		double origin;
 		if(which_xy == 0)
