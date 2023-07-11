@@ -55,7 +55,7 @@ DNestModel& DNestModel::operator=(const DNestModel& other)
 // TODO: Here initialize containers with old and current per-component predictions.
 void DNestModel::from_prior(DNest4::RNG &rng)
 {
-	DNest4::Gaussian gaussian_origin(0.0, 0.25);
+	DNest4::Gaussian gaussian_origin(0.0, 1.0);
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
 	{
