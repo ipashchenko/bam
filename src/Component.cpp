@@ -397,7 +397,7 @@ std::string CoreGaussianComponent::description() const
 void CoreGaussianComponent::from_prior(DNest4::RNG &rng)
 {
 	DNest4::TruncatedCauchy cauchy_pos(0.0, 0.1, 0.0, 1.0);
-	DNest4::Uniform gaussian_direction(0.0, M_PI);
+	DNest4::Uniform gaussian_direction(0.0, 2*M_PI);
 	DNest4::Gaussian gaussian_logsize(-1.0, 2.0);
 	DNest4::Gaussian gaussian_logflux(-1.0, 1.0);
 	DNest4::Uniform uniform_alpha(-1.0, 1.0);
@@ -421,7 +421,7 @@ double CoreGaussianComponent::perturb(DNest4::RNG &rng)
 	}
 	else if(which == 1)
 	{
-		DNest4::Uniform gaussian_direction(0.0, M_PI);
+		DNest4::Uniform gaussian_direction(0.0, 2*M_PI);
 		log_H += gaussian_direction.perturb(PA_, rng);
 	}
 	else if(which == 2)

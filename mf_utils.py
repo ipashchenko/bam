@@ -72,11 +72,11 @@ if __name__ == "__main__":
     jet_components = [(3.0, 4.5, 0.5, 2.0, 1.0, 1.5, -0.5),
                       (9.0, 10.0, 1.5, 1.0, 0.5, 2.0, -0.5)]
     band_uvfits_files_dict = {"c1": "/home/ilya/Downloads/MF/0851+202.c1.2009_02_02.uvf",
-                              "c2": "/home/ilya/Downloads/MF/0851+202.c2.2009_02_02.uvf",
-                              "k1": "/home/ilya/Downloads/MF/0851+202.k1.2009_02_02.uvf",
-                              "q1": "/home/ilya/Downloads/MF/0851+202.q1.2009_02_02.uvf",
+                              # "c2": "/home/ilya/Downloads/MF/0851+202.c2.2009_02_02.uvf",
+                              # "k1": "/home/ilya/Downloads/MF/0851+202.k1.2009_02_02.uvf",
+                              # "q1": "/home/ilya/Downloads/MF/0851+202.q1.2009_02_02.uvf",
                               "u1": "/home/ilya/Downloads/MF/0851+202.u1.2009_02_02.uvf",
-                              "x1": "/home/ilya/Downloads/MF/0851+202.x1.2009_02_02.uvf",
+                              # "x1": "/home/ilya/Downloads/MF/0851+202.x1.2009_02_02.uvf",
                               "x2": "/home/ilya/Downloads/MF/0851+202.x2.2009_02_02.uvf"}
 
     for band, uvfits in band_uvfits_files_dict.items():
@@ -104,7 +104,7 @@ if __name__ == "__main__":
                 print(gc)
                 RA, DEC, Size, nu_max, S_nu_max, alpha_thick, alpha_thin = gc
                 flux = S_nu_max*(freq_ghz/nu_max)**alpha_thick/(1 - np.exp(-1)) * (1 - np.exp(-(freq_ghz/nu_max)**(alpha_thin-alpha_thick)))
-                print("Flux at nu = {:.2f} is S = {:.4f}".format(freq_ghz, flux))
+                print("Jet Component Flux at nu = {:.2f} is S = {:.4f}".format(freq_ghz, flux))
                 # Add model
                 re, im = gaussian_circ_ft(flux=flux, RA=RA, DEC=DEC, bmaj=Size, uv=uv)
                 df["vis_re"] += re
@@ -116,6 +116,7 @@ if __name__ == "__main__":
             # Core
             a, PA, size_1GHz, k_r, S_1GHz, alpha = core_component
             flux = S_1GHz*freq_ghz**alpha
+            print("COre Flux at nu = {:.2f} is S = {:.4f}".format(freq_ghz, flux))
             distance = a*freq_ghz**(-1/k_r)
             RA = distance*np.sin(PA)
             DEC = distance*np.cos(PA)
@@ -127,8 +128,10 @@ if __name__ == "__main__":
             df["vis_re"] += re
             df["vis_im"] += im
 
+            print("Total flux at frequency {:.2f} is S = {:.2f}".format(freq_ghz, total_flux))
 
             center_mass /= total_flux
+            print("Center mas (RA, DEC) [mas] = ", center_mass)
             # Shift to bring center mass to the phase center
             re = df["vis_re"]
             im = df["vis_im"]
@@ -136,6 +139,7 @@ if __name__ == "__main__":
             # "-" becaue we want to move in the opposite direction
             shift = [-center_mass[0]*mas_to_rad, -center_mass[0]*mas_to_rad]
             result = np.exp(2.0*np.pi*1j*(uv @ shift))
+            print("In shifting center mass uv = ", uv)
             vis *= result
             df["vis_re"] = np.real(vis)
             df["vis_im"] = np.imag(vis)
