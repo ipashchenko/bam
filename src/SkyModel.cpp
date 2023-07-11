@@ -67,7 +67,6 @@ void SkyModel::ft_from_all(double nu, const std::valarray<double>& u, const std:
     for (auto comp : components_)
 	{
         comp->ft(nu, u, v);
-        // TODO: Here I can add to ``mu_real``, ``mu_imag`` w/o declaring new arrays
         mu_real += comp->get_mu_real();
         mu_imag += comp->get_mu_imag();
     }

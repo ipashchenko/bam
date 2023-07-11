@@ -55,7 +55,7 @@ DNestModel& DNestModel::operator=(const DNestModel& other)
 // TODO: Here initialize containers with old and current per-component predictions.
 void DNestModel::from_prior(DNest4::RNG &rng)
 {
-	DNest4::Gaussian gaussian_origin(0.0, 1.0);
+	DNest4::Gaussian gaussian_origin(0.0, 0.25);
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
 	{
@@ -103,7 +103,7 @@ double DNestModel::perturb(DNest4::RNG &rng)
     }
 
     // Perturb SkyModel
-    else if(u >= r_logjitter && u < r_logjitter + 0.8)
+    else if(u >= r_logjitter && u < r_logjitter + 0.7)
 	{
         logH += sky_model->perturb(rng);
 
@@ -126,7 +126,7 @@ double DNestModel::perturb(DNest4::RNG &rng)
 		int n_bands = bands.size();
 		int which = rng.rand_int(n_bands);
 		std::string band = bands[which];
-		DNest4::Gaussian gaussian_origin(0.0, 1.0);
+		DNest4::Gaussian gaussian_origin(0.0, 0.25);
 		int which_xy = rng.rand_int(2);
 		double origin;
 		if(which_xy == 0)

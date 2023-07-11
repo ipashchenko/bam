@@ -67,7 +67,7 @@ if __name__ == "__main__":
     save_dir = "/home/ilya/github/bam/Release"
     # Coordinates relative to the true jet origin
     # a, PA, size_1GHz, k_r, S_1GHz, alpha
-    core_component = (0.5, np.pi/6, 1.0, 1.0, 2.0, 0.0)
+    core_component = (3.0, np.pi/6, 1.0, 1.0, 2.0, 0.0)
     # RA, DEC, Size, nu_max, S_nu_max, alpha_thick, alpha_thin
     jet_components = [(3.0, 4.5, 0.5, 2.0, 1.0, 1.5, -0.5),
                       (9.0, 10.0, 1.5, 1.0, 0.5, 2.0, -0.5)]
@@ -130,19 +130,19 @@ if __name__ == "__main__":
 
             print("Total flux at frequency {:.2f} is S = {:.2f}".format(freq_ghz, total_flux))
 
-            center_mass /= total_flux
-            print("Center mas (RA, DEC) [mas] = ", center_mass)
-            # Shift to bring center mass to the phase center
-            re = df["vis_re"]
-            im = df["vis_im"]
-            vis = re + 1j*im
-            # "-" becaue we want to move in the opposite direction
-            shift = [-center_mass[0]*mas_to_rad, -center_mass[0]*mas_to_rad]
-            result = np.exp(2.0*np.pi*1j*(uv @ shift))
-            print("In shifting center mass uv = ", uv)
-            vis *= result
-            df["vis_re"] = np.real(vis)
-            df["vis_im"] = np.imag(vis)
+            # center_mass /= total_flux
+            # print("Center mas (RA, DEC) [mas] = ", center_mass)
+            # # Shift to bring center mass to the phase center
+            # re = df["vis_re"]
+            # im = df["vis_im"]
+            # vis = re + 1j*im
+            # # "-" becaue we want to move in the opposite direction
+            # shift = [-center_mass[0]*mas_to_rad, -center_mass[0]*mas_to_rad]
+            # result = np.exp(2.0*np.pi*1j*(uv @ shift))
+            # print("In shifting center mass uv = ", uv)
+            # vis *= result
+            # df["vis_re"] = np.real(vis)
+            # df["vis_im"] = np.imag(vis)
 
         try:
             fig = radplot(df, label="Data")
