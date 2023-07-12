@@ -29,8 +29,10 @@ DNestModel::DNestModel(const DNestModel& other)
     sky_model = new SkyModel(*other.sky_model);
     logjitter = other.logjitter;
     use_logjitter = other.use_logjitter;
-    mu_real = other.mu_real;
-    mu_imag = other.mu_imag;
+	sky_model_mu_real = other.sky_model_mu_real;
+	sky_model_mu_imag = other.sky_model_mu_imag;
+	mu_real_full = other.mu_real_full;
+	mu_imag_full = other.mu_imag_full;
 	jet_origin_x = other.jet_origin_x;
 	jet_origin_y = other.jet_origin_y;
 }
@@ -43,8 +45,10 @@ DNestModel& DNestModel::operator=(const DNestModel& other)
         *(sky_model) = *(other.sky_model);
         logjitter = other.logjitter;
         use_logjitter = other.use_logjitter;
-        mu_real = other.mu_real;
-        mu_imag = other.mu_imag;
+		sky_model_mu_real = other.sky_model_mu_real;
+		sky_model_mu_imag = other.sky_model_mu_imag;
+		mu_real_full = other.mu_real_full;
+		mu_imag_full = other.mu_imag_full;
 		jet_origin_x = other.jet_origin_x;
 		jet_origin_y = other.jet_origin_y;
     }
@@ -59,11 +63,13 @@ void DNestModel::from_prior(DNest4::RNG &rng)
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
 	{
-		// I do this because in ``calculate_sky_mu`` ``mu_real`` and ``mu_imag`` are multiplied and added.
+		// I do this because in ``calculate_sky_mu`` ``sky_model_mu_real`` and ``sky_model_mu_imag`` are multiplied and added.
 		const std::valarray<double> &u = Data::get_instance().get_u(band);
 		std::valarray<double> zero(0.0, u.size());
-		mu_real[band] = zero;
-		mu_imag[band] = zero;
+		sky_model_mu_real[band] = zero;
+		sky_model_mu_imag[band] = zero;
+		mu_real_full[band] = zero;
+		mu_imag_full[band] = zero;
 		jet_origin_x[band] = gaussian_origin.generate(rng);
 		jet_origin_y[band] = gaussian_origin.generate(rng);
 	}
@@ -117,6 +123,7 @@ double DNestModel::perturb(DNest4::RNG &rng)
 
         // This shouldn't be called in case of pre-rejection
         calculate_sky_mu();
+		shift_sky_mu();
     }
 	
 	// Perturb per-band phase centers
@@ -141,7 +148,7 @@ double DNestModel::perturb(DNest4::RNG &rng)
 			logH += gaussian_origin.perturb(origin, rng);
 			jet_origin_y[band] = origin;
 		}
-		
+		shift_sky_mu();
 	}
     return logH;
 }
@@ -157,11 +164,12 @@ void DNestModel::calculate_sky_mu()
 		
 		// FT (calculate SkyModel prediction)
 		sky_model->ft_from_all(freq, u, v);
-		mu_real[band] = sky_model->get_mu_real();
-		mu_imag[band] = sky_model->get_mu_imag();
+		sky_model_mu_real[band] = sky_model->get_mu_real();
+		sky_model_mu_imag[band] = sky_model->get_mu_imag();
 	}
 }
 
+// FIXME: I need de-couple original predictions of SkyModel and shifted predictions. Because I change it each perturb!
 void DNestModel::shift_sky_mu()
 {
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
@@ -170,10 +178,8 @@ void DNestModel::shift_sky_mu()
 		const std::valarray<double> &u = Data::get_instance().get_u(band);
 		const std::valarray<double> &v = Data::get_instance().get_v(band);
 		std::valarray<double> theta = 2 * M_PI * mas_to_rad * (u * jet_origin_x[band] + v * jet_origin_y[band]);
-		std::valarray<double> sky_model_mu_real = mu_real[band];
-		std::valarray<double> sky_model_mu_imag = mu_imag[band];
-		mu_real[band] = cos(theta) * sky_model_mu_real - sin(theta) * sky_model_mu_imag;
-		mu_imag[band] = cos(theta) * sky_model_mu_imag + sin(theta) * sky_model_mu_real;
+		mu_real_full[band] = cos(theta) * sky_model_mu_real[band] - sin(theta) * sky_model_mu_imag[band];
+		mu_imag_full[band] = cos(theta) * sky_model_mu_imag[band] + sin(theta) * sky_model_mu_real[band];
 	}
 }
 
@@ -195,7 +201,8 @@ double DNestModel::log_likelihood()
 			}
 			
 			// Complex Gaussian sampling distribution
-			std::valarray<double> result = -log(2 * M_PI * var) - 0.5 * (pow(vis_real - mu_real[band], 2) + pow(vis_imag - mu_imag[band], 2)) / var;
+			std::valarray<double> result = -log(2 * M_PI * var) - 0.5 * (pow(vis_real - mu_real_full[band], 2) +
+				pow(vis_imag - mu_imag_full[band], 2)) / var;
 			loglik += result.sum();
 	}
     return loglik;

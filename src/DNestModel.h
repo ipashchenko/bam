@@ -40,8 +40,11 @@ class DNestModel {
 		std::map<std::string, double> jet_origin_y;
         SkyModel* sky_model{};
         // Prediction of SkyModel only
-        std::unordered_map<std::string, std::valarray<double>> mu_real;
-        std::unordered_map<std::string, std::valarray<double>> mu_imag;
+        std::unordered_map<std::string, std::valarray<double>> sky_model_mu_real;
+        std::unordered_map<std::string, std::valarray<double>> sky_model_mu_imag;
+		// Predictions with shift
+		std::unordered_map<std::string, std::valarray<double>> mu_real_full;
+		std::unordered_map<std::string, std::valarray<double>> mu_imag_full;
         // This runs ``ft`` method of SkyModel with (u, v) from Data and updates SkyModel predictions
         void calculate_sky_mu();
 		void shift_sky_mu();
