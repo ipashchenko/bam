@@ -170,8 +170,10 @@ void DNestModel::shift_sky_mu()
 		const std::valarray<double> &u = Data::get_instance().get_u(band);
 		const std::valarray<double> &v = Data::get_instance().get_v(band);
 		std::valarray<double> theta = 2 * M_PI * mas_to_rad * (u * jet_origin_x[band] + v * jet_origin_y[band]);
-		mu_real[band] = cos(theta) * mu_real[band] - sin(theta) * mu_imag[band];
-		mu_imag[band] = cos(theta) * mu_imag[band] + sin(theta) * mu_real[band];
+		std::valarray<double> sky_model_mu_real = mu_real[band];
+		std::valarray<double> sky_model_mu_imag = mu_imag[band];
+		mu_real[band] = cos(theta) * sky_model_mu_real - sin(theta) * sky_model_mu_imag;
+		mu_imag[band] = cos(theta) * sky_model_mu_imag + sin(theta) * sky_model_mu_real;
 	}
 }
 
