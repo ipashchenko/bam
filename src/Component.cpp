@@ -279,7 +279,7 @@ void JetGaussianComponent::print(std::ostream &out) const
 std::string JetGaussianComponent::description() const
 {
     std::string descr;
-    descr += "dx dy logsize lognu_mas logS_max alpha_thick alpha_thin";
+    descr += "dx\tdy\tlogsize\tlognu_max\tlogS_max\talpha_thick\talpha_thin";
     return descr;
 }
 
@@ -390,7 +390,7 @@ void CoreGaussianComponent::print(std::ostream &out) const
 std::string CoreGaussianComponent::description() const
 {
 	std::string descr;
-	descr += "a PA logsize_1 k_r logS_1 alpha";
+	descr += "a \tPA\tlogsize_1\tk_r\tlogS_1\talpha";
 	return descr;
 }
 

@@ -242,7 +242,6 @@ std::string DNestModel::description() const
 			descr += "logjitter_" + band + "\t";
 		}
     }
-    descr += sky_model->description();
 	for (const auto& [band, origin] : jet_origin_x)
 	{
 		descr += "x_origin_" + band + "\t";
@@ -251,6 +250,6 @@ std::string DNestModel::description() const
 	{
 		descr += "y_origin_" + band + "\t";
 	}
-	descr.pop_back();
+	descr += sky_model->description();
     return descr;
 }

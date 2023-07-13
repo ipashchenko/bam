@@ -102,7 +102,7 @@ std::string SkyModel::description() const {
     std::string descr;
     for (auto comp: components_) {
         descr += comp->description();
-        descr += " ";
+        descr += "\t";
     }
     descr.pop_back();
     return descr;
