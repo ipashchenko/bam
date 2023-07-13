@@ -194,16 +194,16 @@ double DNestModel::log_likelihood()
 			const std::valarray<double> &vis_imag = Data::get_instance().get_vis_imag(band);
 			const std::valarray<double> &sigma = Data::get_instance().get_sigma(band);
 			
-			std::valarray<double> var = sigma * sigma;
+			std::valarray<double> var = sigma*sigma;
 			
 			if (use_logjitter)
 			{
-				var = var + exp(2.0 * logjitter);
+				var = var + exp(2.0*logjitter[band]);
 			}
 			
 			// Complex Gaussian sampling distribution
-			std::valarray<double> result = -log(2 * M_PI * var) - 0.5 * (pow(vis_real - mu_real_full[band], 2) +
-				pow(vis_imag - mu_imag_full[band], 2)) / var;
+			std::valarray<double> result = -log(2*M_PI*var) - 0.5*(pow(vis_real - mu_real_full[band], 2) +
+				pow(vis_imag - mu_imag_full[band], 2))/var;
 			loglik += result.sum();
 	}
     return loglik;
