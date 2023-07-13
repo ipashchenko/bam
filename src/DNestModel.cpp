@@ -5,7 +5,7 @@
 #include "Component.h"
 
 
-DNestModel::DNestModel() : logjitter(0.0), use_logjitter(true)
+DNestModel::DNestModel() : use_logjitter(true)
 {
     sky_model = new SkyModel();
     int n_jetcomp = 2;
@@ -60,6 +60,7 @@ DNestModel& DNestModel::operator=(const DNestModel& other)
 void DNestModel::from_prior(DNest4::RNG &rng)
 {
 	DNest4::Gaussian gaussian_origin(0.0, 0.25);
+	DNest4::Gaussian gaussian_jitter(-4.0, 2.0);
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
 	{
@@ -72,8 +73,9 @@ void DNestModel::from_prior(DNest4::RNG &rng)
 		mu_imag_full[band] = zero;
 		jet_origin_x[band] = gaussian_origin.generate(rng);
 		jet_origin_y[band] = gaussian_origin.generate(rng);
+		logjitter[band] = gaussian_jitter.generate(rng);
+		
 	}
-    logjitter = -4.0 + 2.0*rng.randn();
     sky_model->from_prior(rng);
     calculate_sky_mu();
 	shift_sky_mu();
@@ -94,17 +96,16 @@ double DNestModel::perturb(DNest4::RNG &rng)
     // Perturb jitter
     if(u <= r_logjitter)
 	{
-        logH -= -0.5*pow((logjitter+4)/2.0, 2.0);
-        logjitter += 2.0*rng.randh();
-        logH += -0.5*pow((logjitter+4)/2.0, 2.0);
-
-        // Pre-reject
-        if(rng.rand() >= exp(logH))
-		{
-            return -1E300;
-        }
-        else
-            logH = 0.0;
+		
+		std::vector<std::string> bands = Data::get_instance().get_bands();
+		int n_bands = bands.size();
+		int which = rng.rand_int(n_bands);
+		std::string band = bands[which];
+		double logjitter_in_band;
+		DNest4::Gaussian gaussian_jitter(-4.0, 2.0);
+		logjitter_in_band = logjitter[band];
+		logH += gaussian_jitter.perturb(logjitter_in_band, rng);
+		logjitter[band] = logjitter_in_band;
         // No need to re-calculate model. Just calculate loglike.
     }
 
@@ -193,16 +194,16 @@ double DNestModel::log_likelihood()
 			const std::valarray<double> &vis_imag = Data::get_instance().get_vis_imag(band);
 			const std::valarray<double> &sigma = Data::get_instance().get_sigma(band);
 			
-			std::valarray<double> var = sigma * sigma;
+			std::valarray<double> var = sigma*sigma;
 			
 			if (use_logjitter)
 			{
-				var = var + exp(2.0 * logjitter);
+				var = var + exp(2.0*logjitter[band]);
 			}
 			
 			// Complex Gaussian sampling distribution
-			std::valarray<double> result = -log(2 * M_PI * var) - 0.5 * (pow(vis_real - mu_real_full[band], 2) +
-				pow(vis_imag - mu_imag_full[band], 2)) / var;
+			std::valarray<double> result = -log(2*M_PI*var) - 0.5*(pow(vis_real - mu_real_full[band], 2) +
+				pow(vis_imag - mu_imag_full[band], 2))/var;
 			loglik += result.sum();
 	}
     return loglik;
@@ -213,7 +214,10 @@ void DNestModel::print(std::ostream &out) const
 {
     if(use_logjitter)
 	{
-        out << logjitter << '\t';
+		for (const auto& [band, logjitter_band] : logjitter)
+		{
+			out << logjitter_band << "\t";
+		}
     }
     sky_model->print(out);
 	for (const auto& [band, origin] : jet_origin_x)
@@ -231,10 +235,12 @@ std::string DNestModel::description() const
 {
     std::string descr;
 
-    // Anything printed by DNestModel::print (except the last line)
     if(use_logjitter)
 	{
-        descr += "logjitter\t";
+		for (const auto& [band, logjitter_band] : logjitter)
+		{
+			descr += "logjitter_" + band + "\t";
+		}
     }
     descr += sky_model->description();
 	for (const auto& [band, origin] : jet_origin_x)
