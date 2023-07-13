@@ -8,7 +8,7 @@
 DNestModel::DNestModel() : use_logjitter(true)
 {
     sky_model = new SkyModel();
-    int n_jetcomp = 2;
+    int n_jetcomp = 5;
 	auto* comp = new CoreGaussianComponent();
 	sky_model->add_component(comp);
     for (int i=0; i<n_jetcomp; i++) {

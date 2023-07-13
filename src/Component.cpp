@@ -287,7 +287,7 @@ void JetGaussianComponent::from_prior(DNest4::RNG &rng) {
 	 DNest4::Gaussian gaussian_pos(0.0, 5.0);
 	 DNest4::Gaussian gaussian_logflux(-2.0, 1.0);
 	 DNest4::Gaussian gaussian_logsize(-1.0, 2.0);
-	 DNest4::Gaussian gaussian_alpha_thick(1.0, 0.5);
+	 DNest4::Gaussian gaussian_alpha_thick(1.5, 0.5);
 	 DNest4::Gaussian gaussian_alpha_thin(-1.0, 0.25);
 	 DNest4::Uniform uniform_numax(-3, 3);
      dx_ = gaussian_pos.generate(rng);
@@ -337,7 +337,7 @@ double JetGaussianComponent::perturb(DNest4::RNG &rng) {
 	}
 	else if(which == 5)
 	{
-		DNest4::Gaussian gaussian_alpha_thick(1.0, 0.5);
+		DNest4::Gaussian gaussian_alpha_thick(1.5, 0.5);
 		log_H += gaussian_alpha_thick.perturb(alpha_thick_, rng);
 	}
 	else
@@ -400,7 +400,7 @@ void CoreGaussianComponent::from_prior(DNest4::RNG &rng)
 	DNest4::Uniform gaussian_direction(0.0, 2*M_PI);
 	DNest4::Gaussian gaussian_logsize(-1.0, 2.0);
 	DNest4::Gaussian gaussian_logflux(-1.0, 1.0);
-	DNest4::Uniform uniform_alpha(-1.0, 1.0);
+	DNest4::Uniform uniform_alpha(-1.5, 1.5);
 	DNest4::Uniform uniform_k(0.0, 3.0);
 	a_ = cauchy_pos.generate(rng);
 	PA_ = gaussian_direction.generate(rng);
@@ -436,7 +436,7 @@ double CoreGaussianComponent::perturb(DNest4::RNG &rng)
 	}
 	else if(which == 4)
 	{
-		DNest4::Uniform uniform_alpha(-1.0, 1.0);
+		DNest4::Uniform uniform_alpha(-1.5, 1.5);
 		log_H += uniform_alpha.perturb(alpha_, rng);
 	}
 	else
