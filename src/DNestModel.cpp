@@ -219,7 +219,6 @@ void DNestModel::print(std::ostream &out) const
 			out << logjitter_band << "\t";
 		}
     }
-    sky_model->print(out);
 	for (const auto& [band, origin] : jet_origin_x)
 	{
 		out << origin << "\t";
@@ -228,6 +227,7 @@ void DNestModel::print(std::ostream &out) const
 	{
 		out << origin << "\t";
 	}
+	sky_model->print(out);
 }
 
 

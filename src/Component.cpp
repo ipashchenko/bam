@@ -390,7 +390,7 @@ void CoreGaussianComponent::print(std::ostream &out) const
 std::string CoreGaussianComponent::description() const
 {
 	std::string descr;
-	descr += "a \tPA\tlogsize_1\tk_r\tlogS_1\talpha";
+	descr += "a\tPA\tlogsize_1\tk_r\tlogS_1\talpha";
 	return descr;
 }
 
