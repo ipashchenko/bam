@@ -25,8 +25,8 @@
 //    ft = exp(logflux - c*b);
 //
 //    // Prediction of visibilities
-//    mu_real = ft*cos(theta);
-//    mu_imag = ft*sin(theta);
+//    sky_model_mu_real = ft*cos(theta);
+//    sky_model_mu_imag = ft*sin(theta);
 //}
 //
 //
@@ -56,8 +56,8 @@
 //    ft = exp(logflux - c*(u*u + v*v));
 //
 //    // Prediction of visibilities
-//    mu_real = ft*cos(theta);
-//    mu_imag = ft*sin(theta);
+//    sky_model_mu_real = ft*cos(theta);
+//    sky_model_mu_imag = ft*sin(theta);
 //}
 //
 //
@@ -71,8 +71,8 @@
 //void CGComponent::from_prior(DNest4::RNG &rng) {
 ////     const std::valarray<double>& u = Data::get_instance().get_u();
 ////     std::valarray<double> zero (0.0, u.size());
-////     mu_real = zero;
-////     mu_imag = zero;
+////     sky_model_mu_real = zero;
+////     sky_model_mu_imag = zero;
 //     // Normal diffuse prior for x & y
 //	 // FIXME: If core - use tight prior around phase center (see Kima)
 //	 DNest4::Gaussian gaussian_pos(0.0, 5.0);
@@ -162,8 +162,8 @@
 //	logS_max = other.logS_max;
 //	alpha_thick = other.alpha_thick;
 //	alpha_thin = other.alpha_thin;
-//    mu_real = other.get_mu_real();
-//    mu_imag = other.get_mu_imag();
+//    sky_model_mu_real = other.get_mu_real();
+//    sky_model_mu_imag = other.get_mu_imag();
 //}
 //
 //
@@ -193,8 +193,8 @@
 //	ft = exp(logflux - c*(u*u + v*v));
 //
 //	// Prediction of visibilities
-//	mu_real = ft*cos(theta);
-//	mu_imag = ft*sin(theta);
+//	sky_model_mu_real = ft*cos(theta);
+//	sky_model_mu_imag = ft*sin(theta);
 //}
 //
 //void CoreCGComponent::from_prior(DNest4::RNG &rng)
@@ -288,7 +288,7 @@ void JetGaussianComponent::from_prior(DNest4::RNG &rng) {
 	 DNest4::Gaussian gaussian_logflux(-2.0, 1.0);
 	 DNest4::Gaussian gaussian_logsize(-1.0, 2.0);
 	 DNest4::Gaussian gaussian_alpha_thick(1.0, 0.5);
-	 DNest4::Gaussian gaussian_alpha_thin(-1.0, 0.5);
+	 DNest4::Gaussian gaussian_alpha_thin(-1.0, 0.25);
 	 DNest4::Uniform uniform_numax(-3, 3);
      dx_ = gaussian_pos.generate(rng);
      dy_ = gaussian_pos.generate(rng);
@@ -342,7 +342,7 @@ double JetGaussianComponent::perturb(DNest4::RNG &rng) {
 	}
 	else
 	{
-		DNest4::Gaussian gaussian_alpha_thin(-1.0, 0.5);
+		DNest4::Gaussian gaussian_alpha_thin(-1.0, 0.25);
 		log_H += gaussian_alpha_thin.perturb(alpha_thin_, rng);
 	}
     return log_H;
