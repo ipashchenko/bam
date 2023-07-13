@@ -14,8 +14,9 @@ from spydiff import export_difmap_model_from_tuples, join_difmap_models, create_
 # For tics and line widths. Re-write colors and figure size later.
 plt.style.use('science')
 # Default color scheme
-matplotlib.rcParams['axes.prop_cycle'] = cycler('color', ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-                                                          '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
+colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+          '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+matplotlib.rcParams['axes.prop_cycle'] = cycler('color', colors)
 # Default figure size
 matplotlib.rcParams['figure.figsize'] = (6.4, 4.8)
 
@@ -73,9 +74,10 @@ def plot_posterior_samples_on_map(posterior_file, n_bands, ra_lims=(-5, 5), dec_
             ra = row[idx_0_jc + i_jc*7]
             dec = row[idx_0_jc + 1 + i_jc*7]
             size = np.exp(row[idx_0_jc + 2 + i_jc*7])
-            print("Component #{}. ra = {:.2f}, dec = {:.2f}, size = {:.2f}".format(i_jc, ra, dec, size))
-            circle = Circle(xy=(ra, dec), radius=size, facecolor='green', alpha=0.1)
-            axes.add_patch(circle)
+            # print("Component #{}. ra = {:.2f}, dec = {:.2f}, size = {:.2f}".format(i_jc, ra, dec, size))
+            circle = Circle(xy=(ra, dec), radius=size, facecolor='green', alpha=0.01)
+            axes.scatter(ra, dec, s=5, alpha=0.2, color=colors[i_jc])
+            # axes.add_patch(circle)
     axes.set_xlabel("RA, mas")
     axes.set_ylabel("DEC, mas")
     axes.invert_xaxis()
@@ -86,10 +88,7 @@ def plot_posterior_samples_on_map(posterior_file, n_bands, ra_lims=(-5, 5), dec_
 
 if __name__ == "__main__":
     n_bands = 3
-    posterior_file = "/home/ilya/github/bam/Release/posterior_sample.txt"
+    posterior_file = "/home/ilya/github/bam/mf/posterior_sample.txt"
     df = convert_posterior_file_to_pandas_df(posterior_file)
     n_jc = count_jet_components(df, n_bands)
-    fig = plot_posterior_samples_on_map(posterior_file, n_bands)
-
-
-
+    fig = plot_posterior_samples_on_map(posterior_file, n_bands, ra_lims=(-5, 5), dec_lims=(-5, 5))
