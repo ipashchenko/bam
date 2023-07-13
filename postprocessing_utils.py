@@ -563,7 +563,7 @@ def export_difmap_model(comps, out_fname, freq_hz):
                 flux, x, y, bmaj = comp
                 e = "1.00000"
                 bpa = "000.000"
-                type = "1"
+                type_ = "1"
                 bmaj = "{:.7f}v".format(bmaj)
             elif len(comp) == 6:
                 # Jy, mas, mas, mas, -, deg
@@ -571,13 +571,13 @@ def export_difmap_model(comps, out_fname, freq_hz):
                 e = "{}v".format(e)
                 bpa = "{}v".format((bpa-np.pi/2)/degree_to_rad)
                 bmaj = "{}v".format(bmaj)
-                type = "1"
+                type_ = "1"
             elif len(comp) == 3:
                 flux, x, y = comp
                 e = "1.00000"
                 bmaj = "0.0000"
                 bpa = "000.000"
-                type = "0"
+                type_ = "0"
             else:
                 raise Exception
             # mas
@@ -586,7 +586,7 @@ def export_difmap_model(comps, out_fname, freq_hz):
             theta = np.arctan2(x, y)
             theta /= degree_to_rad
             fo.write("{:>11.7f}v {:>13.7f}v {:>13.5f}v {:>13} {:>13} {:>13} {:>3} {:>12.5e} {:>12d}\n".format(flux, r, theta,
-                                                              bmaj, e, bpa, type,
+                                                              bmaj, e, bpa, type_,
                                                              freq_hz, 0))
 
 
