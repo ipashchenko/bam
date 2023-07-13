@@ -5,215 +5,12 @@
 #include <RNG.h>
 
 
-//EGComponent::EGComponent() : dx_(0.0), dy_(0.0), logbmaj_(0.0), e_(1.0), bpa_(0.0), lognu_max(0.0),
-//							 logS_max(1.0), alpha_thick(1.0), alpha_thin(-1.0) {}
-//
-//
-//void EGComponent::ft(double nu, std::valarray<double> u, std::valarray<double> v)
-//{
-//    std::valarray<double> theta;
-//    double c;
-//    std::valarray<double> b;
-//    std::valarray<double> ft;
-//
-//    // Phase shift due to not being in a phase center
-//    theta = 2*M_PI*mas_to_rad*(u*dx_+v*dy_);
-//    // Calculate FT of a Gaussian in a phase center
-//    c = pow(M_PI*exp(logbmaj_)*mas_to_rad, 2)/(4.*log(2.));
-//    b = e_*e_*pow((u*cos(bpa_) - v*sin(bpa_)), 2) + pow((u*sin(bpa_)+v*cos(bpa_)), 2);
-//	double logflux = logS_max + alpha_thick*log(nu/exp(lognu_max)) - log(1 - exp(-1)) + log(1 - exp(-pow(nu/exp(lognu_max), alpha_thin-alpha_thick)));
-//    ft = exp(logflux - c*b);
-//
-//    // Prediction of visibilities
-//    sky_model_mu_real = ft*cos(theta);
-//    sky_model_mu_imag = ft*sin(theta);
-//}
-//
-//
-//void EGComponent::print(std::ostream &out) const
-//{
-//    out << dx_ << "\t" << dy_ << "\t" << logbmaj_ << "\t" << e_ << "\t" << bpa_ << "\t" << lognu_max << "\t" << logS_max << "\t" << alpha_thick << "\t" << alpha_thin << "\n";
-//}
-//
-//
-//CGComponent::CGComponent() : EGComponent() {}
-//
-//
-//void CGComponent::ft(double nu, std::valarray<double> u, std::valarray<double> v)
-//{
-//    std::valarray<double> theta;
-//    double c;
-//    //std::valarray<double> b;
-//    std::valarray<double> ft;
-//
-//    // Phase shift due to not being in a phase center
-//    theta = 2*M_PI*mas_to_rad*(u*dx_+v*dy_);
-//    // Calculate FT of a Gaussian in a phase center
-//    c = pow(M_PI*exp(logbmaj_)*mas_to_rad, 2)/(4.*log(2.));
-//    //b = e_*e_*pow((u*cos(bpa_) - v*sin(bpa_)), 2) + pow((u*sin(bpa_)+v*cos(bpa_)), 2);
-//    // TODO: Keep u*u and v*v already computed
-//	double logflux = logS_max + alpha_thick*log(nu/exp(lognu_max)) - log(1 - exp(-1)) + log(1 - exp(-pow(nu/exp(lognu_max), alpha_thin-alpha_thick)));
-//    ft = exp(logflux - c*(u*u + v*v));
-//
-//    // Prediction of visibilities
-//    sky_model_mu_real = ft*cos(theta);
-//    sky_model_mu_imag = ft*sin(theta);
-//}
-//
-//
-//void CGComponent::print(std::ostream &out) const
-//{
-//	out << dx_ << "\t" << dy_ << "\t" << logbmaj_ << "\t" << lognu_max << "\t" << logS_max << "\t" << alpha_thick << "\t" << alpha_thin << "\n";
-//
-//}
-//
-//
-//void CGComponent::from_prior(DNest4::RNG &rng) {
-////     const std::valarray<double>& u = Data::get_instance().get_u();
-////     std::valarray<double> zero (0.0, u.size());
-////     sky_model_mu_real = zero;
-////     sky_model_mu_imag = zero;
-//     // Normal diffuse prior for x & y
-//	 // FIXME: If core - use tight prior around phase center (see Kima)
-//	 DNest4::Gaussian gaussian_pos(0.0, 5.0);
-//	 DNest4::Gaussian gaussian_logflux(-2.0, 1.0);
-//	 DNest4::Gaussian gaussian_logsize(-1.0, 2.0);
-//	 DNest4::Gaussian gaussian_alpha_thick(1.0, 0.5);
-//	 DNest4::Gaussian gaussian_alpha_thin(-1.0, 0.5);
-//	 DNest4::Uniform uniform(1, 10);
-//     dx_ = gaussian_pos.generate(rng);
-//     dy_ = gaussian_pos.generate(rng);
-//     // Log-normal prior for flux and bmaj
-//     logS_max = gaussian_logflux.generate(rng);
-//     logbmaj_ = gaussian_logsize.generate(rng);
-//	 lognu_max = uniform.generate(rng);
-//	 alpha_thick = gaussian_alpha_thick.generate(rng);
-//	 alpha_thin = gaussian_alpha_thin.generate(rng);
-//    // Dependent priors - from MOJAVE 15 GHz modelfits.
-//    //logflux_ = -1.74 + 1.62*rng.randn();
-//    //logbmaj_ = -0.71 - 0.44*logflux_ + 0.84*rng.randn();
-//    // Dependent priors - modified for 43 GHz.
-////    logflux_ = -2.29 + 1.62*rng.randn();
-////    logbmaj_ = -1.71 - 0.44*logflux_ + 0.84*rng.randn();
-//}
-//
-//
-//double CGComponent::perturb(DNest4::RNG &rng) {
-//    double log_H = 0.;
-//    int which = rng.rand_int(7);
-//    if(which == 0)
-//    {
-//		DNest4::Gaussian gaussian_pos(0.0, 5.0);
-//		log_H += gaussian_pos.perturb(dx_, rng);
-//    }
-//    else if(which == 1)
-//    {
-//		DNest4::Gaussian gaussian_pos(0.0, 5.0);
-//		log_H += gaussian_pos.perturb(dy_, rng);
-//    }
-//    else if(which == 2)
-//    {
-//		DNest4::Gaussian gaussian_logflux(-2.0, 1.0);
-//		log_H += gaussian_logflux.perturb(logS_max, rng);
-//
-////        log_H -= -0.5*pow((logflux_+1.74)/1.62, 2);
-////        logflux_ += 1.62*rng.randh();
-////        log_H += -0.5*pow((logflux_+1.74)/1.62, 2);
-//    }
-//    else if(which == 3)
-//    {
-//		DNest4::Gaussian gaussian_logsize(-1.0, 2.0);
-//		log_H += gaussian_logsize.perturb(logbmaj_, rng);
-//
-////        log_H -= -0.5*pow((logbmaj_+0.71+0.44*logflux_)/0.84, 2);
-////        logbmaj_ += 0.84*rng.randh();
-////        log_H += -0.5*pow((logbmaj_+0.71+0.44*logflux_)/0.84, 2);
-//    }
-//	else if(which == 4)
-//	{
-//		DNest4::Uniform uniform(1, 10);
-//		log_H += uniform.perturb(lognu_max, rng);
-//
-//	}
-//	else if(which == 5)
-//	{
-//		DNest4::Gaussian gaussian_alpha_thick(1.0, 0.5);
-//		log_H += gaussian_alpha_thick.perturb(alpha_thick, rng);
-//	}
-//	else
-//	{
-//		DNest4::Gaussian gaussian_alpha_thin(-1.0, 0.5);
-//		log_H += gaussian_alpha_thin.perturb(alpha_thin, rng);
-//	}
-//    return log_H;
-//}
-//
-//
-//CGComponent *CGComponent::clone() {
-//    return new CGComponent(*this);
-//}
-//
-//
-//CGComponent::CGComponent(const CGComponent &other) {
-//    dx_ = other.dx_;
-//    dy_ = other.dy_;
-//    logbmaj_ = other.logbmaj_;
-//	lognu_max = other.lognu_max;
-//	logS_max = other.logS_max;
-//	alpha_thick = other.alpha_thick;
-//	alpha_thin = other.alpha_thin;
-//    sky_model_mu_real = other.get_mu_real();
-//    sky_model_mu_imag = other.get_mu_imag();
-//}
-//
-//
-//std::string CGComponent::description() const {
-//    std::string descr;
-//    descr += "x y logbmaj nu_mas logS_max alpha_thick alpha_thin";
-//    return descr;
-//}
-//
-//
-//CoreCGComponent::CoreCGComponent() {}
-//void CoreCGComponent::ft(double nu, std::valarray<double> u, std::valarray<double> v)
-//{
-//	std::valarray<double> theta;
-//	double c;
-//	std::valarray<double> ft;
-//
-//	// Size at given frequency
-//	logbmaj_ = log_theta_1 - (1./k_r)*log(nu);
-//	// Flux at given frequency
-//	double logflux = logS_1 + alpha*log(nu);
-//
-//	// Phase shift due to not being in a phase center
-//	theta = 2*M_PI*mas_to_rad*(u*dx_+v*dy_);
-//	// Calculate FT of a Gaussian in a phase center
-//	c = pow(M_PI*exp(logbmaj_)*mas_to_rad, 2)/(4.*log(2.));
-//	ft = exp(logflux - c*(u*u + v*v));
-//
-//	// Prediction of visibilities
-//	sky_model_mu_real = ft*cos(theta);
-//	sky_model_mu_imag = ft*sin(theta);
-//}
-//
-//void CoreCGComponent::from_prior(DNest4::RNG &rng)
-//{
-//	dx_ = 0.0;
-//	dy_ = 0.0;
-//	logbmaj_ = 0.0;
-//}
-//
-//
-//
-
 GaussianComponent::GaussianComponent() {}
 
 void GaussianComponent::ft(double nu, std::valarray<double> u, std::valarray<double> v)
 {
 	std::valarray<double> theta;
     double c;
-    //std::valarray<double> b;
     std::valarray<double> ft;
 
 	auto position = get_pos(nu);
@@ -292,18 +89,11 @@ void JetGaussianComponent::from_prior(DNest4::RNG &rng) {
 	 DNest4::Uniform uniform_numax(-3, 3);
      dx_ = gaussian_pos.generate(rng);
      dy_ = gaussian_pos.generate(rng);
-     // Log-normal prior for flux and bmaj
      logS_max_ = gaussian_logflux.generate(rng);
      logsize_ = gaussian_logsize.generate(rng);
 	 lognu_max_ = uniform_numax.generate(rng);
 	 alpha_thick_ = gaussian_alpha_thick.generate(rng);
 	 alpha_thin_ = gaussian_alpha_thin.generate(rng);
-    // Dependent priors - from MOJAVE 15 GHz modelfits.
-    //logflux_ = -1.74 + 1.62*rng.randn();
-    //logbmaj_ = -0.71 - 0.44*logflux_ + 0.84*rng.randn();
-    // Dependent priors - modified for 43 GHz.
-//    logflux_ = -2.29 + 1.62*rng.randn();
-//    logbmaj_ = -1.71 - 0.44*logflux_ + 0.84*rng.randn();
 }
 
 double JetGaussianComponent::perturb(DNest4::RNG &rng) {
