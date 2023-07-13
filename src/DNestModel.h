@@ -33,7 +33,7 @@ class DNestModel {
         std::string description() const;
 
     private:
-        double logjitter;
+		std::map<std::string, double> logjitter;
         bool use_logjitter;
 		// Per-band position of the jet base relative to the phase center
 		std::map<std::string, double> jet_origin_x;
