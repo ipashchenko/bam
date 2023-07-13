@@ -17,8 +17,12 @@ def load_from_fits(uvfits):
     hdus = pf.open(uvfits, mode="readonly")
     header = hdus[0].header
     freq = header["CRVAL{}".format([card for card in header.cards if "FREQ" in card][0][0][-1])]
-    u = freq*hdus[0].data["UU"]
-    v = freq*hdus[0].data["VV"]
+    try:
+        u = freq*hdus[0].data["UU"]
+        v = freq*hdus[0].data["VV"]
+    except KeyError:
+        u = freq*hdus[0].data["UU--"]
+        v = freq*hdus[0].data["VV--"]
     # STOKES = RR, COMPLEX = RE
     rr_re = np.nanmean(hdus[0].data["DATA"][:, 0, 0, 0, :, 0, 0], axis=1)
     rr_im = np.nanmean(hdus[0].data["DATA"][:, 0, 0, 0, :, 0, 1], axis=1)
@@ -58,7 +62,33 @@ def save_to_uvfits(uvfits, re=None, im=None):
     hdus.flush(verbose=True)
 
 
+def create_data_files_from_real_uvfits(band_uvfits_files_dict, save_dir, time_average_sec_dict):
+    import matplotlib.pyplot as plt
+    matplotlib.use("TkAgg")
+    for band, uvfits in band_uvfits_files_dict.items():
+        uvdata = UVData(uvfits)
+        freq_ghz = uvdata.frequency/1E+09
+        out_fname = os.path.join(save_dir, "{}_{:.2f}".format(band, freq_ghz))
+        df = create_data_file_v2(uvfits, out_fname, time_average_sec=time_average_sec_dict[band])
+        fig = radplot(df, label="Data")
+        plt.show()
+
+
 if __name__ == "__main__":
+
+    band_uvfits_files_dict = {"c1": "/home/ilya/Downloads/MF/0851+202.c1.2009_02_02.uvf",
+                              "c2": "/home/ilya/Downloads/MF/0851+202.c2.2009_02_02.uvf",
+                              "k1": "/home/ilya/Downloads/MF/0851+202.k1.2009_02_02.uvf",
+                              "q1": "/home/ilya/Downloads/MF/0851+202.q1.2009_02_02.uvf",
+                              "u1": "/home/ilya/Downloads/MF/0851+202.u1.2009_02_02.uvf",
+                              "x1": "/home/ilya/Downloads/MF/0851+202.x1.2009_02_02.uvf",
+                              "x2": "/home/ilya/Downloads/MF/0851+202.x2.2009_02_02.uvf"}
+    time_average_sec_dict = {"c1": 120, "c2": 120, "x1": 120, "x2": 120, "u1": 120, "k1": 60, "q1": 60}
+    save_dir = "/home/ilya/github/bam/mf"
+    create_data_files_from_real_uvfits(band_uvfits_files_dict, save_dir, time_average_sec_dict=time_average_sec_dict)
+
+    sys.exit(0)
+
 
     # save_to_uvfits("/home/ilya/Downloads/MF/ta120sec_0851+202.c1.2009_02_02.uvf")
     # sys.exit(0)
@@ -130,19 +160,19 @@ if __name__ == "__main__":
 
             print("Total flux at frequency {:.2f} is S = {:.2f}".format(freq_ghz, total_flux))
 
-            # center_mass /= total_flux
+            center_mass /= total_flux
             # print("Center mas (RA, DEC) [mas] = ", center_mass)
-            # # Shift to bring center mass to the phase center
-            # re = df["vis_re"]
-            # im = df["vis_im"]
-            # vis = re + 1j*im
-            # # "-" becaue we want to move in the opposite direction
-            # shift = [-center_mass[0]*mas_to_rad, -center_mass[0]*mas_to_rad]
-            # result = np.exp(2.0*np.pi*1j*(uv @ shift))
-            # print("In shifting center mass uv = ", uv)
-            # vis *= result
-            # df["vis_re"] = np.real(vis)
-            # df["vis_im"] = np.imag(vis)
+            # Shift to bring center mass to the phase center
+            re = df["vis_re"]
+            im = df["vis_im"]
+            vis = re + 1j*im
+            # "-" becaue we want to move in the opposite direction
+            shift = [-RA*mas_to_rad, -DEC*mas_to_rad]
+            result = np.exp(2.0*np.pi*1j*(uv @ shift))
+            print("In shifting center mass uv = ", uv)
+            vis *= result
+            df["vis_re"] = np.real(vis)
+            df["vis_im"] = np.imag(vis)
 
         try:
             fig = radplot(df, label="Data")
