@@ -29,6 +29,27 @@ void GaussianComponent::ft(double nu, std::valarray<double> u, std::valarray<dou
 }
 
 
+SphereComponent::SphereComponent() {}
+
+void SphereComponent::ft(double nu, std::valarray<double> u, std::valarray<double> v)
+{
+	std::valarray<double> theta;
+	std::valarray<double> ft;
+	
+	auto position = get_pos(nu);
+	double logD = get_logsize(nu);
+	double logflux = get_logflux(nu);
+	// Phase shift due to not being in a phase center
+	theta = 2*M_PI*mas_to_rad*(u*position.first + v*position.second);
+	// Calculate FT of a Sphere in a phase center
+	
+	std::valarray<double> pi_D_rho = M_PI*exp(logD)*sqrt(u*u + v*v);
+	ft = 3*exp(logflux)*(sin(pi_D_rho) - pi_D_rho*cos(pi_D_rho))/pow(pi_D_rho, 3);
+	
+	// Prediction of visibilities
+	mu_real = ft*cos(theta);
+	mu_imag = ft*sin(theta);
+}
 
 
 JetGaussianComponent::JetGaussianComponent() : GaussianComponent() {}

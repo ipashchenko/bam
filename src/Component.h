@@ -43,6 +43,7 @@ class Component {
 };
 
 
+// TODO: Use member ``type`` (enum?) to select the Circular or Elliptical component
 class GaussianComponent : public Component {
 	public:
 		GaussianComponent();
@@ -50,6 +51,14 @@ class GaussianComponent : public Component {
 };
 
 
+class SphereComponent : public Component {
+	public:
+		SphereComponent();
+		void ft(double nu, std::valarray<double> u, std::valarray<double> v) override;
+};
+
+// TODO: What about inheriting from Component as JetComponent (w/o ft) and then inheriting from JetComponent to
+// GaussianJetComponent and SphereJetComponent?
 class JetGaussianComponent : public GaussianComponent {
 	public:
 		JetGaussianComponent();
@@ -68,6 +77,7 @@ class JetGaussianComponent : public GaussianComponent {
 };
 
 
+// In parametrization without assumed core shift I can put narrow priors on dx,dy of the core.
 class CoreGaussianComponent : public GaussianComponent {
 	public:
 		CoreGaussianComponent();
