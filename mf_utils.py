@@ -83,7 +83,7 @@ if __name__ == "__main__":
                               "u1": "/home/ilya/Downloads/MF/0851+202.u1.2009_02_02.uvf",
                               "x1": "/home/ilya/Downloads/MF/0851+202.x1.2009_02_02.uvf",
                               "x2": "/home/ilya/Downloads/MF/0851+202.x2.2009_02_02.uvf"}
-    time_average_sec_dict = {"c1": 120, "c2": 120, "x1": 120, "x2": 120, "u1": 120, "k1": 60, "q1": 60}
+    time_average_sec_dict = {"c1": 120, "c2": 120, "x1": 120, "x2": 120, "u1": 120, "k1": 120, "q1": 120}
     save_dir = "/home/ilya/github/bam/mf"
     create_data_files_from_real_uvfits(band_uvfits_files_dict, save_dir, time_average_sec_dict=time_average_sec_dict)
 
