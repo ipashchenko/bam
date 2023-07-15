@@ -1,9 +1,11 @@
+import os
 import sys
 import matplotlib
 import scienceplots
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from labellines import labelLines
 from matplotlib.patches import Circle
 import matplotlib.ticker as ticker
 from cycler import cycler
@@ -115,13 +117,66 @@ def plot_posterior_samples_on_map(posterior_file, n_bands, freqs_ghz, ra_lims=(-
     return fig
 
 
+def optically_thin_spectr(nu, logS_max, lognu_max, alpha_thin, alpha_thick):
+    return logS_max + alpha_thick*np.log(nu/np.exp(lognu_max)) - np.log(1 - np.exp(-1)) + np.log(1 - np.exp(-(nu/np.exp(lognu_max))**(alpha_thin - alpha_thick)))
+
+
+def get_fluxes(df, n_bands, jitter, freqs_ghz, save_dir=None):
+    freqs_ghz = sorted(freqs_ghz)
+    n_jc = count_jet_components(df, n_bands, jitter)
+    nu_grid = np.logspace(np.log10(np.min(freqs_ghz))-0.25, np.log10(np.max(freqs_ghz))+0.25, 100, base=10)
+    for i in range(n_jc):
+        RA, DEC = np.median(df[f"dx.{i}"]), np.median(df[f"dy.{i}"])
+        logS_max = df[f"logS_max.{i}"].values
+        lognu_max = df[f"lognu_max.{i}"].values
+        alpha_thin = df[f"alpha_thin.{i}"].values
+        alpha_thick = df[f"alpha_thick.{i}"].values
+        # fluxes = [np.median(np.exp(optically_thin_spectr(nu, logS_max, lognu_max, alpha_thin, alpha_thick))) for nu in freqs_ghz]
+        print("For component at RA = {:.2f}, DEC = {:.2f} the fluxes are :".format(RA, DEC))
+        for nu in freqs_ghz:
+            print("For nu = {} GHz: {:.3f} Jy".format(nu, np.median(np.exp(optically_thin_spectr(nu, logS_max, lognu_max, alpha_thin, alpha_thick)))))
+        print("Spectral indexes are :")
+        print("alpha_thin = {:.2f}, alpha_thick = {:.2f}".format(np.median(df[f"alpha_thin.{i}"]), np.median(df[f"alpha_thick.{i}"])))
+        print("nu_max = {:.2f} GHz".format(np.exp(np.median(df[f"lognu_max.{i}"]))))
+        print("---------------------------------------------------------------")
+        fig, axes = plt.subplots(1, 1)
+        for j in range(len(df)):
+            logflux = optically_thin_spectr(nu_grid, logS_max[j], lognu_max[j], alpha_thin[j], alpha_thick[j])
+            axes.plot(nu_grid, np.exp(logflux), alpha=0.05, color="r", lw=2)
+        axes.set_xlabel(r"frequency, GHz")
+        axes.set_ylabel(r"Flux, Jy")
+        axes.set_xscale("log", base=10)
+        axes.set_yscale("log", base=10)
+        axes.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y,pos: ('{{:.{:1d}f}}'.format(int(np.maximum(-np.log10(y),0)))).format(y)))
+        axes.xaxis.set_major_formatter(ticker.FuncFormatter(lambda y,pos: ('{{:.{:1d}f}}'.format(int(np.maximum(-np.log10(y),0)))).format(y)))
+
+        # remove the minor ticks
+        axes.yaxis.set_minor_formatter(ticker.NullFormatter())
+        # axes.yaxis.set_minor_formatter(ticker.ScalarFormatter())
+        # axes.xaxis.set_minor_formatter(ticker.ScalarFormatter())
+
+        # axes.yaxis.set_minor_formatter(ticker.FuncFormatter(lambda y,pos: ('{{:.{:1d}f}}'.format(int(np.maximum(-np.log10(y),0)))).format(y)))
+        # axes.xaxis.set_minor_formatter(ticker.FuncFormatter(lambda y,pos: ('{{:.{:1d}f}}'.format(int(np.maximum(-np.log10(y),0)))).format(y)))
+        for icolor, nu in enumerate(freqs_ghz):
+            axes.axvline(nu, lw=1, color="k", ls="--")
+        # labelLines(axes.get_lines(), zorder=2.5, fontsize=14, backgroundcolor="none", ha="left", va="bottom", align=False)
+        # plt.legend()
+        if save_dir is not None:
+            plt.savefig(os.path.join(save_dir, "spectra_component_RA_{:.2f}_DEC_{:.2f}.png".format(RA, DEC)), bbox_inches="tight", dpi=300)
+        plt.show()
+
+
 if __name__ == "__main__":
     n_bands = 3
     jitter = False
     freqs_ghz = (15.4, 23.8, 43.2)
-    posterior_file = "/home/ilya/github/bam/mf_noj/posterior_sample_5jc_noj.txt"
+    posterior_file = "/home/ilya/github/bam/mf_noj/posterior_sample_6jc_noj.txt"
     # posterior_file = "/home/ilya/github/bam/mf/posterior_sample_6jc.txt"
+    save_dir = "/home/ilya/github/bam/mf_noj/6jc"
+    if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
     df = convert_posterior_file_to_pandas_df(posterior_file)
     n_jc = count_jet_components(df, n_bands, jitter)
+    get_fluxes(df, n_bands, jitter, freqs_ghz, save_dir)
     fig = plot_posterior_samples_on_map(posterior_file, n_bands, freqs_ghz, ra_lims=(-10, 10), dec_lims=(-10, 10),
                                         alpha_jet=0.002, alpha_core=0.1, jitter=jitter, each=1)
