@@ -121,7 +121,7 @@ def optically_thin_spectr(nu, logS_max, lognu_max, alpha_thin, alpha_thick):
     return logS_max + alpha_thick*np.log(nu/np.exp(lognu_max)) - np.log(1 - np.exp(-1)) + np.log(1 - np.exp(-(nu/np.exp(lognu_max))**(alpha_thin - alpha_thick)))
 
 
-def get_fluxes(df, n_bands, jitter, freqs_ghz, save_dir=None, opacity_each_line=0.05):
+def plot_components_info(df, n_bands, jitter, freqs_ghz, save_dir=None, opacity_each_line=0.05):
     freqs_ghz = sorted(freqs_ghz)
     n_jc = count_jet_components(df, n_bands, jitter)
     nu_grid = np.logspace(np.log10(np.min(freqs_ghz))-0.25, np.log10(np.max(freqs_ghz))+0.25, 100, base=10)
@@ -171,6 +171,6 @@ if __name__ == "__main__":
         os.mkdir(save_dir)
     df = convert_posterior_file_to_pandas_df(posterior_file)
     n_jc = count_jet_components(df, n_bands, jitter)
-    get_fluxes(df, n_bands, jitter, freqs_ghz, save_dir=None, opacity_each_line=0.5)
+    plot_components_info(df, n_bands, jitter, freqs_ghz, save_dir=None, opacity_each_line=0.5)
     fig = plot_posterior_samples_on_map(posterior_file, n_bands, freqs_ghz, ra_lims=(-10, 10), dec_lims=(-10, 10),
                                         alpha_jet=0.3, alpha_core=0.5, jitter=jitter, each=1)
