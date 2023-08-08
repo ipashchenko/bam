@@ -76,15 +76,24 @@ def create_data_files_from_real_uvfits(band_uvfits_files_dict, save_dir, time_av
 
 if __name__ == "__main__":
 
-    band_uvfits_files_dict = {"c1": "/home/ilya/Downloads/MF/0851+202.c1.2009_02_02.uvf",
-                              "c2": "/home/ilya/Downloads/MF/0851+202.c2.2009_02_02.uvf",
-                              "k1": "/home/ilya/Downloads/MF/0851+202.k1.2009_02_02.uvf",
-                              "q1": "/home/ilya/Downloads/MF/0851+202.q1.2009_02_02.uvf",
-                              "u1": "/home/ilya/Downloads/MF/0851+202.u1.2009_02_02.uvf",
-                              "x1": "/home/ilya/Downloads/MF/0851+202.x1.2009_02_02.uvf",
-                              "x2": "/home/ilya/Downloads/MF/0851+202.x2.2009_02_02.uvf"}
+    # band_uvfits_files_dict = {"c1": "/home/ilya/Downloads/MF/0851+202.c1.2009_02_02.uvf",
+    #                           "c2": "/home/ilya/Downloads/MF/0851+202.c2.2009_02_02.uvf",
+    #                           "k1": "/home/ilya/Downloads/MF/0851+202.k1.2009_02_02.uvf",
+    #                           "q1": "/home/ilya/Downloads/MF/0851+202.q1.2009_02_02.uvf",
+    #                           "u1": "/home/ilya/Downloads/MF/0851+202.u1.2009_02_02.uvf",
+    #                           "x1": "/home/ilya/Downloads/MF/0851+202.x1.2009_02_02.uvf",
+    #                           "x2": "/home/ilya/Downloads/MF/0851+202.x2.2009_02_02.uvf"}
+    band_uvfits_files_dict = {"c1": "/home/ilya/Downloads/BK150_mdf/0827+243.c1.2009_04_09.puvf",
+                              "c2": "/home/ilya/Downloads/BK150_mdf/0827+243.c2.2009_04_09.uvf_difmap",
+                              "k1": "/home/ilya/Downloads/BK150_mdf/0827+243.k1.2009_04_09.puvf0",
+                              "q1": "/home/ilya/Downloads/BK150_mdf/0827+243.q1.2009_04_09.uvf_difmap",
+                              "u1": "/home/ilya/Downloads/BK150_mdf/0827+243.u1.2009_04_09.puvf0",
+                              "x1": "/home/ilya/Downloads/BK150_mdf/0827+243.x1.2009_04_09.puvf",
+                              "x2": "/home/ilya/Downloads/BK150_mdf/0827+243.x2.2009_04_09.puvf0"}
     time_average_sec_dict = {"c1": 120, "c2": 120, "x1": 120, "x2": 120, "u1": 120, "k1": 120, "q1": 120}
-    save_dir = "/home/ilya/github/bam/mf"
+    save_dir = "/home/ilya/github/bam/mf/0827"
+    if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
     create_data_files_from_real_uvfits(band_uvfits_files_dict, save_dir, time_average_sec_dict=time_average_sec_dict)
 
     sys.exit(0)
