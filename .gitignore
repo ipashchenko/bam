@@ -202,6 +202,9 @@ cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
+cmake-build-debug/
+cmake-build-release/
+
 _deps
 
 results/
@@ -214,4 +217,7 @@ data/
 difmap.log*
 *.txt
 *.mdl
+*.sh
 !CMakeLists.txt
+!check_dnest.sh
+.vscode/
