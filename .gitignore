@@ -212,3 +212,6 @@ data/
 *.png
 *.pdf
 difmap.log*
+*.txt
+*.mdl
+!CMakeLists.txt
