@@ -209,3 +209,6 @@ Release/
 mf_noj/
 mf/
 data/
+*.png
+*.pdf
+difmap.log*
