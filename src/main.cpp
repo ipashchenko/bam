@@ -22,11 +22,5 @@ int main(int argc, char** argv)
     sampler_options.print(std::cout);
     Sampler<DNestModel> sampler = setup<DNestModel>(options);
     sampler.run();
-
-
-
-
-
-
     return 0;
 }

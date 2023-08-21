@@ -46,8 +46,10 @@ class DNestModel {
 		std::unordered_map<std::string, std::valarray<double>> mu_real_full;
 		std::unordered_map<std::string, std::valarray<double>> mu_imag_full;
         // This runs ``ft`` method of SkyModel with (u, v) from Data and updates SkyModel predictions
-        void calculate_sky_mu();
+        void calculate_sky_mu(bool update);
 		void shift_sky_mu();
+		size_t component_ft_counter;
+		bool use_speedup;
 };
 
 #endif //BAM_DNESTMODEL_H

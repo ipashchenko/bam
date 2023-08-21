@@ -7,7 +7,8 @@
 #include "RNG.h"
 
 
-class SkyModel {
+class SkyModel
+{
     public:
         SkyModel();
         SkyModel(const SkyModel& other);
@@ -15,7 +16,8 @@ class SkyModel {
         SkyModel&operator=(const SkyModel& other);
 
         void add_component(Component* component);
-        void ft_from_all(double nu, const std::valarray<double>& u, const std::valarray<double>& v);
+		void ft_from_all(double nu, const std::valarray<double>& u, const std::valarray<double>& v);
+		void ft(double nu, const std::valarray<double>& u, const std::valarray<double>& v);
         [[nodiscard]] std::valarray<double> get_mu_real() const { return mu_real; }
         [[nodiscard]] std::valarray<double> get_mu_imag() const { return mu_imag; }
         void print(std::ostream& out) const;
@@ -25,7 +27,9 @@ class SkyModel {
         double perturb(DNest4::RNG& rng);
 
     private:
+        std::vector<bool> updated_;
         std::vector<Component*> components_;
+        std::vector<Component*> old_components_;
         // SkyModel prediction
 		std::valarray<double> mu_real;
         std::valarray<double> mu_imag;

@@ -5,14 +5,14 @@
 #include "Component.h"
 
 
-DNestModel::DNestModel() : use_logjitter(true)
+DNestModel::DNestModel() : use_logjitter(true), use_speedup(true), component_ft_counter(0)
 {
     sky_model = new SkyModel();
     int n_jetcomp = 5;
-	auto* comp = new CoreGaussianComponent();
+	auto* comp = new CoreComponent(Component::Gaussian);
 	sky_model->add_component(comp);
     for (int i=0; i<n_jetcomp; i++) {
-        auto* comp = new JetGaussianComponent();
+        auto* comp = new JetComponent(Component::Gaussian);
         sky_model->add_component(comp);
     }
 }
@@ -29,12 +29,14 @@ DNestModel::DNestModel(const DNestModel& other)
     sky_model = new SkyModel(*other.sky_model);
     logjitter = other.logjitter;
     use_logjitter = other.use_logjitter;
+	use_speedup = other.use_speedup;
 	sky_model_mu_real = other.sky_model_mu_real;
 	sky_model_mu_imag = other.sky_model_mu_imag;
 	mu_real_full = other.mu_real_full;
 	mu_imag_full = other.mu_imag_full;
 	jet_origin_x = other.jet_origin_x;
 	jet_origin_y = other.jet_origin_y;
+	component_ft_counter = other.component_ft_counter;
 }
 
 
@@ -45,21 +47,22 @@ DNestModel& DNestModel::operator=(const DNestModel& other)
         *(sky_model) = *(other.sky_model);
         logjitter = other.logjitter;
         use_logjitter = other.use_logjitter;
+		use_speedup = other.use_speedup;
 		sky_model_mu_real = other.sky_model_mu_real;
 		sky_model_mu_imag = other.sky_model_mu_imag;
 		mu_real_full = other.mu_real_full;
 		mu_imag_full = other.mu_imag_full;
 		jet_origin_x = other.jet_origin_x;
 		jet_origin_y = other.jet_origin_y;
+		component_ft_counter = other.component_ft_counter;
     }
     return *this;
 }
 
 
-// TODO: Here initialize containers with old and current per-component predictions.
 void DNestModel::from_prior(DNest4::RNG &rng)
 {
-	DNest4::Gaussian gaussian_origin(0.0, 0.25);
+	DNest4::Cauchy cauchy_origin(0.0, 0.1);
 	DNest4::Gaussian gaussian_jitter(-4.0, 2.0);
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
@@ -71,13 +74,13 @@ void DNestModel::from_prior(DNest4::RNG &rng)
 		sky_model_mu_imag[band] = zero;
 		mu_real_full[band] = zero;
 		mu_imag_full[band] = zero;
-		jet_origin_x[band] = gaussian_origin.generate(rng);
-		jet_origin_y[band] = gaussian_origin.generate(rng);
+		jet_origin_x[band] = cauchy_origin.generate(rng);
+		jet_origin_y[band] = cauchy_origin.generate(rng);
 		logjitter[band] = gaussian_jitter.generate(rng);
 		
 	}
     sky_model->from_prior(rng);
-    calculate_sky_mu();
+    calculate_sky_mu(false);
 	shift_sky_mu();
 }
 
@@ -123,7 +126,7 @@ double DNestModel::perturb(DNest4::RNG &rng)
             logH = 0.0;
 
         // This shouldn't be called in case of pre-rejection
-        calculate_sky_mu();
+        calculate_sky_mu(true);
 		shift_sky_mu();
     }
 	
@@ -134,19 +137,19 @@ double DNestModel::perturb(DNest4::RNG &rng)
 		int n_bands = bands.size();
 		int which = rng.rand_int(n_bands);
 		std::string band = bands[which];
-		DNest4::Gaussian gaussian_origin(0.0, 0.25);
+		DNest4::Cauchy cauchy_origin(0.0, 0.1);
 		int which_xy = rng.rand_int(2);
 		double origin;
 		if(which_xy == 0)
 		{
 			origin = jet_origin_x[band];
-			logH += gaussian_origin.perturb(origin, rng);
+			logH += cauchy_origin.perturb(origin, rng);
 			jet_origin_x[band] = origin;
 		}
 		else
 		{
 			origin = jet_origin_y[band];
-			logH += gaussian_origin.perturb(origin, rng);
+			logH += cauchy_origin.perturb(origin, rng);
 			jet_origin_y[band] = origin;
 		}
 		shift_sky_mu();
@@ -155,7 +158,7 @@ double DNestModel::perturb(DNest4::RNG &rng)
 }
 
 
-void DNestModel::calculate_sky_mu()
+void DNestModel::calculate_sky_mu(bool update)
 {
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
@@ -163,14 +166,24 @@ void DNestModel::calculate_sky_mu()
 		const std::valarray<double> &u = Data::get_instance().get_u(band);
 		const std::valarray<double> &v = Data::get_instance().get_v(band);
 		
-		// FT (calculate SkyModel prediction)
-		sky_model->ft_from_all(freq, u, v);
+		if(use_speedup && update && component_ft_counter < 30)
+		{
+//			std::cout << "Speed up with counter = " << component_ft_counter << "\n";
+			sky_model->ft(freq, u, v);
+			component_ft_counter += 1;
+		}
+		else
+		{
+//			std::cout << "Full : resetting counter!\n";
+			sky_model->ft_from_all(freq, u, v);
+			component_ft_counter = 0;
+		}
 		sky_model_mu_real[band] = sky_model->get_mu_real();
 		sky_model_mu_imag[band] = sky_model->get_mu_imag();
 	}
 }
 
-// FIXME: I need de-couple original predictions of SkyModel and shifted predictions. Because I change it each perturb!
+//* I need to decouple original predictions of SkyModel and shifted predictions. Because I change it each perturb!
 void DNestModel::shift_sky_mu()
 {
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
