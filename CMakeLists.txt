@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 project(bam)
 
-include_directories("/home/ilya/github/DNest4/code", "src")
+include_directories("/usr/inlcude/eigen3", "/home/ilya/github/DNest4/code", "src")
 
 
 set(CMAKE_CXX_STANDARD 17)

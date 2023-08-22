@@ -7,33 +7,28 @@
 
 DNestModel::DNestModel() : use_logjitter(true), use_speedup(true), component_ft_counter(0)
 {
-    sky_model = new SkyModel();
-    int n_jetcomp = 5;
-	auto* comp = new CoreComponent(Component::Gaussian);
-	sky_model->add_component(comp);
-    for (int i=0; i<n_jetcomp; i++) {
-        auto* comp = new JetComponent(Component::Gaussian);
-        sky_model->add_component(comp);
-    }
+	size_t number_of_jet_components = 5;
+    sky_model = new SkyModel(number_of_jet_components);
+	old_sky_model = sky_model->clone();
 }
 
 
 DNestModel::~DNestModel()
 {
     delete sky_model;
+	delete old_sky_model;
 }
 
 
 DNestModel::DNestModel(const DNestModel& other)
 {
     sky_model = new SkyModel(*other.sky_model);
+	old_sky_model = new SkyModel(*other.old_sky_model);
     logjitter = other.logjitter;
     use_logjitter = other.use_logjitter;
 	use_speedup = other.use_speedup;
-	sky_model_mu_real = other.sky_model_mu_real;
-	sky_model_mu_imag = other.sky_model_mu_imag;
-	mu_real_full = other.mu_real_full;
-	mu_imag_full = other.mu_imag_full;
+	sky_model_mu = other.sky_model_mu;
+	mu_full = other.mu_full;
 	jet_origin_x = other.jet_origin_x;
 	jet_origin_y = other.jet_origin_y;
 	component_ft_counter = other.component_ft_counter;
@@ -45,13 +40,12 @@ DNestModel& DNestModel::operator=(const DNestModel& other)
     if (this != &other)
 	{
         *(sky_model) = *(other.sky_model);
+        *(old_sky_model) = *(other.old_sky_model);
         logjitter = other.logjitter;
         use_logjitter = other.use_logjitter;
 		use_speedup = other.use_speedup;
-		sky_model_mu_real = other.sky_model_mu_real;
-		sky_model_mu_imag = other.sky_model_mu_imag;
-		mu_real_full = other.mu_real_full;
-		mu_imag_full = other.mu_imag_full;
+		sky_model_mu = other.sky_model_mu;
+		mu_full = other.mu_full;
 		jet_origin_x = other.jet_origin_x;
 		jet_origin_y = other.jet_origin_y;
 		component_ft_counter = other.component_ft_counter;
@@ -68,12 +62,10 @@ void DNestModel::from_prior(DNest4::RNG &rng)
 	for (const auto& [band, freq] : band_freq_map)
 	{
 		// I do this because in ``calculate_sky_mu`` ``sky_model_mu_real`` and ``sky_model_mu_imag`` are multiplied and added.
-		const std::valarray<double> &u = Data::get_instance().get_u(band);
-		std::valarray<double> zero(0.0, u.size());
-		sky_model_mu_real[band] = zero;
-		sky_model_mu_imag[band] = zero;
-		mu_real_full[band] = zero;
-		mu_imag_full[band] = zero;
+		const ArrayXd &u = Data::get_instance().get_u(band);
+		ArrayXcd zero = ArrayXcd::Zero(u.size());
+		sky_model_mu[band] = zero;
+		mu_full[band] = zero;
 		jet_origin_x[band] = cauchy_origin.generate(rng);
 		jet_origin_y[band] = cauchy_origin.generate(rng);
 		logjitter[band] = gaussian_jitter.generate(rng);
@@ -81,6 +73,8 @@ void DNestModel::from_prior(DNest4::RNG &rng)
 	}
     sky_model->from_prior(rng);
     calculate_sky_mu(false);
+	// old SkyModel now is the copy of the current one
+	old_sky_model = sky_model->clone();
 	shift_sky_mu();
 }
 
@@ -116,7 +110,8 @@ double DNestModel::perturb(DNest4::RNG &rng)
     else if(u >= r_logjitter && u < r_logjitter + 0.7)
 	{
         logH += sky_model->perturb(rng);
-
+		// Now the old sky_model has the same boolean perturbed vector
+		old_sky_model->set_perturbed(sky_model->get_perturbed());
         // Pre-reject
         if(rng.rand() >= exp(logH))
 		{
@@ -163,13 +158,17 @@ void DNestModel::calculate_sky_mu(bool update)
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
 	{
-		const std::valarray<double> &u = Data::get_instance().get_u(band);
-		const std::valarray<double> &v = Data::get_instance().get_v(band);
+		const ArrayXd &u = Data::get_instance().get_u(band);
+		const ArrayXd &v = Data::get_instance().get_v(band);
 		
 		if(use_speedup && update && component_ft_counter < 30)
 		{
 //			std::cout << "Speed up with counter = " << component_ft_counter << "\n";
-			sky_model->ft(freq, u, v);
+			// Switching boolean perturbed[i] to false here
+			sky_model->ft_from_perturbed(freq, u, v);
+			//! Here all components in old_sky_model are not perturbed!
+			old_sky_model->ft_from_perturbed(freq, u, v);
+			sky_model_mu[band] = sky_model->get_mu() - old_sky_model->get_mu();
 			component_ft_counter += 1;
 		}
 		else
@@ -177,9 +176,8 @@ void DNestModel::calculate_sky_mu(bool update)
 //			std::cout << "Full : resetting counter!\n";
 			sky_model->ft_from_all(freq, u, v);
 			component_ft_counter = 0;
+			sky_model_mu[band] = sky_model->get_mu();
 		}
-		sky_model_mu_real[band] = sky_model->get_mu_real();
-		sky_model_mu_imag[band] = sky_model->get_mu_imag();
 	}
 }
 
@@ -187,13 +185,13 @@ void DNestModel::calculate_sky_mu(bool update)
 void DNestModel::shift_sky_mu()
 {
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
+	const std::complex<double> j(0.0, 1.0);
 	for (const auto& [band, freq] : band_freq_map)
 	{
-		const std::valarray<double> &u = Data::get_instance().get_u(band);
-		const std::valarray<double> &v = Data::get_instance().get_v(band);
-		std::valarray<double> theta = 2 * M_PI * mas_to_rad * (u * jet_origin_x[band] + v * jet_origin_y[band]);
-		mu_real_full[band] = cos(theta) * sky_model_mu_real[band] - sin(theta) * sky_model_mu_imag[band];
-		mu_imag_full[band] = cos(theta) * sky_model_mu_imag[band] + sin(theta) * sky_model_mu_real[band];
+		ArrayXd &u = Data::get_instance().get_u(band);
+		ArrayXd &v = Data::get_instance().get_v(band);
+		ArrayXcd theta = 2 * M_PI * j * mas_to_rad * (u * jet_origin_x[band] + v * jet_origin_y[band]);
+		mu_full[band] = sky_model_mu[band] * exp(theta);
 	}
 }
 
@@ -203,11 +201,10 @@ double DNestModel::log_likelihood()
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
 	{
-			const std::valarray<double> &vis_real = Data::get_instance().get_vis_real(band);
-			const std::valarray<double> &vis_imag = Data::get_instance().get_vis_imag(band);
-			const std::valarray<double> &sigma = Data::get_instance().get_sigma(band);
+			const ArrayXcd &vis_obs = Data::get_instance().get_vis_real(band);
+			const ArrayXd &sigma = Data::get_instance().get_sigma(band);
 			
-			std::valarray<double> var = sigma*sigma;
+			ArrayXd var = sigma*sigma;
 			
 			if (use_logjitter)
 			{
@@ -215,8 +212,7 @@ double DNestModel::log_likelihood()
 			}
 			
 			// Complex Gaussian sampling distribution
-			std::valarray<double> result = -log(2*M_PI*var) - 0.5*(pow(vis_real - mu_real_full[band], 2) +
-				pow(vis_imag - mu_imag_full[band], 2))/var;
+			ArrayXd result = -log(2*M_PI*var) - 0.5*square(abs(vis_obs - mu_full[band]))/var;
 			loglik += result.sum();
 	}
     return loglik;

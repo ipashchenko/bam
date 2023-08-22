@@ -1,12 +1,10 @@
 #ifndef BAM_DNESTMODEL_H
 #define BAM_DNESTMODEL_H
 
-#include <valarray>
 #include <map>
 #include "SkyModel.h"
 #include "RNG.h"
 #include "DNest4.h"
-#include "MyConditionalPrior.h"
 
 
 class DNestModel {
@@ -38,13 +36,13 @@ class DNestModel {
 		// Per-band position of the jet base relative to the phase center
 		std::map<std::string, double> jet_origin_x;
 		std::map<std::string, double> jet_origin_y;
-        SkyModel* sky_model{};
+        SkyModel* sky_model;
+        SkyModel* old_sky_model;
+        std::vector<bool> perturbed_components;
         // Prediction of SkyModel only
-        std::unordered_map<std::string, std::valarray<double>> sky_model_mu_real;
-        std::unordered_map<std::string, std::valarray<double>> sky_model_mu_imag;
+        std::unordered_map<std::string, ArrayXcd> sky_model_mu;
 		// Predictions with shift
-		std::unordered_map<std::string, std::valarray<double>> mu_real_full;
-		std::unordered_map<std::string, std::valarray<double>> mu_imag_full;
+		std::unordered_map<std::string, ArrayXcd> mu_full;
         // This runs ``ft`` method of SkyModel with (u, v) from Data and updates SkyModel predictions
         void calculate_sky_mu(bool update);
 		void shift_sky_mu();

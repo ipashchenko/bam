@@ -27,6 +27,7 @@ void Data::load(const std::string& filename)
     // Vectors to hold the data
     std::vector<double> _u;
     std::vector<double> _v;
+	std::vector<std::complex<double>> _vis;
     std::vector<double> _vis_real;
     std::vector<double> _vis_imag;
     std::vector<double> _sigma;
@@ -45,6 +46,7 @@ void Data::load(const std::string& filename)
         _v.push_back(temp2);
         _vis_real.push_back(temp3);
         _vis_imag.push_back(temp4);
+		_vis.push_back({temp3, temp4});
         _sigma.push_back(temp5);
     }
 
@@ -53,10 +55,13 @@ void Data::load(const std::string& filename)
 
 	cout << "Loaded " << _u.size() << " visibilities\n";
 	
-    // Copy the data to the valarrays
-    u[band] = valarray<double>(&_u[0], _u.size());
-    v[band] = valarray<double>(&_v[0], _v.size());
-    vis_real[band] = valarray<double>(&_vis_real[0], _vis_real.size());
-    vis_imag[band] = valarray<double>(&_vis_imag[0], _vis_imag.size());
-    sigma[band] = valarray<double>(&_sigma[0], _sigma.size());
+    // Copy the data to the containers
+	Eigen::Map<ArrayXd> u_(_u.data(), _u.size());
+	Eigen::Map<ArrayXd> v_(_v.data(), _v.size());
+    u[band] = u_;
+    v[band] = v_;
+	Eigen::Map<ArrayXcd> vis_(_vis.data(), _vis.size());
+    vis[band] = vis_;
+	Eigen::Map<ArrayXd> sigma_(_sigma.data(), _sigma.size());
+    sigma[band] = sigma_;
 }

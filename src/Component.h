@@ -2,15 +2,17 @@
 #define BAM_COMPONENT_H
 
 #include <cmath>
-#include <valarray>
 #include <vector>
 #include <complex>
 #include <iostream>
 #include "RNG.h"
 #include "DNest4.h"
 #include "Utils.h"
+#include <eigen3/Eigen/Core>
 
 const double mas_to_rad = 4.84813681109536e-09;
+using Eigen::ArrayXcd;
+using Eigen::ArrayXd;
 
 
 class Component {
@@ -19,18 +21,8 @@ class Component {
 		virtual double get_logsize(double nu) = 0;
 		virtual double get_logflux(double nu) = 0;
 		virtual std::pair<double, double> get_pos(double nu) = 0;
-		void ft(double nu, const std::valarray<double>& u, const std::valarray<double>& v);
+		ArrayXcd ft(double nu, const ArrayXd& u, const ArrayXd& v);
 
-        [[nodiscard]] std::valarray<double> get_mu_real() const
-		{
-            return mu_real;
-        }
-
-        [[nodiscard]] std::valarray<double> get_mu_imag() const
-		{
-            return mu_imag;
-        }
-		
         virtual void print(std::ostream& out) const = 0;
         virtual std::string description() const = 0;
         virtual void from_prior(DNest4::RNG& rng) = 0;
@@ -47,9 +39,6 @@ class Component {
 		enum Shape {Gaussian, Sphere};
 
     protected:
-        // Contribution to the SkyModel prediction
-        std::valarray<double> mu_real;
-        std::valarray<double> mu_imag;
 		Shape shape;
 };
 

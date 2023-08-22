@@ -1,19 +1,21 @@
 #include "Component.h"
 #include "Data.h"
+#include <complex>
 #include <cmath>
 #include <iostream>
 #include <RNG.h>
 
+using namespace std::complex_literals;
 
-void Component::ft(double nu, const std::valarray<double>& u, const std::valarray<double>& v)
+
+ArrayXcd Component::ft(double nu, const ArrayXd& u, const ArrayXd& v)
 {
 	switch (shape)
 	{
 	case Gaussian:
 		{
-			std::valarray<double> theta;
+			ArrayXd theta, ft;
 			double c;
-			std::valarray<double> ft;
 			
 			auto position = get_pos(nu);
 			double logsize = get_logsize(nu);
@@ -22,17 +24,14 @@ void Component::ft(double nu, const std::valarray<double>& u, const std::valarra
 			theta = 2*M_PI*mas_to_rad*(u*position.first + v*position.second);
 			// Calculate FT of a Gaussian in a phase center
 			c = pow(M_PI*exp(logsize)*mas_to_rad, 2)/(4.*log(2.));
-			// TODO: Keep u*u and v*v already computed
 			ft = exp(logflux - c*(u*u + v*v));
 			
 			// Prediction of visibilities
-			mu_real = ft*cos(theta);
-			mu_imag = ft*sin(theta);
+			return ft*cos(theta) + 1.0i*ft*sin(theta);
 		}
 	case Sphere:
 		{
-			std::valarray<double> theta;
-			std::valarray<double> ft;
+			ArrayXd theta, ft;
 			
 			auto position = get_pos(nu);
 			double logD = get_logsize(nu);
@@ -41,12 +40,11 @@ void Component::ft(double nu, const std::valarray<double>& u, const std::valarra
 			theta = 2*M_PI*mas_to_rad*(u*position.first + v*position.second);
 			// Calculate FT of a Sphere in a phase center
 			
-			std::valarray<double> pi_D_rho = M_PI*exp(logD)*sqrt(u*u + v*v);
+			ArrayXd pi_D_rho = M_PI*exp(logD)*sqrt(u*u + v*v);
 			ft = 3*exp(logflux)*(sin(pi_D_rho) - pi_D_rho*cos(pi_D_rho))/pow(pi_D_rho, 3);
 			
 			// Prediction of visibilities
-			mu_real = ft*cos(theta);
-			mu_imag = ft*sin(theta);
+			return ft*cos(theta) + 1.0i*ft*sin(theta);
 		}
 	}
 }
@@ -65,8 +63,6 @@ JetComponent::JetComponent(const JetComponent &other)
 	logS_max_ = other.logS_max_;
 	alpha_thick_ = other.alpha_thick_;
 	alpha_thin_ = other.alpha_thin_;
-    mu_real = other.get_mu_real();
-    mu_imag = other.get_mu_imag();
 	shape = other.shape;
 }
 

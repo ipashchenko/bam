@@ -2,7 +2,16 @@
 #include <iostream>
 #include "Data.h"
 
-SkyModel::SkyModel() = default;
+
+SkyModel::SkyModel(size_t n_jet_components) 
+{
+	auto* comp = new CoreComponent(Component::Gaussian);
+	this->add_component(comp);
+    for (int i=0; i<n_jet_components; i++) {
+        auto* comp = new JetComponent(Component::Gaussian);
+        this->add_component(comp);
+    }
+}
 
 
 SkyModel::SkyModel(const SkyModel &other)
@@ -12,14 +21,8 @@ SkyModel::SkyModel(const SkyModel &other)
         Component* comp = other_comp->clone();
         components_.push_back(comp);
     }
-    for (auto other_comp : other.old_components_)
-	{
-        Component* comp = other_comp->clone();
-        old_components_.push_back(comp);
-    }
-    updated_ = other.updated_;
-    mu_real = other.mu_real;
-    mu_imag = other.mu_imag;
+    perturbed = other.perturbed;
+    mu = other.mu;
 }
 
 
@@ -36,25 +39,13 @@ SkyModel& SkyModel::operator=(const SkyModel& other)
     }
     components_.clear();
 
-    for (auto comp : old_components_)
-	{
-        delete comp;
-    }
-    old_components_.clear();
-
     for (auto other_comp : other.components_)
 	{
         Component* comp = other_comp->clone();
         components_.push_back(comp);
     }
-    for (auto other_comp : other.old_components_)
-	{
-        Component* comp = other_comp->clone();
-        old_components_.push_back(comp);
-    }
-    updated_ = other.updated_;
-    mu_real = other.mu_real;
-    mu_imag = other.mu_imag;
+    perturbed = other.perturbed;
+    mu = other.mu;
     return *this;
 }
 
@@ -66,53 +57,57 @@ SkyModel::~SkyModel()
         delete comp;
     }
     components_.clear();
-    for (auto comp : old_components_)
-	{
-        delete comp;
-    }
-    old_components_.clear();
 }
 
+
+SkyModel* SkyModel::clone()
+{
+    return new SkyModel(*this);
+}
+
+
+void SkyModel::set_perturbed(std::vector<bool> new_perturbed)
+{
+	perturbed = new_perturbed;
+}
+
+std::vector<bool> SkyModel::get_perturbed()
+{
+	return perturbed;
+}
 
 void SkyModel::add_component(Component *component)
 {
     components_.push_back(component);
-    updated_.push_back(true);
-    Component* old_component = component->clone();
-    old_components_.push_back(old_component);
+    perturbed.push_back(false);
 }
 
-void SkyModel::ft_from_all(double nu, const std::valarray<double>& u, const std::valarray<double>& v)
+void SkyModel::ft_from_all(double nu, const ArrayXd& u, const ArrayXd& v)
 {
     // Zero prediction
-	std::valarray<double> zero (0.0, u.size());
-    mu_real = zero;
-    mu_imag = zero;
+	ArrayXcd zero = ArrayXcd::Zero(u.size());
+    mu = zero;
 
-    for (size_t i=0; i < components_.size(); i++)
-	{   auto comp = components_[i];
-        comp->ft(nu, u, v);
-        mu_real += comp->get_mu_real();
-        mu_imag += comp->get_mu_imag();
-		updated_[i] = false;
+    for (auto comp : components_)
+	{
+		mu += comp->ft(nu, u, v);
     }
 }
 
 
-void SkyModel::ft(double nu, const std::valarray<double>& u, const std::valarray<double>& v)
+void SkyModel::ft_from_perturbed(double nu, const ArrayXd& u, const ArrayXd& v)
 {
-	for (size_t i=0; i < components_.size(); i++)
-	{
-        auto comp = components_[i];
-		auto old_comp = old_components_[i];
-        if(updated_[i])
-		{
-			comp->ft(nu, u, v);
-			mu_real += (comp->get_mu_real() - old_comp->get_mu_real());
-			mu_imag += (comp->get_mu_imag() - old_comp->get_mu_imag());
-			updated_[i] = false;
-		}
-	}
+	// Zero prediction
+	mu *= 0.0;
+    for(size_t i=0; i<perturbed.size(); i++)
+    {
+        if(perturbed[i])
+        {
+            auto comp = components_[i];
+            mu += comp->ft(nu, u, v);
+            perturbed[i] = false;
+        }
+    }
 }
 
 void SkyModel::print(std::ostream &out) const
@@ -126,20 +121,16 @@ void SkyModel::print(std::ostream &out) const
 
 void SkyModel::from_prior(DNest4::RNG &rng)
 {
-    for (size_t i=0; i < components_.size(); i++)
+    for (auto comp : components_)
 	{
-        auto comp = components_[i];
         comp->from_prior(rng);
-        updated_[i] = true;
-        Component* old_comp = comp->clone();
-        old_components_[i] = old_comp;
     }
 }
 
 
 double SkyModel::perturb(DNest4::RNG &rng) {
     int which = rng.rand_int(components_.size());
-    updated_[which] = true;
+    perturbed[which] = true;
     return components_[which]->perturb(rng);
 }
 
