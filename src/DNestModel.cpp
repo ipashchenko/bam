@@ -7,7 +7,7 @@
 
 DNestModel::DNestModel() : use_logjitter(true), use_speedup(true), component_ft_counter(0)
 {
-	size_t number_of_jet_components = 5;
+	size_t number_of_jet_components = 6;
     sky_model = new SkyModel(number_of_jet_components);
 	old_sky_model = sky_model->clone();
 }
