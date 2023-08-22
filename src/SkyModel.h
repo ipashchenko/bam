@@ -22,6 +22,7 @@ class SkyModel
         ArrayXcd get_mu() const { return mu; }
 		void set_perturbed(std::vector<bool> perturbed);
 		std::vector<bool> get_perturbed();
+		void reset_perturbed();
         void print(std::ostream& out) const;
         [[nodiscard]] std::string description() const;
         void from_prior(DNest4::RNG& rng);

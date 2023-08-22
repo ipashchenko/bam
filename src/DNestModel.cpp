@@ -4,6 +4,12 @@
 #include "Data.h"
 #include "Component.h"
 
+#ifdef NDEBUG
+#define DEBUG(x)
+#else
+#define DEBUG(x) do { std::cerr << x << std::endl; } while (0)
+#endif
+
 
 DNestModel::DNestModel() : use_logjitter(true), use_speedup(true), component_ft_counter(0)
 {
@@ -87,13 +93,13 @@ double DNestModel::perturb(DNest4::RNG &rng)
     double r_logjitter = 0.0;
     if (use_logjitter)
 	{
-        r_logjitter = 0.1;
+        r_logjitter = 0.2;
     }
 
     // Perturb jitter
     if(u <= r_logjitter)
 	{
-		
+		DEBUG("Perturbing Jitter");
 		std::vector<std::string> bands = Data::get_instance().get_bands();
 		int n_bands = bands.size();
 		int which = rng.rand_int(n_bands);
@@ -107,8 +113,9 @@ double DNestModel::perturb(DNest4::RNG &rng)
     }
 
     // Perturb SkyModel
-    else if(u >= r_logjitter && u < r_logjitter + 0.7)
+    else if(u >= r_logjitter && u < r_logjitter + 0.5)
 	{
+		DEBUG("Perturbing SkyModel");
         logH += sky_model->perturb(rng);
 		// Now the old sky_model has the same boolean perturbed vector
 		old_sky_model->set_perturbed(sky_model->get_perturbed());
@@ -128,6 +135,7 @@ double DNestModel::perturb(DNest4::RNG &rng)
 	// Perturb per-band phase centers
 	else
 	{
+		DEBUG("Perturbing phase centers");
 		std::vector<std::string> bands = Data::get_instance().get_bands();
 		int n_bands = bands.size();
 		int which = rng.rand_int(n_bands);
@@ -155,6 +163,7 @@ double DNestModel::perturb(DNest4::RNG &rng)
 
 void DNestModel::calculate_sky_mu(bool update)
 {
+	DEBUG("Starting DM:calculate_sky_mu with ft_counter = " + std::to_string(component_ft_counter));
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
 	{
@@ -163,27 +172,38 @@ void DNestModel::calculate_sky_mu(bool update)
 		
 		if(use_speedup && update && component_ft_counter < 30)
 		{
-//			std::cout << "Speed up with counter = " << component_ft_counter << "\n";
+			DEBUG("DNestModel.calculate_sky_mu - Speed up with counter = " + std::to_string(component_ft_counter));
 			// Switching boolean perturbed[i] to false here
 			sky_model->ft_from_perturbed(freq, u, v);
 			//! Here all components in old_sky_model are not perturbed!
 			old_sky_model->ft_from_perturbed(freq, u, v);
 			sky_model_mu[band] = sky_model->get_mu() - old_sky_model->get_mu();
-			component_ft_counter += 1;
 		}
 		else
 		{
-//			std::cout << "Full : resetting counter!\n";
+			DEBUG("DNestModel.calculate_sky_mu - Full : resetting counter!");
 			sky_model->ft_from_all(freq, u, v);
-			component_ft_counter = 0;
 			sky_model_mu[band] = sky_model->get_mu();
 		}
+	}
+	
+	if(use_speedup && update && component_ft_counter < 30)
+	{
+		// Reset perturbed flag here
+		sky_model->reset_perturbed();
+		old_sky_model->reset_perturbed();
+		component_ft_counter += 1;
+	}
+	else
+	{
+		component_ft_counter = 0;
 	}
 }
 
 //* I need to decouple original predictions of SkyModel and shifted predictions. Because I change it each perturb!
 void DNestModel::shift_sky_mu()
 {
+	DEBUG("Shifting sky");
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	const std::complex<double> j(0.0, 1.0);
 	for (const auto& [band, freq] : band_freq_map)
@@ -197,6 +217,7 @@ void DNestModel::shift_sky_mu()
 
 double DNestModel::log_likelihood()
 {
+	DEBUG("Calculating logL");
 	double loglik = 0.0;
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)

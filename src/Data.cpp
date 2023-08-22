@@ -5,7 +5,13 @@
 #include <iostream>
 #include <set>
 
-using namespace std;
+#ifdef NDEBUG
+#define DEBUG(x)
+#else
+#define DEBUG(x) do { std::cerr << x << std::endl; } while (0)
+#endif
+
+//using namespace std;
 
 // The static instance
 Data Data::instance;
@@ -22,7 +28,7 @@ void Data::load(const std::string& filename)
 	bands.push_back(band);
 	band_freq_map[band] = std::stod(frequency_ghz);
 	
-	cout << "Loading file " << filename << ", band : " << band << ", Freq[GHz] = " << frequency_ghz << endl;
+	std::cout << "Loading file " << filename << ", band : " << band << ", Freq[GHz] = " << frequency_ghz << std::endl;
 	
     // Vectors to hold the data
     std::vector<double> _u;
@@ -33,7 +39,7 @@ void Data::load(const std::string& filename)
     std::vector<double> _sigma;
 
     // Open the file
-    fstream fin(filename, ios::in);
+    std::fstream fin(filename, std::ios::in);
 
     // Temporary variables
     // u, v, re, im, sigma
@@ -53,7 +59,7 @@ void Data::load(const std::string& filename)
     // Close the file
     fin.close();
 
-	cout << "Loaded " << _u.size() << " visibilities\n";
+	std::cout << "Loaded " << _u.size() << " visibilities" << std::endl;
 	
     // Copy the data to the containers
 	Eigen::Map<ArrayXd> u_(_u.data(), _u.size());
@@ -64,4 +70,9 @@ void Data::load(const std::string& filename)
     vis[band] = vis_;
 	Eigen::Map<ArrayXd> sigma_(_sigma.data(), _sigma.size());
     sigma[band] = sigma_;
+	
+	DEBUG("u[0] = " + std::to_string(u[band][0]));
+	DEBUG("v[0] = " + std::to_string(v[band][0]));
+	DEBUG("vis[0] = " + std::to_string(vis[band][0].real()) + ", " + std::to_string(vis[band][0].imag()));
+	DEBUG("sigma[0] = " + std::to_string(sigma[band][0]));
 }
