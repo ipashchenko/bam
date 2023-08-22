@@ -143,6 +143,7 @@ double DNestModel::perturb(DNest4::RNG &rng)
 		DNest4::Cauchy cauchy_origin(0.0, 0.1);
 		int which_xy = rng.rand_int(2);
 		double origin;
+        // TODO: Perturb that shifts both centers
 		if(which_xy == 0)
 		{
 			origin = jet_origin_x[band];
@@ -174,30 +175,32 @@ void DNestModel::calculate_sky_mu(bool update)
 		{
 			DEBUG("DNestModel.calculate_sky_mu - Speed up with counter = " + std::to_string(component_ft_counter));
 			// Switching boolean perturbed[i] to false here
-			sky_model->ft_from_perturbed(freq, u, v);
+//			sky_model->ft_from_perturbed(freq, u, v);
 			//! Here all components in old_sky_model are not perturbed!
-			old_sky_model->ft_from_perturbed(freq, u, v);
-			sky_model_mu[band] = sky_model->get_mu() - old_sky_model->get_mu();
+//			old_sky_model->ft_from_perturbed(freq, u, v);
+//			sky_model_mu[band] = sky_model->get_mu() - old_sky_model->get_mu();
+			sky_model_mu[band] = sky_model->ft_from_perturbed(freq, u, v) - old_sky_model->ft_from_perturbed(freq, u, v);
 		}
 		else
 		{
 			DEBUG("DNestModel.calculate_sky_mu - Full : resetting counter!");
-			sky_model->ft_from_all(freq, u, v);
-			sky_model_mu[band] = sky_model->get_mu();
+//			sky_model->ft_from_all(freq, u, v);
+//			sky_model_mu[band] = sky_model->get_mu();
+			sky_model_mu[band] = sky_model->ft_from_all(freq, u, v);
 		}
 	}
 	
 	if(use_speedup && update && component_ft_counter < 30)
 	{
-		// Reset perturbed flag here
-		sky_model->reset_perturbed();
-		old_sky_model->reset_perturbed();
 		component_ft_counter += 1;
 	}
 	else
 	{
 		component_ft_counter = 0;
 	}
+	// Reset perturbed flag here
+	sky_model->reset_perturbed();
+	old_sky_model->reset_perturbed();
 }
 
 //* I need to decouple original predictions of SkyModel and shifted predictions. Because I change it each perturb!

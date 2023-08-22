@@ -30,7 +30,7 @@ SkyModel::SkyModel(const SkyModel &other)
         components_.push_back(comp);
     }
     perturbed = other.perturbed;
-    mu = other.mu;
+//    mu = other.mu;
 }
 
 
@@ -53,7 +53,7 @@ SkyModel& SkyModel::operator=(const SkyModel& other)
         components_.push_back(comp);
     }
     perturbed = other.perturbed;
-    mu = other.mu;
+//    mu = other.mu;
     return *this;
 }
 
@@ -95,19 +95,21 @@ void SkyModel::add_component(Component *component)
     perturbed.push_back(false);
 }
 
-void SkyModel::ft_from_all(double nu, const ArrayXd& u, const ArrayXd& v)
+ArrayXcd SkyModel::ft_from_all(double nu, const ArrayXd& u, const ArrayXd& v)
 {
     // Zero prediction
-    mu = ArrayXcd::Zero(u.size());
+    ArrayXcd mu = ArrayXcd::Zero(u.size());
 
     for (auto comp : components_)
 	{
-		mu += comp->ft(nu, u, v);
+		mu = (mu + comp->ft(nu, u, v)).eval();
     }
+	
+	return mu;
 }
 
 
-void SkyModel::ft_from_perturbed(double nu, const ArrayXd& u, const ArrayXd& v)
+ArrayXcd SkyModel::ft_from_perturbed(double nu, const ArrayXd& u, const ArrayXd& v)
 {
 	if (std::find(std::begin(perturbed), std::end(perturbed), true) == std::end(perturbed)) // All false
 	{
@@ -115,18 +117,20 @@ void SkyModel::ft_from_perturbed(double nu, const ArrayXd& u, const ArrayXd& v)
 	}
 	// Zero prediction
 	// TODO: Can't I multiply mu on ``0``?
-	mu = ArrayXcd::Zero(u.size());
+	ArrayXcd mu = ArrayXcd::Zero(u.size());
     for(size_t i=0; i<perturbed.size(); i++)
     {
         if(perturbed[i])
         {
 			DEBUG("FT only from component # " + std::to_string(i));
             auto comp = components_[i];
+			DEBUG("Before adding perturbed component prediction mu[0] = " + std::to_string(mu[0].real()) + ", " + std::to_string(mu[0].imag()));
             mu = (mu + comp->ft(nu, u, v)).eval();
 			// FIXME: I can't reset perturbed flag here, because it calculates FT for several bands!
 //            perturbed[i] = false;
         }
     }
+	return mu;
 }
 
 void SkyModel::print(std::ostream &out) const
