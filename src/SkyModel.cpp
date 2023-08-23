@@ -17,7 +17,7 @@ SkyModel::SkyModel(size_t n_jet_components)
     for (int i=0; i<n_jet_components; i++) {
         auto* comp = new JetComponent(Component::Gaussian);
         this->add_component(comp);
-		DEBUG("Added jet component");
+		DEBUG("Added jet component : " + comp->print());
     }
 }
 
@@ -102,6 +102,7 @@ ArrayXcd SkyModel::ft_from_all(double nu, const ArrayXd& u, const ArrayXd& v)
 
     for (auto comp : components_)
 	{
+		DEBUG("SM.ft_from_all : mu[0] = " + std::to_string(mu[0].real()) + ", " + std::to_string(mu[0].imag()));
 		mu = (mu + comp->ft(nu, u, v)).eval();
     }
 	
@@ -126,8 +127,8 @@ ArrayXcd SkyModel::ft_from_perturbed(double nu, const ArrayXd& u, const ArrayXd&
             auto comp = components_[i];
 			DEBUG("Before adding perturbed component prediction mu[0] = " + std::to_string(mu[0].real()) + ", " + std::to_string(mu[0].imag()));
             mu = (mu + comp->ft(nu, u, v)).eval();
-			// FIXME: I can't reset perturbed flag here, because it calculates FT for several bands!
-//            perturbed[i] = false;
+			DEBUG("After adding perturbed component prediction mu[0] = " + std::to_string(mu[0].real()) + ", " + std::to_string(mu[0].imag()));
+			//! I can't reset perturbed flag here, because it calculates FT for several bands!
         }
     }
 	return mu;
@@ -141,6 +142,15 @@ void SkyModel::print(std::ostream &out) const
     }
 }
 
+std::string SkyModel::print() const
+{
+	std::string out("SkyModel print : \n");
+	for (auto comp: components_)
+	{
+		out += comp->print();
+	}
+	return out;
+}
 
 void SkyModel::from_prior(DNest4::RNG &rng)
 {

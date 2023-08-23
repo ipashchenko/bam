@@ -24,6 +24,7 @@ class SkyModel
 		std::vector<bool> get_perturbed();
 		void reset_perturbed();
         void print(std::ostream& out) const;
+		std::string print() const;
         [[nodiscard]] std::string description() const;
         void from_prior(DNest4::RNG& rng);
         // MH proposal for SkyModel. Returns logH

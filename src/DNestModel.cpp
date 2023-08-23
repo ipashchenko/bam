@@ -13,9 +13,11 @@
 
 DNestModel::DNestModel() : use_logjitter(true), use_speedup(true), component_ft_counter(0)
 {
-	size_t number_of_jet_components = 6;
+	size_t number_of_jet_components = 2;
     sky_model = new SkyModel(number_of_jet_components);
 	old_sky_model = sky_model->clone();
+	DEBUG("DM ctor sky_model : " + sky_model->print());
+	DEBUG("DM ctor old_sky_model : " + old_sky_model->print());
 }
 
 
@@ -78,9 +80,11 @@ void DNestModel::from_prior(DNest4::RNG &rng)
 		
 	}
     sky_model->from_prior(rng);
-    calculate_sky_mu(false);
 	// old SkyModel now is the copy of the current one
 	old_sky_model = sky_model->clone();
+	DEBUG("DM from_prior sky_model : " + sky_model->print());
+	DEBUG("DM from_prior old_sky_model : " + old_sky_model->print());
+	calculate_sky_mu(false);
 	shift_sky_mu();
 }
 
@@ -116,7 +120,10 @@ double DNestModel::perturb(DNest4::RNG &rng)
     else if(u >= r_logjitter && u < r_logjitter + 0.5)
 	{
 		DEBUG("Perturbing SkyModel");
-        logH += sky_model->perturb(rng);
+		DEBUG("Perturb: sky_model before perturb : " + sky_model->print());
+		logH += sky_model->perturb(rng);
+		DEBUG("Perturb: sky_model after perturb : " + sky_model->print());
+		DEBUG("Perturb: old_sky_model after perturb : " + old_sky_model->print());
 		// Now the old sky_model has the same boolean perturbed vector
 		old_sky_model->set_perturbed(sky_model->get_perturbed());
         // Pre-reject
@@ -130,16 +137,46 @@ double DNestModel::perturb(DNest4::RNG &rng)
         // This shouldn't be called in case of pre-rejection
         calculate_sky_mu(true);
 		shift_sky_mu();
+		
+		// Reset perturbed flag here
+		sky_model->reset_perturbed();
+		old_sky_model->reset_perturbed();
+		DEBUG("DNestModel.calculate_sky_mu - reset both sky_model counters");
+		
+		// Some checks
+		auto old_perturbed = old_sky_model->get_perturbed();
+		auto perturbed = sky_model->get_perturbed();
+		if (std::find(std::begin(perturbed), std::end(perturbed), true) == std::end(perturbed)) // All false
+		{
+			DEBUG("All perturbed = false after resetting in sky_model");
+		}
+		else
+		{
+			DEBUG("All perturbed != false after resetting in sky_model!!!");
+		}
+		if (std::find(std::begin(old_perturbed), std::end(old_perturbed), true) == std::end(old_perturbed)) // All false
+		{
+			DEBUG("All perturbed = false after resetting in old_sky_model");
+		}
+		else
+		{
+			DEBUG("All perturbed != false after resetting in old_sky_model");
+		}
+		
+		// Make old - copy of the current
+		old_sky_model = sky_model->clone();
+		DEBUG("Perturb: sky_model after cloning : " + sky_model->print());
+		DEBUG("Perturb: old_sky_model after cloning : " + old_sky_model->print());
     }
 	
 	// Perturb per-band phase centers
 	else
 	{
-		DEBUG("Perturbing phase centers");
 		std::vector<std::string> bands = Data::get_instance().get_bands();
 		int n_bands = bands.size();
 		int which = rng.rand_int(n_bands);
 		std::string band = bands[which];
+		DEBUG("Perturbing phase centers band = " + band);
 		DNest4::Cauchy cauchy_origin(0.0, 0.1);
 		int which_xy = rng.rand_int(2);
 		double origin;
@@ -174,18 +211,13 @@ void DNestModel::calculate_sky_mu(bool update)
 		if(use_speedup && update && component_ft_counter < 30)
 		{
 			DEBUG("DNestModel.calculate_sky_mu - Speed up with counter = " + std::to_string(component_ft_counter));
-			// Switching boolean perturbed[i] to false here
-//			sky_model->ft_from_perturbed(freq, u, v);
-			//! Here all components in old_sky_model are not perturbed!
-//			old_sky_model->ft_from_perturbed(freq, u, v);
-//			sky_model_mu[band] = sky_model->get_mu() - old_sky_model->get_mu();
-			sky_model_mu[band] = sky_model->ft_from_perturbed(freq, u, v) - old_sky_model->ft_from_perturbed(freq, u, v);
+			// Change the model prediction by the difference between predictions of the new ond old perturbed component
+			// FIXME: ???
+			sky_model_mu[band] += (sky_model->ft_from_perturbed(freq, u, v) - old_sky_model->ft_from_perturbed(freq, u, v)).eval();
 		}
 		else
 		{
-			DEBUG("DNestModel.calculate_sky_mu - Full : resetting counter!");
-//			sky_model->ft_from_all(freq, u, v);
-//			sky_model_mu[band] = sky_model->get_mu();
+			DEBUG("DNestModel.calculate_sky_mu - Full : will reset counter!");
 			sky_model_mu[band] = sky_model->ft_from_all(freq, u, v);
 		}
 	}
@@ -198,23 +230,20 @@ void DNestModel::calculate_sky_mu(bool update)
 	{
 		component_ft_counter = 0;
 	}
-	// Reset perturbed flag here
-	sky_model->reset_perturbed();
-	old_sky_model->reset_perturbed();
 }
 
 //* I need to decouple original predictions of SkyModel and shifted predictions. Because I change it each perturb!
+// TODO: Shift only if phase center of given band has changed or if sky_model has changed.
 void DNestModel::shift_sky_mu()
 {
-	DEBUG("Shifting sky");
+	DEBUG("Shifting sky mu");
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	const std::complex<double> j(0.0, 1.0);
 	for (const auto& [band, freq] : band_freq_map)
 	{
 		ArrayXd &u = Data::get_instance().get_u(band);
 		ArrayXd &v = Data::get_instance().get_v(band);
-		ArrayXcd theta = 2 * M_PI * j * mas_to_rad * (u * jet_origin_x[band] + v * jet_origin_y[band]);
-		mu_full[band] = sky_model_mu[band] * exp(theta);
+		mu_full[band] = sky_model_mu[band] * exp(2 * M_PI * j * mas_to_rad * (u * jet_origin_x[band] + v * jet_origin_y[band]));
 	}
 }
 
@@ -225,19 +254,19 @@ double DNestModel::log_likelihood()
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
 	{
-			const ArrayXcd &vis_obs = Data::get_instance().get_vis_real(band);
-			const ArrayXd &sigma = Data::get_instance().get_sigma(band);
-			
-			ArrayXd var = sigma*sigma;
-			
-			if (use_logjitter)
-			{
-				var = var + exp(2.0*logjitter[band]);
-			}
-			
-			// Complex Gaussian sampling distribution
-			ArrayXd result = -log(2*M_PI*var) - 0.5*square(abs(vis_obs - mu_full[band]))/var;
-			loglik += result.sum();
+		const ArrayXcd &vis_obs = Data::get_instance().get_vis_real(band);
+		const ArrayXd &sigma = Data::get_instance().get_sigma(band);
+		
+		ArrayXd var = sigma*sigma;
+		
+		if (use_logjitter)
+		{
+			var = (var + exp(2.0*logjitter[band])).eval();
+		}
+		
+		// Complex Gaussian sampling distribution
+		ArrayXd result = -log(2*M_PI*var) - 0.5*square(abs(vis_obs - mu_full[band]))/var;
+		loglik += result.sum();
 	}
     return loglik;
 }

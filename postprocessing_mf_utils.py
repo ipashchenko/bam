@@ -64,7 +64,7 @@ def count_jet_components(df, n_bands, jitter):
         n_jitters = n_bands
     else:
         n_jitters = 0
-    return int((len(df.columns) - n_jitters - 2*n_bands - 6)/7)
+    return int((len(df.columns) - n_jitters - 2*n_bands - 8)/7)
 
 
 def plot_posterior_samples_on_uv(posterior_file, band_data_files_dict, band_freq_dict, bands, jitter=True, each=1):
@@ -91,7 +91,7 @@ def plot_posterior_samples_on_uv(posterior_file, band_data_files_dict, band_freq
         n_jitters = n_bands
     else:
         n_jitters = 0
-    idx_0_jc = int(n_jitters + 2*n_bands + 6)
+    idx_0_jc = int(n_jitters + 2*n_bands + 8)
     idx_0_cc = int(n_jitters + 2*n_bands)
 
     # Load data files
@@ -140,8 +140,10 @@ def plot_posterior_samples_on_uv(posterior_file, band_data_files_dict, band_freq
         PA = row[idx_0_cc + 1]
         logsize_1 = row[idx_0_cc + 2]
         k_r = row[idx_0_cc + 3]
-        logS_1 = row[idx_0_cc + 4]
-        alpha_core = row[idx_0_cc + 5]
+        log_numax_core = row[idx_0_cc + 4]
+        log_Smax_core = row[idx_0_cc + 5]
+        alpha_thick_core = row[idx_0_cc + 6]
+        alpha_thin_core = row[idx_0_cc + 7]
         band_ra_core_shift_dict = dict()
         band_dec_core_shift_dict = dict()
         band_ra_map_shift_dict = dict()
@@ -178,7 +180,7 @@ def plot_posterior_samples_on_uv(posterior_file, band_data_files_dict, band_freq
         # Find core fluxes and sizes: "a\tPA\tlogsize_1\tk_r\tlogS_1\talpha"
         for i, band in enumerate(bands):
             freq_ghz = band_freq_dict[band]
-            core_flux = np.exp(logS_1)*freq_ghz**(alpha_core)
+            core_flux = optically_thin_spectr(freq_ghz, log_Smax_core, log_numax_core, alpha_thin_core, alpha_thick_core)
             core_size = np.exp(logsize_1)*freq_ghz**(-1/k_r)
             band_core_fluxe_dict[band] = core_flux
             band_core_size_dict[band] = core_size
@@ -251,7 +253,7 @@ def plot_posterior_samples_on_map(posterior_file, n_bands, freqs_ghz, ra_lims=(-
         n_jitters = n_bands
     else:
         n_jitters = 0
-    idx_0_jc = int(n_jitters + 2*n_bands + 6)
+    idx_0_jc = int(n_jitters + 2*n_bands + 8)
     idx_0_cc = int(n_jitters + 2*n_bands)
     axes.scatter(0, 0, marker="+", color="black", s=20)
     for i, freq_ghz in enumerate(freqs_ghz):
@@ -352,4 +354,4 @@ if __name__ == "__main__":
     n_jc = count_jet_components(df, n_bands, jitter)
     plot_components_info(df, n_bands, jitter, freqs_ghz, save_dir=save_dir, opacity_each_line=0.5)
     fig = plot_posterior_samples_on_map(posterior_file, n_bands, freqs_ghz, ra_lims=(-20, 20), dec_lims=(-20, 20),
-                                        alpha_jet=0.05, alpha_core=0.05, jitter=jitter, each=1)
+                                        alpha_jet=1.00, alpha_core=1.00, jitter=jitter, each=1)

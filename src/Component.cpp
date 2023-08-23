@@ -5,15 +5,23 @@
 #include <iostream>
 #include <RNG.h>
 
-using namespace std::complex_literals;
+#ifdef NDEBUG
+#define DEBUG(x)
+#else
+#define DEBUG(x) do { std::cerr << x << std::endl; } while (0)
+#endif
 
 
 ArrayXcd Component::ft(double nu, const ArrayXd& u, const ArrayXd& v)
 {
+	const std::complex<double> j(0.0, 1.0);
+	
 	switch (shape)
 	{
 	case Gaussian:
 		{
+			DEBUG("Gaussian FT");
+			
 			ArrayXd theta, ft;
 			double c;
 			
@@ -27,10 +35,13 @@ ArrayXcd Component::ft(double nu, const ArrayXd& u, const ArrayXd& v)
 			ft = exp(logflux - c*(u*u + v*v));
 			
 			// Prediction of visibilities
-			return ft*cos(theta) + 1.0i*ft*sin(theta);
+			return ft*cos(theta) + j*ft*sin(theta);
 		}
 	case Sphere:
 		{
+			DEBUG("Sphere FT");
+			
+			
 			ArrayXd theta, ft;
 			
 			auto position = get_pos(nu);
@@ -44,7 +55,7 @@ ArrayXcd Component::ft(double nu, const ArrayXd& u, const ArrayXd& v)
 			ft = 3*exp(logflux)*(sin(pi_D_rho) - pi_D_rho*cos(pi_D_rho))/pow(pi_D_rho, 3);
 			
 			// Prediction of visibilities
-			return ft*cos(theta) + 1.0i*ft*sin(theta);
+			return ft*cos(theta) + j*ft*sin(theta);
 		}
 	}
 }
@@ -92,6 +103,12 @@ void JetComponent::print(std::ostream &out) const
 {
 	out << dx_ << "\t" << dy_ << "\t" << logsize_ << "\t" << lognu_max_ << "\t" << logS_max_ << "\t" << alpha_thick_ << "\t" << alpha_thin_ << "\t";
 
+}
+
+std::string JetComponent::print() const
+{
+	return  std::to_string(dx_) + "\t" + std::to_string(dy_) + "\t" + std::to_string(logsize_) + "\t" +
+	std::to_string(lognu_max_) + "\t" + std::to_string(logS_max_) + "\t" + std::to_string(alpha_thick_) + "\t" + std::to_string(alpha_thin_) + "\n";
 }
 
 std::string JetComponent::description() const
@@ -206,11 +223,17 @@ void CoreComponent::print(std::ostream &out) const
 	out << a_ << "\t" << PA_ << "\t" << logsize_1_ << "\t" << k_r_ << "\t" << lognu_max_ << "\t" << logS_max_ << "\t" << alpha_thick_ << "\t" << alpha_thin_ << "\t";
 }
 
+std::string CoreComponent::print() const
+{
+	return  std::to_string(a_) + "\t" + std::to_string(PA_) + "\t" + std::to_string(logsize_1_) + "\t" + std::to_string(k_r_) +
+	"\t" + std::to_string(lognu_max_) + "\t" + std::to_string(logS_max_) + "\t" + std::to_string(alpha_thick_) + "\t" + std::to_string(alpha_thin_) + "\n";
+}
+
 std::string CoreComponent::description() const
 {
 	std::string descr;
 //	descr += "a\tPA\tlogsize_1\tk_r\tlogS_1\talpha";
-	descr += "a\tPA\tlogsize_1\tk_r\tlognu_max\tlogS_max\talpha_thick\talpha_thin";
+	descr += "a\tPA\tlogsize_1\tk_r\tlognu_max_core\tlogS_max_core\talpha_thick_core\talpha_thin_core";
 	return descr;
 }
 

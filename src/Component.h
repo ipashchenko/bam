@@ -22,8 +22,9 @@ class Component {
 		virtual double get_logflux(double nu) = 0;
 		virtual std::pair<double, double> get_pos(double nu) = 0;
 		ArrayXcd ft(double nu, const ArrayXd& u, const ArrayXd& v);
-
-        virtual void print(std::ostream& out) const = 0;
+		
+		virtual void print(std::ostream& out) const = 0;
+		virtual std::string print() const = 0;
         virtual std::string description() const = 0;
         virtual void from_prior(DNest4::RNG& rng) = 0;
         virtual double perturb(DNest4::RNG& rng) = 0;
@@ -52,6 +53,7 @@ class JetComponent : public Component {
 		double get_logflux(double nu) override;
 		std::pair<double, double> get_pos(double nu) override;
 		void print(std::ostream& out) const override;
+		std::string print() const override;
 		std::string description() const override;
 		void from_prior(DNest4::RNG& rng) override;
 		double perturb(DNest4::RNG& rng) override;
@@ -70,6 +72,7 @@ class CoreComponent : public Component {
 		double get_logflux(double nu) override;
 		std::pair<double, double> get_pos(double nu) override;
 		void print(std::ostream& out) const override;
+		std::string print() const override;
 		std::string description() const override;
 		void from_prior(DNest4::RNG& rng) override;
 		double perturb(DNest4::RNG& rng) override;
