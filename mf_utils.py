@@ -10,7 +10,7 @@ from data_utils import create_data_file_v2, add_noise, radplot, gaussian_circ_ft
 sys.path.insert(0, '/home/ilya/github/ve/vlbi_errors')
 from uv_data import UVData
 from spydiff import time_average
-matplotlib.use("TkAgg")
+matplotlib.use("Qt6Agg")
 
 
 def load_from_fits(uvfits):
@@ -110,12 +110,12 @@ if __name__ == "__main__":
     # RA, DEC, Size, nu_max, S_nu_max, alpha_thick, alpha_thin
     jet_components = [(3.0, 4.5, 0.5, 2.0, 1.0, 1.5, -0.5),
                       (9.0, 10.0, 1.5, 1.0, 0.5, 2.0, -0.5)]
-    band_uvfits_files_dict = {#"c1": "/home/ilya/Downloads/MF/0851+202.c1.2009_02_02.uvf",
+    band_uvfits_files_dict = {"c1": "/home/ilya/Downloads/MF/0851+202.c1.2009_02_02.uvf",
                               # "c2": "/home/ilya/Downloads/MF/0851+202.c2.2009_02_02.uvf",
                               "k1": "/home/ilya/Downloads/MF/0851+202.k1.2009_02_02.uvf",
                               "q1": "/home/ilya/Downloads/MF/0851+202.q1.2009_02_02.uvf",
-                              "u1": "/home/ilya/Downloads/MF/0851+202.u1.2009_02_02.uvf"}
-                              # "x1": "/home/ilya/Downloads/MF/0851+202.x1.2009_02_02.uvf",
+                              "u1": "/home/ilya/Downloads/MF/0851+202.u1.2009_02_02.uvf",
+                              "x1": "/home/ilya/Downloads/MF/0851+202.x1.2009_02_02.uvf"}
                               # "x2": "/home/ilya/Downloads/MF/0851+202.x2.2009_02_02.uvf"}
 
     for band, uvfits in band_uvfits_files_dict.items():
