@@ -178,20 +178,35 @@ double DNestModel::perturb(DNest4::RNG &rng)
 		std::string band = bands[which];
 		DEBUG("Perturbing phase centers band = " + band);
 		DNest4::Cauchy cauchy_origin(0.0, 0.1);
-		int which_xy = rng.rand_int(2);
 		double origin;
-        // TODO: Perturb that shifts both centers
-		if(which_xy == 0)
+
+		double uu = rng.rand();
+		// Perturb both coordinates
+		if(uu > 0.5)
 		{
 			origin = jet_origin_x[band];
 			logH += cauchy_origin.perturb(origin, rng);
 			jet_origin_x[band] = origin;
-		}
-		else
-		{
 			origin = jet_origin_y[band];
 			logH += cauchy_origin.perturb(origin, rng);
 			jet_origin_y[band] = origin;
+		}
+		// Perturb only one coordinate
+		else
+		{
+			int which_xy = rng.rand_int(2);
+			if(which_xy == 0)
+			{
+				origin = jet_origin_x[band];
+				logH += cauchy_origin.perturb(origin, rng);
+				jet_origin_x[band] = origin;
+			}
+			else
+			{
+				origin = jet_origin_y[band];
+				logH += cauchy_origin.perturb(origin, rng);
+				jet_origin_y[band] = origin;
+			}
 		}
 		shift_sky_mu();
 	}

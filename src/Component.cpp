@@ -136,34 +136,49 @@ void JetComponent::from_prior(DNest4::RNG &rng) {
 
 double JetComponent::perturb(DNest4::RNG &rng) {
     double log_H = 0.;
-    int which = rng.rand_int(7);
+    int which = rng.rand_int(6);
+	// Perturb positions
     if(which == 0)
     {
 		DNest4::Gaussian gaussian_pos(0.0, 10.0);
-		log_H += gaussian_pos.perturb(dx_, rng);
+		double u = rng.rand();
+		// Perturb both coordinates
+		if(u > 0.5)
+		{
+			log_H += gaussian_pos.perturb(dx_, rng);
+			log_H += gaussian_pos.perturb(dy_, rng);
+		}
+		// Perturb only one coordinate
+		else
+		{
+			int which_xy = rng.rand_int(2);
+			if(which_xy == 0)
+			{
+				log_H += gaussian_pos.perturb(dx_, rng);
+			}
+			else
+			{
+				log_H += gaussian_pos.perturb(dy_, rng);
+			}
+		}
     }
     else if(which == 1)
-    {
-		DNest4::Gaussian gaussian_pos(0.0, 10.0);
-		log_H += gaussian_pos.perturb(dy_, rng);
-    }
-    else if(which == 2)
     {
 		DNest4::Gaussian gaussian_logflux(1.0, 0.7);
 		log_H += gaussian_logflux.perturb(logS_max_, rng);
     }
-    else if(which == 3)
+    else if(which == 2)
     {
 		DNest4::Gaussian gaussian_logsize(-1.0, 1.0);
 		log_H += gaussian_logsize.perturb(logsize_, rng);
     }
-	else if(which == 4)
+	else if(which == 3)
 	{
 		DNest4::Uniform uniform_numax(0., 4.);
 		log_H += uniform_numax.perturb(lognu_max_, rng);
 
 	}
-	else if(which == 5)
+	else if(which == 4)
 	{
 		DNest4::Gaussian gaussian_alpha_thick(2.5, 0.5);
 		log_H += gaussian_alpha_thick.perturb(alpha_thick_, rng);
