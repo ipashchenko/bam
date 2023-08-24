@@ -5,12 +5,12 @@ import matplotlib
 import numpy as np
 import pandas as pd
 
-matplotlib.use("TkAgg")
+# matplotlib.use("TkAgg")
 from data_utils import create_data_file_v2, add_noise, radplot, gaussian_circ_ft, mas_to_rad
 sys.path.insert(0, '/home/ilya/github/ve/vlbi_errors')
 from uv_data import UVData
 from spydiff import time_average
-matplotlib.use("Qt6Agg")
+matplotlib.use("QtAgg")
 
 
 def load_from_fits(uvfits):
@@ -28,12 +28,13 @@ def load_from_fits(uvfits):
     rr_im = np.nanmean(hdus[0].data["DATA"][:, 0, 0, 0, :, 0, 1], axis=1)
     ll_re = np.nanmean(hdus[0].data["DATA"][:, 0, 0, 0, :, 1, 0], axis=1)
     ll_im = np.nanmean(hdus[0].data["DATA"][:, 0, 0, 0, :, 1, 1], axis=1)
-    rr_we = np.nanmean(hdus[0].data["DATA"][:, 0, 0, 0, :, 0, 0], axis=1)
-    ll_we = np.nanmean(hdus[0].data["DATA"][:, 0, 0, 0, :, 1, 0], axis=1)
+    rr_we = np.nanmean(hdus[0].data["DATA"][:, 0, 0, 0, :, 0, 2], axis=1)
+    ll_we = np.nanmean(hdus[0].data["DATA"][:, 0, 0, 0, :, 1, 2], axis=1)
     error_rr = np.nanmedian(1/np.sqrt(rr_we))
     error_ll = np.nanmedian(1/np.sqrt(ll_we))
     error = 0.5*(error_ll + error_rr)
-    error = 0.005
+    # error = 0.005
+    print("Error = ", error)
     df = pd.DataFrame.from_dict({"u": u,
                                  "v": v,
                                  "vis_re": 0.5*(rr_re + ll_re),
@@ -103,13 +104,13 @@ if __name__ == "__main__":
     # sys.exit(0)
     simulate = True
     time_average_sec = 120
-    save_dir = "/home/ilya/github/bam/Release"
+    save_dir = "/home/ilya/github/bam/mf/artificial/core_2jc"
     # Coordinates relative to the true jet origin
     # a, PA, size_1GHz, k_r, S_1GHz, alpha
     core_component = (3.0, np.pi/6, 1.0, 1.0, 2.0, 0.0)
     # RA, DEC, Size, nu_max, S_nu_max, alpha_thick, alpha_thin
-    jet_components = [(3.0, 4.5, 0.5, 2.0, 1.0, 1.5, -0.5),
-                      (9.0, 10.0, 1.5, 1.0, 0.5, 2.0, -0.5)]
+    jet_components = [(3.0, 4.5, 0.5, 10.0, 1.0, 1.5, -0.5),
+                      (9.0, 10.0, 1.5, 5.0, 0.5, 2.0, -0.5)]
     band_uvfits_files_dict = {"c1": "/home/ilya/Downloads/MF/0851+202.c1.2009_02_02.uvf",
                               # "c2": "/home/ilya/Downloads/MF/0851+202.c2.2009_02_02.uvf",
                               "k1": "/home/ilya/Downloads/MF/0851+202.k1.2009_02_02.uvf",
@@ -119,7 +120,6 @@ if __name__ == "__main__":
                               # "x2": "/home/ilya/Downloads/MF/0851+202.x2.2009_02_02.uvf"}
 
     for band, uvfits in band_uvfits_files_dict.items():
-        center_mass = np.zeros(2)
         total_flux = 0.0
         uvdata = UVData(uvfits)
         freq_ghz = uvdata.frequency/1E+09
@@ -148,8 +148,6 @@ if __name__ == "__main__":
                 re, im = gaussian_circ_ft(flux=flux, RA=RA, DEC=DEC, bmaj=Size, uv=uv)
                 df["vis_re"] += re
                 df["vis_im"] += im
-                center_mass[0] += flux*RA
-                center_mass[1] += flux*DEC
                 total_flux += flux
 
             # Core
@@ -159,8 +157,6 @@ if __name__ == "__main__":
             distance = a*freq_ghz**(-1/k_r)
             RA = distance*np.sin(PA)
             DEC = distance*np.cos(PA)
-            center_mass[0] += flux*RA
-            center_mass[1] += flux*DEC
             total_flux += flux
             Size = size_1GHz*freq_ghz**(-1/k_r)
             re, im = gaussian_circ_ft(flux=flux, RA=RA, DEC=DEC, bmaj=Size, uv=uv)
