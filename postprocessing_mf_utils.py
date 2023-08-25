@@ -354,4 +354,4 @@ if __name__ == "__main__":
     n_jc = count_jet_components(df, n_bands, jitter)
     plot_components_info(df, n_bands, jitter, freqs_ghz, save_dir=save_dir, opacity_each_line=0.02)
     fig = plot_posterior_samples_on_map(posterior_file, n_bands, freqs_ghz, ra_lims=(-20, 20), dec_lims=(-20, 20),
-                                        alpha_jet=0.02, alpha_core=0.02, jitter=jitter, each=1)
+                                        alpha_jet=0.02, alpha_core=0.02, jitter=jitter, each=4)

@@ -277,11 +277,32 @@ void CoreComponent::from_prior(DNest4::RNG &rng)
 double CoreComponent::perturb(DNest4::RNG &rng)
 {
 	double log_H = 0.;
-	int which = rng.rand_int(8);
+	int which = rng.rand_int(7);
+	// Perturb k or a or both
 	if(which == 0)
 	{
 		DNest4::TruncatedCauchy cauchy_pos(0.0, 1.0, 0.0, 10.0);
-		log_H += cauchy_pos.perturb(a_, rng);
+		DNest4::TruncatedCauchy cauchy_k(1.0, 0.3, 0.0, 4.0);
+//			DNest4::Fixed cauchy_k(1.0);
+		double u = rng.rand();
+		// Perturb both
+		if(u < 0.5)
+		{
+			log_H += cauchy_pos.perturb(a_, rng);
+			log_H += cauchy_k.perturb(k_r_, rng);
+		}
+		else
+		{
+			int which_a_k_r = rng.rand_int(2);
+			if(which_a_k_r == 0)
+			{
+				log_H += cauchy_pos.perturb(a_, rng);
+			}
+			else
+			{
+				log_H += cauchy_k.perturb(k_r_, rng);
+			}
+		}
 	}
 	else if(which == 1)
 	{
@@ -300,17 +321,11 @@ double CoreComponent::perturb(DNest4::RNG &rng)
 	}
 	else if(which == 4)
 	{
-//		DNest4::TruncatedCauchy cauchy_k(1.0, 0.3, 0.0, 4.0);
-		DNest4::Fixed cauchy_k(1.0);
-		log_H += cauchy_k.perturb(k_r_, rng);
-	}
-	else if(which == 5)
-	{
 		DNest4::Uniform uniform_numax(0., 4.);
 		log_H += uniform_numax.perturb(lognu_max_, rng);
 		
 	}
-	else if(which == 6)
+	else if(which == 5)
 	{
 		DNest4::Gaussian gaussian_alpha_thick(1.5, 0.5);
 		log_H += gaussian_alpha_thick.perturb(alpha_thick_, rng);
