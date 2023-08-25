@@ -259,8 +259,8 @@ void CoreComponent::from_prior(DNest4::RNG &rng)
 	DNest4::Uniform gaussian_direction(0.0, 2*M_PI);
 	DNest4::Gaussian gaussian_logsize(0.0, 0.7);
 	DNest4::Gaussian gaussian_logflux(1.0, 0.7);
-//	DNest4::TruncatedCauchy cauchy_k(1.0, 0.3, 0.0, 4.0);
-	DNest4::Fixed cauchy_k(1.0);
+	DNest4::TruncatedCauchy cauchy_k(1.0, 0.3, 0.0, 4.0);
+//	DNest4::Fixed cauchy_k(1.0);
 	DNest4::Gaussian gaussian_alpha_thick(1.5, 0.5);
 	DNest4::Gaussian gaussian_alpha_thin(-0.5, 0.25);
 	DNest4::Uniform uniform_numax(0., 4.);

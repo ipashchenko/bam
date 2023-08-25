@@ -162,7 +162,13 @@ void SkyModel::from_prior(DNest4::RNG &rng)
 
 
 double SkyModel::perturb(DNest4::RNG &rng) {
-    int which = rng.rand_int(components_.size());
+    int which = rng.rand_int(2*components_.size());
+	DEBUG("which = " + std::to_string(which));
+	// More often update core component
+	if(which >= components_.size())
+	{
+		which = 0;
+	}
 	DEBUG("In SkyModel.perturb() - perturbing component # " + std::to_string(which));
     perturbed[which] = true;
     return components_[which]->perturb(rng);
