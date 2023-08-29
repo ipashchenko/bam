@@ -1,6 +1,7 @@
 #ifndef BSC_MODEL_H
 #define BSC_MODEL_H
 
+#include <utility>
 #include <vector>
 #include <unordered_map>
 #include "Component.h"
@@ -17,9 +18,9 @@ class SkyModel
         SkyModel* clone();
 
         void add_component(Component* component);
-		ArrayXcd ft_from_all(double nu, const ArrayXd& u, const ArrayXd& v);
-		ArrayXcd ft_from_perturbed(double nu, const ArrayXd& u, const ArrayXd& v);
-//        ArrayXcd get_mu() const { return mu; }
+		void ft_from_all(double nu, const ArrayXd& u, const ArrayXd& v);
+		void ft_from_perturbed(double nu, const ArrayXd& u, const ArrayXd& v);
+		ArrayXcd get_mu() const { return mu; };
 		void set_perturbed(std::vector<bool> perturbed);
 		std::vector<bool> get_perturbed();
 		void reset_perturbed();
@@ -34,7 +35,7 @@ class SkyModel
         std::vector<bool> perturbed{};
         std::vector<Component*> components_{};
         // SkyModel prediction
-//		ArrayXcd mu{};
+		ArrayXcd mu{};
 };
 
 

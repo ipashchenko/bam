@@ -228,12 +228,15 @@ void DNestModel::calculate_sky_mu(bool update)
 			DEBUG("DNestModel.calculate_sky_mu - Speed up with counter = " + std::to_string(component_ft_counter));
 			// Change the model prediction by the difference between predictions of the new ond old perturbed component
 			// FIXME: ???
-			sky_model_mu[band] += (sky_model->ft_from_perturbed(freq, u, v) - old_sky_model->ft_from_perturbed(freq, u, v)).eval();
+			sky_model->ft_from_perturbed(freq, u, v);
+			old_sky_model->ft_from_perturbed(freq, u, v);
+			sky_model_mu[band] += (sky_model->get_mu() - old_sky_model->get_mu()).eval();
 		}
 		else
 		{
 			DEBUG("DNestModel.calculate_sky_mu - Full : will reset counter!");
-			sky_model_mu[band] = sky_model->ft_from_all(freq, u, v);
+			sky_model->ft_from_all(freq, u, v);
+			sky_model_mu[band] = sky_model->get_mu();
 		}
 	}
 	
