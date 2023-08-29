@@ -184,3 +184,9 @@ std::string SkyModel::description() const {
     descr.pop_back();
     return descr;
 }
+
+
+std::pair<double, double> SkyModel::get_core_position(double nu)
+{
+	return components_[0]->get_pos(nu);
+}

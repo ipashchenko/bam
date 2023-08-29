@@ -64,7 +64,7 @@ DNestModel& DNestModel::operator=(const DNestModel& other)
 
 void DNestModel::from_prior(DNest4::RNG &rng)
 {
-	DNest4::Cauchy cauchy_origin(0.0, 0.1);
+	DNest4::Gaussian gaussian_origin(0.0, 0.1);
 	DNest4::Gaussian gaussian_jitter(-4.0, 2.0);
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
@@ -74,8 +74,8 @@ void DNestModel::from_prior(DNest4::RNG &rng)
 		ArrayXcd zero = ArrayXcd::Zero(u.size());
 		sky_model_mu[band] = zero;
 		mu_full[band] = zero;
-		jet_origin_x[band] = cauchy_origin.generate(rng);
-		jet_origin_y[band] = cauchy_origin.generate(rng);
+		jet_origin_x[band] = gaussian_origin.generate(rng);
+		jet_origin_y[band] = gaussian_origin.generate(rng);
 		logjitter[band] = gaussian_jitter.generate(rng);
 		
 	}
@@ -177,7 +177,7 @@ double DNestModel::perturb(DNest4::RNG &rng)
 		int which = rng.rand_int(n_bands);
 		std::string band = bands[which];
 		DEBUG("Perturbing phase centers band = " + band);
-		DNest4::Cauchy cauchy_origin(0.0, 0.1);
+		DNest4::Gaussian gaussian_origin(0.0, 0.1);
 		double origin;
 
 		double uu = rng.rand();
@@ -185,10 +185,10 @@ double DNestModel::perturb(DNest4::RNG &rng)
 		if(uu > 0.5)
 		{
 			origin = jet_origin_x[band];
-			logH += cauchy_origin.perturb(origin, rng);
+			logH += gaussian_origin.perturb(origin, rng);
 			jet_origin_x[band] = origin;
 			origin = jet_origin_y[band];
-			logH += cauchy_origin.perturb(origin, rng);
+			logH += gaussian_origin.perturb(origin, rng);
 			jet_origin_y[band] = origin;
 		}
 		// Perturb only one coordinate
@@ -198,13 +198,13 @@ double DNestModel::perturb(DNest4::RNG &rng)
 			if(which_xy == 0)
 			{
 				origin = jet_origin_x[band];
-				logH += cauchy_origin.perturb(origin, rng);
+				logH += gaussian_origin.perturb(origin, rng);
 				jet_origin_x[band] = origin;
 			}
 			else
 			{
 				origin = jet_origin_y[band];
-				logH += cauchy_origin.perturb(origin, rng);
+				logH += gaussian_origin.perturb(origin, rng);
 				jet_origin_y[band] = origin;
 			}
 		}
@@ -256,9 +256,12 @@ void DNestModel::shift_sky_mu()
 	const std::complex<double> j(0.0, 1.0);
 	for (const auto& [band, freq] : band_freq_map)
 	{
+		// Obtain core position at given band relative to jet origin
+		std::pair<double, double> core_pos = sky_model->get_core_position(freq);
 		ArrayXd &u = Data::get_instance().get_u(band);
 		ArrayXd &v = Data::get_instance().get_v(band);
-		mu_full[band] = sky_model_mu[band] * exp(2 * M_PI * j * mas_to_rad * (u * jet_origin_x[band] + v * jet_origin_y[band]));
+		mu_full[band] = sky_model_mu[band] * exp(2 * M_PI * j * mas_to_rad * (u*(-core_pos.first + jet_origin_x[band]) +
+																			  v*(-core_pos.second + jet_origin_y[band])));
 	}
 }
 

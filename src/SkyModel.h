@@ -29,6 +29,7 @@ class SkyModel
         void from_prior(DNest4::RNG& rng);
         // MH proposal for SkyModel. Returns logH
         double perturb(DNest4::RNG& rng);
+		std::pair<double, double> get_core_position(double nu);
 
     private:
         std::vector<bool> perturbed{};
