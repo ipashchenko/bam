@@ -61,10 +61,10 @@ ArrayXcd Component::ft(double nu, const ArrayXd& u, const ArrayXd& v)
 	}
 }
 
-
 JetComponent::JetComponent(Shape new_shape) : Component() {
 	shape = new_shape;
 }
+
 
 JetComponent::JetComponent(const JetComponent &other)
 {
@@ -76,6 +76,7 @@ JetComponent::JetComponent(const JetComponent &other)
 	alpha_thick_ = other.alpha_thick_;
 	alpha_thin_ = other.alpha_thin_;
 	shape = other.shape;
+	sky_model = other.sky_model;
 }
 
 
@@ -192,9 +193,11 @@ double JetComponent::perturb(DNest4::RNG &rng) {
     return log_H;
 }
 
+
 CoreComponent::CoreComponent(Shape new_shape) : Component() {
 	shape = new_shape;
 }
+
 
 CoreComponent::CoreComponent(const CoreComponent &other)
 {
@@ -209,6 +212,7 @@ CoreComponent::CoreComponent(const CoreComponent &other)
 	alpha_thick_ = other.alpha_thick_;
 	alpha_thin_ = other.alpha_thin_;
 	shape = other.shape;
+	sky_model = other.sky_model;
 }
 
 CoreComponent *CoreComponent::clone()

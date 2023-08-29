@@ -91,6 +91,7 @@ void SkyModel::reset_perturbed()
 
 void SkyModel::add_component(Component *component)
 {
+	component->set_sky_model(this);
     components_.push_back(component);
     perturbed.push_back(false);
 }

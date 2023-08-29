@@ -14,6 +14,7 @@ const double mas_to_rad = 4.84813681109536e-09;
 using Eigen::ArrayXcd;
 using Eigen::ArrayXd;
 
+class SkyModel;
 
 class Component {
     public:
@@ -22,7 +23,7 @@ class Component {
 		virtual double get_logflux(double nu) = 0;
 		virtual std::pair<double, double> get_pos(double nu) = 0;
 		ArrayXcd ft(double nu, const ArrayXd& u, const ArrayXd& v);
-		
+		void set_sky_model(SkyModel* skymodel) { sky_model = skymodel; }
 		virtual void print(std::ostream& out) const = 0;
 		virtual std::string print() const = 0;
         virtual std::string description() const = 0;
@@ -41,11 +42,13 @@ class Component {
 
     protected:
 		Shape shape;
+		SkyModel* sky_model = nullptr;
 };
 
 
 class JetComponent : public Component {
 	public:
+		~JetComponent() {};
 		JetComponent(Shape shape);
 		JetComponent(const JetComponent& other);
 		JetComponent* clone() override;
@@ -65,6 +68,7 @@ class JetComponent : public Component {
 
 class CoreComponent : public Component {
 	public:
+		~CoreComponent() {};
 		CoreComponent(Shape shape);
 		CoreComponent(const CoreComponent& other);
 		CoreComponent* clone() override;
@@ -78,7 +82,6 @@ class CoreComponent : public Component {
 		double perturb(DNest4::RNG& rng) override;
 	private:
 		// PA - from N to positive RA axis
-//		double a_{}, PA_{}, logsize_1_{}, k_r_{}, logS_1_{}, alpha_{};
 		double a_{}, PA_{}, logsize_1_{}, k_r_{}, lognu_max_{}, logS_max_{}, alpha_thick_{}, alpha_thin_{};
 };
 
