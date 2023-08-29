@@ -344,14 +344,16 @@ if __name__ == "__main__":
     # freqs_ghz = (4.6, 5.0, 8.1, 8.43, 15.4, 23.8, 43.2)
     freqs_ghz = (4.6, 8.1, 15.4, 23.8, 43.2)
     n_bands = len(freqs_ghz)
-    posterior_file = "/home/ilya/github/bam/mf/artificial/core_2jc/posterior_sample.txt"
+    posterior_file = "/home/ilya/github/bam/mf/artificial/core_2jc/u_k_q/posterior_sample.txt"
+    # posterior_file = "/home/ilya/github/bam/mf/artificial/core_2jc/posterior_sample.txt"
     # save_dir = "/home/ilya/github/bam/mf/all_bands/7jc"
-    save_dir = "/home/ilya/github/bam/mf/artificial/core_2jc"
+    save_dir = "/home/ilya/github/bam/mf/artificial/core_2jc/u_k_q"
+    # save_dir = "/home/ilya/github/bam/mf/artificial/core_2jc"
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
     # save_dir = None
     df = convert_posterior_file_to_pandas_df(posterior_file)
     n_jc = count_jet_components(df, n_bands, jitter)
-    plot_components_info(df, n_bands, jitter, freqs_ghz, save_dir=save_dir, opacity_each_line=0.02)
+    plot_components_info(df, n_bands, jitter, freqs_ghz, save_dir=save_dir, opacity_each_line=0.01)
     fig = plot_posterior_samples_on_map(posterior_file, n_bands, freqs_ghz, ra_lims=(-20, 20), dec_lims=(-20, 20),
-                                        alpha_jet=0.02, alpha_core=0.02, jitter=jitter, each=4)
+                                        alpha_jet=0.01, alpha_core=0.01, jitter=jitter, each=3)
