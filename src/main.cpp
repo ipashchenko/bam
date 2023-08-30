@@ -8,9 +8,9 @@ using namespace DNest4;
 int main(int argc, char** argv)
 {
 	
-	Data::get_instance().load("c1_4.60");
+//	Data::get_instance().load("c1_4.60");
 //	Data::get_instance().load("c2_5.00");
-	Data::get_instance().load("x1_8.10");
+//	Data::get_instance().load("x1_8.10");
 //	Data::get_instance().load("x2_8.43");
 	Data::get_instance().load("u1_15.35");
 	Data::get_instance().load("k1_23.79");
