@@ -11,7 +11,7 @@
 #endif
 
 
-DNestModel::DNestModel() : use_logjitter(true), use_speedup(true), component_ft_counter(0)
+DNestModel::DNestModel() : use_logjitter(true), use_speedup(true), use_image_shifts_from_core(true), component_ft_counter(0)
 {
 	size_t number_of_jet_components = 2;
     sky_model = new SkyModel(number_of_jet_components);
@@ -35,6 +35,7 @@ DNestModel::DNestModel(const DNestModel& other)
     logjitter = other.logjitter;
     use_logjitter = other.use_logjitter;
 	use_speedup = other.use_speedup;
+	use_image_shifts_from_core = other.use_image_shifts_from_core;
 	sky_model_mu = other.sky_model_mu;
 	mu_full = other.mu_full;
 	jet_origin_x = other.jet_origin_x;
@@ -52,6 +53,7 @@ DNestModel& DNestModel::operator=(const DNestModel& other)
         logjitter = other.logjitter;
         use_logjitter = other.use_logjitter;
 		use_speedup = other.use_speedup;
+		use_image_shifts_from_core = other.use_image_shifts_from_core;
 		sky_model_mu = other.sky_model_mu;
 		mu_full = other.mu_full;
 		jet_origin_x = other.jet_origin_x;
@@ -256,12 +258,15 @@ void DNestModel::shift_sky_mu()
 	const std::complex<double> j(0.0, 1.0);
 	for (const auto& [band, freq] : band_freq_map)
 	{
+		std::pair<double, double> reference{0., 0.};
 		// Obtain core position at given band relative to jet origin
-		std::pair<double, double> core_pos = sky_model->get_core_position(freq);
+		if(use_image_shifts_from_core){
+			reference = sky_model->get_core_position(freq);
+		}
 		ArrayXd &u = Data::get_instance().get_u(band);
 		ArrayXd &v = Data::get_instance().get_v(band);
-		mu_full[band] = sky_model_mu[band] * exp(2 * M_PI * j * mas_to_rad * (u*(-core_pos.first + jet_origin_x[band]) +
-																			  v*(-core_pos.second + jet_origin_y[band])));
+		mu_full[band] = sky_model_mu[band] * exp(2 * M_PI * j * mas_to_rad * (u*(-reference.first + jet_origin_x[band]) +
+																			  v*(-reference.second + jet_origin_y[band])));
 	}
 }
 
