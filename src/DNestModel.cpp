@@ -66,7 +66,6 @@ DNestModel& DNestModel::operator=(const DNestModel& other)
 
 void DNestModel::from_prior(DNest4::RNG &rng)
 {
-	DNest4::Gaussian gaussian_origin(0.0, 0.1);
 	DNest4::Gaussian gaussian_jitter(-4.0, 2.0);
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
@@ -76,6 +75,7 @@ void DNestModel::from_prior(DNest4::RNG &rng)
 		ArrayXcd zero = ArrayXcd::Zero(u.size());
 		sky_model_mu[band] = zero;
 		mu_full[band] = zero;
+		DNest4::Gaussian gaussian_origin(0.0, 0.1*(15.4/freq));
 		jet_origin_x[band] = gaussian_origin.generate(rng);
 		jet_origin_y[band] = gaussian_origin.generate(rng);
 		logjitter[band] = gaussian_jitter.generate(rng);
@@ -179,7 +179,9 @@ double DNestModel::perturb(DNest4::RNG &rng)
 		int which = rng.rand_int(n_bands);
 		std::string band = bands[which];
 		DEBUG("Perturbing phase centers band = " + band);
-		DNest4::Gaussian gaussian_origin(0.0, 0.1);
+		const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
+		double freq = band_freq_map.at(band);
+		DNest4::Gaussian gaussian_origin(0.0, 0.1*(15.4/freq));
 		double origin;
 
 		double uu = rng.rand();
