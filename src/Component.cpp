@@ -259,7 +259,7 @@ void CoreComponent::from_prior(DNest4::RNG &rng)
 	DNest4::Uniform gaussian_direction(0.0, 2*M_PI);
 	DNest4::Gaussian gaussian_logsize(0.0, 0.7);
 	DNest4::Gaussian gaussian_logflux(1.0, 0.7);
-	DNest4::TruncatedCauchy cauchy_k(1.0, 0.3, 0.0, 4.0);
+	DNest4::Gaussian gaussian_k(1.0, 0.3);
 //	DNest4::Fixed cauchy_k(1.0);
 	DNest4::Gaussian gaussian_alpha_thick(1.5, 0.5);
 	DNest4::Gaussian gaussian_alpha_thin(-0.5, 0.25);
@@ -267,7 +267,7 @@ void CoreComponent::from_prior(DNest4::RNG &rng)
 	a_ = cauchy_pos.generate(rng);
 	PA_ = gaussian_direction.generate(rng);
 	logsize_1_ = gaussian_logsize.generate(rng);
-	k_r_ = cauchy_k.generate(rng);
+	k_r_ = gaussian_k.generate(rng);
 	logS_max_ = gaussian_logflux.generate(rng);
 	lognu_max_ = uniform_numax.generate(rng);
 	alpha_thick_ = gaussian_alpha_thick.generate(rng);
@@ -282,14 +282,15 @@ double CoreComponent::perturb(DNest4::RNG &rng)
 	if(which == 0)
 	{
 		DNest4::TruncatedCauchy cauchy_pos(0.0, 1.0, 0.0, 10.0);
-		DNest4::TruncatedCauchy cauchy_k(1.0, 0.3, 0.0, 4.0);
+		DNest4::Gaussian gaussian_k(1.0, 0.3);
+		
 //			DNest4::Fixed cauchy_k(1.0);
 		double u = rng.rand();
 		// Perturb both
 		if(u < 0.5)
 		{
 			log_H += cauchy_pos.perturb(a_, rng);
-			log_H += cauchy_k.perturb(k_r_, rng);
+			log_H += gaussian_k.perturb(k_r_, rng);
 		}
 		else
 		{
@@ -300,7 +301,7 @@ double CoreComponent::perturb(DNest4::RNG &rng)
 			}
 			else
 			{
-				log_H += cauchy_k.perturb(k_r_, rng);
+				log_H += gaussian_k.perturb(k_r_, rng);
 			}
 		}
 	}
