@@ -202,6 +202,12 @@ if __name__ == "__main__":
     # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/0716+714.u.2013_08_20.uvf"
     # uvfits_fname = "/home/ilya/github/bam/data/smallest.uvf"
     # uvfits_fname = "/home/ilya/github/bam/data/1800_S.uvf"
+    uvfits_file = "/home/ilya/Downloads/0212+735/u/0212+735.u.2022_09_29.uvf"
+    out_fname = "/home/ilya/Downloads/0212+735/u/0212+735.u.2022_09_29.txt"
+    df = create_data_file_v2(uvfits_file, out_fname, time_average_sec=60)
+
+    sys.exit(0)
+
     import glob
     uvfits_files = glob.glob(os.path.join("/home/ilya/github/dterms/data/mojave/", "0506+056.u*.uvf"))
     for uvfits_file in uvfits_files:
