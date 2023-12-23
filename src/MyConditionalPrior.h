@@ -10,7 +10,7 @@ class MyConditionalPrior:public DNest4::ConditionalPrior
     private:
 
         // Parameters of hyper-distributions
-        double std;
+        double x_min, x_max, y_min, y_max;
 
         double typical_flux, dev_log_flux;
         double typical_radius, dev_log_radius;
@@ -18,7 +18,7 @@ class MyConditionalPrior:public DNest4::ConditionalPrior
         double perturb_hyperparameters(DNest4::RNG& rng);
 
     public:
-        MyConditionalPrior(double std);
+        MyConditionalPrior(double x_min, double x_max, double y_min, double y_max);
 
         void from_prior(DNest4::RNG& rng);
 

@@ -3,7 +3,7 @@
 #include "DNestModel.h"
 #include "Data.h"
 
-
+// TODO: Uniform priors on position to bracket!
 DNestModel::DNestModel() :
     logjitter(0.0),
     counter(0),
