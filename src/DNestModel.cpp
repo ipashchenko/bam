@@ -7,7 +7,7 @@
 DNestModel::DNestModel() :
     logjitter(0.0),
     counter(0),
-    components(4, 20, false, MyConditionalPrior(-2., 20., -2., 2.), DNest4::PriorType::log_uniform) {}
+    components(6, 20, false, MyConditionalPrior(-20., 20., -20., 20.), DNest4::PriorType::log_uniform) {}
 
 
 void DNestModel::from_prior(DNest4::RNG &rng) {
@@ -97,7 +97,8 @@ void DNestModel::calculate_sky_mu() {
         theta = 2*M_PI*mas_to_rad*(u*comp[0]+v*comp[1]);
         // Calculate FT of a Gaussian in a phase center
         c = pow(M_PI*exp(comp[3])*mas_to_rad, 2)/(4.*log(2.));
-        ft = comp[2] * exp(-c*(u*u + v*v));
+		b = comp[4]*comp[4]*pow((u*cos(comp[5]) - v*sin(comp[5])), 2) + pow((u*sin(comp[5]) + v*cos(comp[5])), 2);
+        ft = comp[2] * exp(-c*b);
         // Prediction of visibilities
         mu_real += ft*cos(theta);
         mu_imag += ft*sin(theta);
@@ -139,7 +140,7 @@ std::string DNestModel::description() const
     descr += " dim_components max_num_components ";
 
     // Then the hyperparameters (i.e. whatever MyConditionalPrior::print prints)
-    descr += " typical_flux dev_log_flux typical_radius dev_log_radius ";
+    descr += " typical_flux dev_log_flux typical_radius dev_log_radius typical_a typical_b";
 
     // Then the actual number of components
     descr += " num_components ";
@@ -152,9 +153,12 @@ std::string DNestModel::description() const
     for(int i=0; i<components.get_max_num_components(); ++i)
         descr += " y[" + std::to_string(i) + "] ";
     for(int i=0; i<components.get_max_num_components(); ++i)
-        descr += " logflux[" + std::to_string(i) + "] ";
+        descr += " flux[" + std::to_string(i) + "] ";
     for(int i=0; i<components.get_max_num_components(); ++i)
         descr += " logbmaj[" + std::to_string(i) + "] ";
-
+	for(int i=0; i<components.get_max_num_components(); ++i)
+		descr += " e[" + std::to_string(i) + "] ";
+	for(int i=0; i<components.get_max_num_components(); ++i)
+		descr += " bpa[" + std::to_string(i) + "] ";
     return descr;
 }

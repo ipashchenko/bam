@@ -21,13 +21,19 @@ void MyConditionalPrior::from_prior(RNG& rng)
     typical_radius = gauss3.generate(rng);
     const DNest4::Gaussian gauss4(1.00, 0.10);
     dev_log_radius = gauss4.generate(rng);
+	
+	const DNest4::Gaussian gauss5(3.5, 0.1);
+	typical_a = gauss5.generate(rng);
+	
+	const DNest4::Gaussian gauss6(2.5, 0.1);
+	typical_b = gauss6.generate(rng);
 }
 
 double MyConditionalPrior::perturb_hyperparameters(RNG& rng)
 {
     double logH = 0.0;
 
-    int which = rng.rand_int(4);
+    int which = rng.rand_int(6);
 
     if(which == 0)
     {
@@ -49,7 +55,18 @@ double MyConditionalPrior::perturb_hyperparameters(RNG& rng)
         const DNest4::Gaussian gauss4(1.00, 0.10);
         logH += gauss4.perturb(dev_log_radius, rng);
     }
+	else if(which == 4)
+	{
+		const DNest4::Gaussian gauss5(3.5, 0.1);
+		logH += gauss5.perturb(typical_a, rng);
+	}
+	else if(which == 5)
+	{
+		const DNest4::Gaussian gauss6(2.5, 0.1);
+		logH += gauss6.perturb(typical_b, rng);
+	}
 
+	
     return logH;
 }
 
@@ -76,6 +93,10 @@ double MyConditionalPrior::log_pdf(const std::vector<double>& vec) const
     //logp += -log(vec[3]) + laplace2.log_pdf(log(vec[3]));
     logp += gauss2.log_pdf(vec[3]);
 
+	// Elongation
+	DNest4::Kumaraswamy kumaraswamy(typical_a, typical_b);
+	logp += kumaraswamy.log_pdf(vec[4]);
+	
     return logp;
 }
 
@@ -99,6 +120,14 @@ void MyConditionalPrior::from_uniform(std::vector<double>& vec) const
     // DNest4::Laplace laplace2(typical_radius, dev_log_radius);
     DNest4::Gaussian gauss2(typical_radius, dev_log_radius);
     vec[3] = gauss2.cdf_inverse(vec[3]);
+	
+	// Elongation
+	DNest4::Kumaraswamy kumaraswamy(typical_a, typical_b);
+	vec[4] = kumaraswamy.cdf_inverse(vec[4]);
+	
+	// BPA
+	DNest4::Uniform uniform(0., M_PI);
+	vec[5] = uniform.cdf_inverse(vec[5]);
 
 }
 
@@ -122,11 +151,20 @@ void MyConditionalPrior::to_uniform(std::vector<double>& vec) const
     // DNest4::Laplace laplace2(typical_radius, dev_log_radius);
     DNest4::Gaussian gauss2(typical_radius, dev_log_radius);
     vec[3] = gauss2.cdf(vec[3]);
-
+	
+	// Elongation
+	DNest4::Kumaraswamy kumaraswamy(typical_a, typical_b);
+	vec[4] = kumaraswamy.cdf(vec[4]);
+	
+	// BPA
+	DNest4::Uniform uniform(0., M_PI);
+	vec[5] = uniform.cdf(vec[5]);
+	
 }
 
 void MyConditionalPrior::print(std::ostream& out) const
 {
     out << typical_flux << ' ' << dev_log_flux << ' ';
     out << typical_radius << ' ' << dev_log_radius << ' ';
+	out << typical_a << ' ' << typical_b << ' ';
 }
