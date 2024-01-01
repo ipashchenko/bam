@@ -1,0 +1,475 @@
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from matplotlib.patches import Ellipse, Circle
+from itertools import cycle
+from astropy import units as u
+from astropy import constants as const
+from data_utils import radplot, gaussian_circ_ft
+import sys
+sys.path.insert(0, '/home/ilya/github/ve/vlbi_errors')
+from from_fits import create_clean_image_from_fits_file
+from image import plot as iplot
+from spydiff import find_bbox, find_image_std, import_difmap_model
+
+degree_to_rad = u.deg.to(u.rad)
+mas_to_rad = u.mas.to(u.rad)
+# Speed of light [cm / s]
+c = const.c.cgs.value
+k = const.k_B.cgs.value
+
+
+def rj_plot_ncomponents_distribution(posterior_file="posterior_sample.txt",
+                                     picture_fn=None, jitter_first=True,
+                                     n_jitters=1, skip_hyperparameters=False,
+                                     type="cg", normed=False, show=True):
+    samples = np.atleast_2d(np.loadtxt(posterior_file))
+    if type == "cg":
+        nn = 0
+    elif type == "eg":
+        nn = 2
+    if jitter_first:
+        ncomp_index = 6 + nn + n_jitters
+    else:
+        ncomp_index = 6 + nn
+    if skip_hyperparameters:
+        ncomp_index -= (4 + nn)
+    values, counts = np.unique(samples[:, ncomp_index], return_counts=True)
+    fig, axes = plt.subplots(1, 1)
+    if normed:
+        counts = counts/sum(counts)
+    axes.vlines(values, 0, counts, color='C0', lw=8)
+    axes.set_ylim(0, max(counts) * 1.06)
+    axes.set_xticks(np.arange(min(values), max(values)+1))
+    axes.set_xlabel("# components")
+    if normed:
+        axes.set_ylabel("P")
+    else:
+        axes.set_ylabel("N")
+    if picture_fn is not None:
+        fig.savefig(picture_fn, bbox_inches="tight")
+    if show:
+        plt.show()
+    return fig
+
+
+def get_samples_for_each_n(samples, jitter_first=True, n_jitters=1, n_max=30,
+                           skip_hyperparameters=False,
+                           type="cg"):
+    if type == "cg":
+        nn = 0
+        comp_length = 4
+    elif type == "eg":
+        nn = 2
+        comp_length = 6
+    j = 0
+    if jitter_first:
+        j += n_jitters
+    # dim, max num components, 4 hyperparameters + num components
+    j += (7 + nn)
+    if skip_hyperparameters:
+        j -= (4 + nn)
+    n_components = samples[:, j-1]
+    out_samples = dict()
+    for n in np.array(np.unique(n_components), dtype=int):
+        samples_with_n_components = list()
+        for sample in samples[n_components == n]:
+            one_post_point = list()
+            if jitter_first:
+                one_post_point.extend(sample[:n_jitters])
+            for k in range(n):
+                one_post_point.extend([sample[j+k+i*n_max] for i in range(comp_length)])
+            samples_with_n_components.append(one_post_point)
+        out_samples.update({n: np.atleast_2d(samples_with_n_components)})
+    return out_samples
+
+
+def plot_size_distance_posterior(samples, savefn=None, s=0.6,
+                                 sorted_components=False, type="cg"):
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    colors = cycle(colors)
+
+    if type == "cg":
+        comp_length = 4
+    elif type == "eg":
+        comp_length = 6
+
+    fig, axes = plt.subplots(1, 1)
+    sizes = dict()
+    rs = dict()
+    n_comps = int(len(samples[0])/comp_length)
+
+    for i_comp in range(n_comps):
+        rs[i_comp] = np.hypot(samples[:, 0+i_comp*comp_length], samples[:, 1+i_comp*comp_length])
+        sizes[i_comp] = np.exp(samples[:, 3+i_comp*comp_length])
+
+    for i_comp, color in zip(range(n_comps), colors):
+        if not sorted_components:
+            color = "gray"
+        axes.scatter(rs[i_comp], sizes[i_comp], s=s, color=color)
+
+    axes.set_xlabel("r [mas]")
+    axes.set_ylabel("FWHM [mas]")
+    axes.set_xscale('log')
+    axes.set_yscale('log')
+
+    if savefn is not None:
+        fig.savefig(savefn, dpi=300, bbox_inches="tight")
+    return fig
+
+
+def tb_comp(flux, bmaj, freq, z=0., bmin=None, D=1.):
+    """
+    :param flux:
+        Flux in Jy.
+    :param freq:
+        Frequency in GHz.
+    """
+    bmaj *= mas_to_rad
+    if bmin is None:
+        bmin = bmaj
+    else:
+        bmin *= mas_to_rad
+    freq *= 10**9
+    flux *= 10**(-23)
+    return 2.*np.log(2)*(1.+z)*flux*c**2/(freq**2*np.pi*k*bmaj*bmin*D)
+
+
+def plot_tb_distance_posterior(samples, freq_ghz, z=0.0, type="cg", savefn=None, s=0.6,
+                               sorted_compnents=False):
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    colors = cycle(colors)
+    fig, axes = plt.subplots(1, 1)
+    tbs = dict()
+    rs = dict()
+    bmins = dict()
+    if type == "cg":
+        comp_length = 4
+    elif type == "eg":
+        comp_length = 6
+    else:
+        raise Exception("keyword parameter ``type`` should be eg or cg!")
+    n_comps = int(len(samples[0])/comp_length)
+
+    for i_comp in range(n_comps):
+        rs[i_comp] = np.hypot(samples[:, 0+i_comp*comp_length], samples[:, 1+i_comp*comp_length])
+        if type == "eg":
+            bmins[i_comp] = samples[:, 4+i_comp*comp_length]
+        else:
+            bmins[i_comp] = None
+        tbs[i_comp] = tb_comp(np.exp(samples[:, 2+i_comp*comp_length]),
+                              np.exp(samples[:, 3+i_comp*comp_length]),
+                              freq_ghz, z=z,
+                              bmin=bmins[i_comp])
+
+    for i_comp, color in zip(range(n_comps), colors):
+        if not sorted_compnents:
+            color = "gray"
+        axes.scatter(rs[i_comp], tbs[i_comp], s=s, color=color)
+
+    # Need manually set ylim because of matplotlib bug
+    lg_tb_min = np.floor((np.log10(np.min([tbs[i] for i in range(n_comps)]))))
+    lg_tb_max = np.ceil(np.log10(np.max([tbs[i] for i in range(n_comps)])))
+    axes.set_ylim([10**lg_tb_min, 10**lg_tb_max])
+    axes.set_xlabel("r [mas]")
+    axes.set_ylabel("Tb [K]")
+    axes.set_xscale('log')
+    axes.set_yscale('log')
+
+    if savefn is not None:
+        fig.savefig(savefn, dpi=300, bbox_inches="tight")
+    return fig
+
+
+# FIXME: Implement elliptical gaussians
+def plot_model_predictions(post_samples, data_df, jitter_first=True, style="reim", savefname=None, show=True,
+                           n_samples_to_plot=24):
+    if style not in ("reim", "ap"):
+        raise Exception("Only reim or ap style plotting is supported!")
+
+    uv = data_df[["u", "v"]].values
+    r = np.hypot(uv[:, 0], uv[:, 1])/10**6
+    # dr = np.max(r) - np.min(r)
+    # rr = np.linspace(0, np.max(r)+0.1*dr, 1000)
+    df = data_df.copy()
+
+    # Zero visibilities
+    df["vis_re"] = 0
+    df["vis_im"] = 0
+
+    # Add model
+    n_post, n_components = post_samples.shape
+    if jitter_first:
+        n_components -= 1
+    n_components = int(n_components/4)
+    samples = post_samples[np.random.randint(0, n_post, n_samples_to_plot)]
+    samples_predictions_re = list()
+    samples_predictions_im = list()
+
+    if jitter_first:
+        jitter = 1
+    else:
+        jitter = 0
+
+    for sample in samples:
+        sample_prediction_re = np.zeros(len(df))
+        sample_prediction_im = np.zeros(len(df))
+        for n_comp in range(n_components):
+            dx, dy, flux, bmaj = sample[jitter+n_comp*4:jitter+(n_comp+1)*4]
+            flux = np.exp(flux)
+            bmaj = np.exp(bmaj)
+            re, im = gaussian_circ_ft(flux=flux, dx=dx, dy=dy, bmaj=bmaj, uv=uv)
+            sample_prediction_re += re
+            sample_prediction_im += im
+        samples_predictions_re.append(sample_prediction_re)
+        samples_predictions_im.append(sample_prediction_im)
+
+    # Original data plot
+    fig = radplot(data_df, style=style, show=False)
+    axes = fig.get_axes()
+    for sample_prediction_re, sample_prediction_im in zip(samples_predictions_re, samples_predictions_im):
+        if style == "reim":
+            axes[0].plot(r, sample_prediction_re, "_", alpha=0.25, color="C1", ms=5, mew=0.2)
+            axes[1].plot(r, sample_prediction_im, "_", alpha=0.25, color="C1", ms=5, mew=0.2)
+        else:
+            axes[0].plot(r, np.hypot(sample_prediction_re, sample_prediction_im), "_", alpha=0.25, color="C1", ms=5, mew=0.2)
+            axes[1].plot(r, np.arctan2(sample_prediction_im, sample_prediction_re), "_", alpha=0.25, color="C1", ms=5, mew=0.2)
+    if savefname is not None:
+        fig.savefig(savefname, bbox_inches="tight", dpi=300)
+    if show:
+        plt.show()
+    return fig
+
+
+def export_difmap_model(comps, out_fname, freq_hz):
+    """
+    :param comps:
+        Iterable of tuples with (flux, x, y, bmaj).
+    :param out_fname:
+        Path for saving file.
+    """
+    with open(out_fname, "w") as fo:
+        fo.write("! Flux (Jy) Radius (mas)  Theta (deg)  Major (mas)  Axial ratio   Phi (deg) T\n\
+! Freq (Hz)     SpecIndex\n")
+        for comp in comps:
+            if len(comp) == 4:
+                # Jy, mas, mas, mas
+                flux, x, y, bmaj = comp
+                e = "1.00000"
+                bpa = "000.000"
+                type = "1"
+                bmaj = "{:.7f}v".format(bmaj)
+            elif len(comp) == 6:
+                # Jy, mas, mas, mas, -, deg
+                flux, x, y, bmaj, e, bpa = comp
+                e = "{}v".format(e)
+                bpa = "{}v".format((bpa-np.pi/2)/degree_to_rad)
+                bmaj = "{}v".format(bmaj)
+                type = "1"
+            elif len(comp) == 3:
+                flux, x, y = comp
+                e = "1.00000"
+                bmaj = "0.0000"
+                bpa = "000.000"
+                type = "0"
+            else:
+                raise Exception
+            # mas
+            r = np.hypot(x, y)
+            # rad
+            theta = np.arctan2(x, y)
+            theta /= degree_to_rad
+            fo.write("{:>11.7f}v {:>13.7f}v {:>13.5f}v {:>13} {:>13} {:>13} {:>3} {:>12.5e} {:>12d}\n".format(flux, r, theta,
+                                                                                                              bmaj, e, bpa, type,
+                                                                                                              freq_hz, 0))
+
+
+def convert_sample_to_difmap_model(sample, out_fname, freq_ghz, type="cg"):
+    if type == "cg":
+        comp_length = 4
+    elif type == "eg":
+        comp_length = 6
+    n_comps = int(len(sample)/comp_length)
+    components = list()
+    for i in range(n_comps):
+        subsample = sample[comp_length*i:comp_length*i+comp_length]
+        print(subsample)
+        flux = subsample[2]
+        bmaj = np.exp(subsample[3])
+        x = subsample[0]
+        y = subsample[1]
+        if type == "eg":
+            e = subsample[4]
+            bpa = subsample[5]
+            comp = (flux, x, y, bmaj, e, bpa)
+        elif type == "cg":
+            comp = (flux, x, y, bmaj)
+        components.append(comp)
+    components = sorted(components, key=lambda comp: comp[0], reverse=True)
+    export_difmap_model(components, out_fname, 1e9*freq_ghz)
+    return components
+
+
+# FIXME: Implement elliptical gaussians
+def plot_position_posterior(samples, savefn=None, ra_lim=(-10, 10),
+                            dec_lim=(-10, 10), difmap_model_fn=None,
+                            n_relative_posterior=None, s=0.6,
+                            n_relative_difmap=None, type="cg", figsize=None,
+                            sorted_componets=False,
+                            fig=None,
+                            inverse_xaxis=True,
+                            alpha_opacity=0.01):
+
+    """
+
+    :param samples:
+        Already sorted posterior samples. For nonRJ gain samples you should
+        do first ``postprocess_labebels_gains.sort_samples_by_r`` than feed
+        only non-jitter part of the sorted sampler here.
+    :param savefn:
+    :param ra_lim:
+    :param dec_lim:
+    :param difmap_model_fn:
+    :param n_relative_posterior:
+        Number of component in already sorted posterior that should be in phase
+        center.
+    :param n_relative_difmap:
+        Number of component in difmap model that should be in phase center.
+    :return:
+    """
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    colors = cycle(colors)
+    if fig is None:
+        fig, axes = plt.subplots(1, 1, figsize=figsize)
+    else:
+        axes = fig.gca()
+    xs = dict()
+    ys = dict()
+    fluxes = dict()
+
+
+    if type == "cg":
+        comp_length = 4
+    elif type == "eg":
+        comp_length = 6
+    n_comps = int(len(samples[0])/comp_length)
+    print("# comp = ", n_comps)
+
+
+    if n_relative_posterior is not None:
+        shift_x = samples[:, 0+n_relative_posterior*comp_length]
+        shift_y = samples[:, 1+n_relative_posterior*comp_length]
+    else:
+        shift_x = 0
+        shift_y = 0
+
+    for i_comp in range(n_comps):
+        xs[i_comp] = samples[:, 0+i_comp*comp_length] - shift_x
+        ys[i_comp] = samples[:, 1+i_comp*comp_length] - shift_y
+        fluxes[i_comp] = samples[:, 2+i_comp*comp_length]
+
+    for i_comp, color in zip(range(n_comps), colors):
+        if not sorted_componets:
+            color = "red"
+        axes.scatter(xs[i_comp], ys[i_comp], s=s, color=color, edgecolors='none', alpha=alpha_opacity)
+
+    if difmap_model_fn is not None:
+        comps = import_difmap_model(difmap_model_fn)
+        print("Read {} components from {}".format(len(comps), difmap_model_fn))
+        if n_relative_difmap is not None:
+            c7comp = comps[n_relative_difmap]
+            shift_x = c7comp.p[1]
+            shift_y = c7comp.p[2]
+        else:
+            shift_x = 0
+            shift_y = 0
+
+        for comp in comps:
+            if comp.size == 3:
+                axes.scatter(-(comp.p[1]-shift_x), -(comp.p[2]-shift_y), s=80, color="black", alpha=1, marker="x")
+            elif comp.size == 4:
+                # FIXME: Here C7 is putted in the phase center
+                e = Circle((-(comp.p[1]-shift_x), -(comp.p[2]-shift_y)), comp.p[3],
+                           edgecolor="black", facecolor="red",
+                           alpha=0.05)
+                axes.add_patch(e)
+            elif comp.size == 6:
+                raise Exception("Not implemented for elliptical component!")
+
+    axes.set_xlim(ra_lim)
+    axes.set_ylim(dec_lim)
+    axes.set_xlabel("RA, mas")
+    axes.set_ylabel("DEC, mas")
+    if inverse_xaxis:
+        axes.invert_xaxis()
+    axes.set_aspect("equal")
+
+    if savefn is not None:
+        fig.savefig(savefn, dpi=600, bbox_inches="tight")
+    return fig
+
+
+if __name__ == "__main__":
+
+    data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
+    df = pd.read_csv(data_file, names=["u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
+    posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
+    save_dir = "/home/ilya/data/bam"
+    save_rj_ncomp_distribution_file = os.path.join(save_dir, "ncomponents_distribution.png")
+    original_ccfits = "/home/ilya/data/bam/0212+735.u.2019_08_15.icn.fits"
+    n_max = 20
+    n_max_samples_to_plot = 500
+    jitter_first = True
+    component_type = "eg"
+    pixsize_mas = 0.1
+    freq_ghz = 15.4
+    posterior_samples = np.loadtxt(posterior_file)
+    fig = rj_plot_ncomponents_distribution(posterior_file, picture_fn=save_rj_ncomp_distribution_file,
+                                           jitter_first=jitter_first, n_jitters=1, type=component_type,
+                                           normed=True, show=False)
+    samples_for_each_n = get_samples_for_each_n(posterior_samples, jitter_first,
+                                                n_jitters=1, n_max=n_max,
+                                                skip_hyperparameters=False,
+                                                type=component_type)
+
+    n_components_spread = samples_for_each_n.keys()
+
+
+    ccimage = create_clean_image_from_fits_file(original_ccfits)
+    beam = ccimage.beam
+    # Number of pixels in beam
+    npixels_beam = np.pi*beam[0]*beam[1]/(4*np.log(2)*pixsize_mas**2)
+
+    std = find_image_std(ccimage.image, npixels_beam, min_num_pixels_used_to_estimate_std=100,
+                         blc=None, trc=None)
+    blc, trc = find_bbox(ccimage.image, level=3*std, min_maxintensity_jyperbeam=10*std,
+                         min_area_pix=3*npixels_beam, delta=0)
+    fig = iplot(ccimage.image, x=ccimage.x, y=ccimage.y,
+                min_abs_level=3*std, beam=beam, show_beam=True, blc=blc, trc=trc,
+                components=None, close=False, plot_colorbar=False, show=False,
+                contour_linewidth=0.25, contour_color='k')
+    fig.savefig(os.path.join(save_dir, "CLEAN_image.png"), dpi=600)
+    for n_component in n_components_spread:
+        samples_to_plot = samples_for_each_n[n_component][:, 1:]
+        n_samples = len(samples_to_plot)
+        if n_samples > n_max_samples_to_plot:
+            n_samples = n_max_samples_to_plot
+        fig_out = plot_position_posterior(samples_to_plot[:n_max_samples_to_plot, :],
+                                          savefn=None, ra_lim=None, dec_lim=None,
+                                          difmap_model_fn=None, type=component_type, s=0.5, figsize=None,
+                                          sorted_componets=False, fig=fig,
+                                          inverse_xaxis=False,
+                                          alpha_opacity=0.03)
+        fig_out.savefig(os.path.join(save_dir, f"CLEAN_image_ncomp_{n_component}.png"), dpi=600)
+        plt.close(fig_out)
+        f = plot_size_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :],
+                                         savefn=os.path.join(save_dir, f"r_R_ncomp_{n_component}.png"),
+                                         type="eg")
+        plt.close(f)
+        f = plot_tb_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :], freq_ghz, type="eg",
+                                       savefn=os.path.join(save_dir, f"r_Tb_ncomp_{n_component}.png"))
+        plt.close(f)
+        f = plot_model_predictions(samples_to_plot[:n_max_samples_to_plot, :], df,
+                                   savefname=os.path.join(save_dir, f"radplot_{n_component}.png"), show=False)
+        plt.close(f)
