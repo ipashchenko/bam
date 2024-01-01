@@ -4,6 +4,7 @@ import astropy.io.fits as pf
 from astropy.time import Time
 from astropy import units as u
 import pandas as pd
+import ehtim as eh
 from tqdm import tqdm
 import sys
 sys.path.insert(0, '/home/ilya/github/agn_abc')
@@ -39,6 +40,33 @@ def gaussian_circ_ft(flux, dx, dy, bmaj, uv):
     ft = np.array(ft, dtype=complex)
     result *= ft
     return result.real, result.imag
+
+
+# For now better average using difmap, that assures that weights are reasonable
+def get_data_file_from_ehtim(uvfits, outname, avg_time_sec=0, average_using="difmap"):
+    assert average_using in ("difmap", "eht")
+    if avg_time_sec > 0:
+        if average_using == "difmap":
+            uvfits_dir, uvfits_fname = os.path.split(uvfits)
+            uvfits_ta = os.path.join(uvfits_dir, f"ta{avg_time_sec}_{uvfits_fname}")
+            # difmap uses vector weighted averaging
+            time_average(uvfits, uvfits_ta, time_sec=avg_time_sec)
+            uvfits = uvfits_ta
+    # eht-imager estimates errors from weights!
+    obs = eh.obsdata.load_uvfits(uvfits)
+    if avg_time_sec > 0:
+        if average_using == "eht":
+            obs = obs.avg_coherent(avg_time_sec)
+
+    rec = obs.unpack(["t1", "t2", "u", "v", "vis", "sigma"])
+    df = pd.DataFrame.from_records(rec)
+    df["vis_re"] = np.real(df["vis"])
+    df["vis_im"] = np.imag(df["vis"])
+    df = df[["t1", "t2", "u", "v", "vis_re", "vis_im", "error"]]
+    df = df.replace({"t1": obs.tkey})
+    df = df.replace({"t2": obs.tkey})
+    df.to_csv(outname, sep=" ", header=False, index=False)
+    return df
 
 
 def create_data_file(uvfits, outfile=None):
