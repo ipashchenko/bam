@@ -3,11 +3,11 @@
 #include "DNestModel.h"
 #include "Data.h"
 
-// TODO: Uniform priors on position to bracket!
+// TODO: Optionally, use per-antenna jitter!
 DNestModel::DNestModel() :
     logjitter(0.0),
     counter(0),
-    components(6, 20, false, MyConditionalPrior(-2., 20., -2., 2.), DNest4::PriorType::log_uniform) {}
+    components(6, 20, false, MyConditionalPrior(-5., 1., -3., 2.), DNest4::PriorType::log_uniform) {}
 
 
 void DNestModel::from_prior(DNest4::RNG &rng) {

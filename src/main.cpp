@@ -12,8 +12,7 @@ using namespace DNest4;
 //make
 int main(int argc, char** argv)
 {
-    //Data::get_instance().load("/home/ilya/github/bam/data/test_60s.txt");
-    Data::get_instance().load("/home/ilya/Downloads/0212+735/u/0212+735.u.2022_09_29_art11.txt");
+    Data::get_instance().load("/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt");
     // set the sampler and run it!
     Sampler<DNestModel> sampler = setup<DNestModel>(argc, argv);
     sampler.run();
