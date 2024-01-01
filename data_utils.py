@@ -198,12 +198,10 @@ def radplot(df, fig=None, color=None, label=None, style="ap"):
 
 
 if __name__ == "__main__":
-    # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/J2001+2416_K_2006_06_11_yyk_vis.fits"
-    # uvfits_fname = "/home/ilya/github/DNest4/code/Examples/UV/0716+714.u.2013_08_20.uvf"
-    # uvfits_fname = "/home/ilya/github/bam/data/smallest.uvf"
-    # uvfits_fname = "/home/ilya/github/bam/data/1800_S.uvf"
-    uvfits_file = "/home/ilya/Downloads/0212+735/u/0212+735.u.2022_09_29_art_11comp.uvf"
-    out_fname = "/home/ilya/Downloads/0212+735/u/0212+735.u.2022_09_29_art11.txt"
+    # uvfits_file = "/home/ilya/Downloads/0212+735/u/0212+735.u.2019_08_15.uvf"
+    # out_fname = "/home/ilya/Downloads/0212+735/u/0212+735.u.2019_08_15.txt"
+    uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01.uvf"
+    out_fname = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
     df = create_data_file_v2(uvfits_file, out_fname, time_average_sec=60)
 
     sys.exit(0)
