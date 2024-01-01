@@ -3,6 +3,7 @@ import numpy as np
 import astropy.io.fits as pf
 from astropy.time import Time
 from astropy import units as u
+import matplotlib.pyplot as plt
 import pandas as pd
 import ehtim as eh
 from tqdm import tqdm
@@ -187,9 +188,9 @@ def add_noise(df, use_global_median_noise=True, global_noise_scale=None):
     return df_
 
 
-def radplot(df, fig=None, color=None, label=None, style="ap"):
+def radplot(df, fig=None, color=None, label=None, style="ap", savefname=None, show=True):
     uv = df[["u", "v"]].values
-    r = np.hypot(uv[:, 0], uv[:, 1])
+    r = np.hypot(uv[:, 0], uv[:, 1])/10**6
 
     if style == "ap":
         value1 = np.hypot(df["vis_re"].values, df["vis_im"].values)
@@ -197,31 +198,38 @@ def radplot(df, fig=None, color=None, label=None, style="ap"):
     elif style == "reim":
         value1 = df["vis_re"].values
         value2 = df["vis_im"].values
+        error = df["error"].values
     else:
         raise Exception("style can be ap or reim")
 
-    import matplotlib.pyplot as plt
     if fig is None:
-        fig, axes = plt.subplots(2, 1, sharex=True)
+        fig, axes = plt.subplots(2, 1, figsize=(20, 10), sharex=True)
     else:
         axes = fig.axes
 
     if color is None:
         color = "#1f77b4"
 
-    axes[0].plot(r, value1, '.', color=color, label=label)
-    axes[1].plot(r, value2, '.', color=color)
+    if style == "ap":
+        axes[0].plot(r, value1, '.', color=color, label=label)
+        axes[1].plot(r, value2, '.', color=color)
+    else:
+        axes[0].errorbar(r, value1, yerr=error, fmt=".", color=color, label=label)
+        axes[1].errorbar(r, value2, yerr=error, fmt=".", color=color)
     if style == "ap":
         axes[0].set_ylabel("Amp, Jy")
         axes[1].set_ylabel("Phase, rad")
     else:
         axes[0].set_ylabel("Re, Jy")
         axes[1].set_ylabel("Im, Jy")
-    axes[1].set_xlabel(r"$r_{\rm uv}$, $\lambda$")
+    axes[1].set_xlabel(r"$r_{\rm uv}$, $M\lambda$")
     if label is not None:
         axes[0].legend()
     plt.tight_layout()
-    fig.show()
+    if savefname:
+        fig.savefig(savefname, bbox_inches="tight", dpi=300)
+    if show:
+        plt.show()
     return fig
 
 
