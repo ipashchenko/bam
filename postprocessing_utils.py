@@ -2,6 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import pickle
 from matplotlib.patches import Ellipse, Circle
 from itertools import cycle
 from astropy import units as u
@@ -415,9 +416,9 @@ if __name__ == "__main__":
     data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
     df = pd.read_csv(data_file, names=["u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
     posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
-    save_dir = "/home/ilya/data/bam"
+    save_dir = "/home/ilya/data/bam/0851+202"
     save_rj_ncomp_distribution_file = os.path.join(save_dir, "ncomponents_distribution.png")
-    original_ccfits = "/home/ilya/data/bam/0212+735.u.2019_08_15.icn.fits"
+    original_ccfits = "/home/ilya/data/bam/0851+202/0851+202.u.2023_07_01.icn.fits"
     n_max = 20
     n_max_samples_to_plot = 500
     jitter_first = True
@@ -443,10 +444,10 @@ if __name__ == "__main__":
 
     std = find_image_std(ccimage.image, npixels_beam, min_num_pixels_used_to_estimate_std=100,
                          blc=None, trc=None)
-    blc, trc = find_bbox(ccimage.image, level=3*std, min_maxintensity_jyperbeam=10*std,
+    blc, trc = find_bbox(ccimage.image, level=4*std, min_maxintensity_jyperbeam=10*std,
                          min_area_pix=3*npixels_beam, delta=0)
     fig = iplot(ccimage.image, x=ccimage.x, y=ccimage.y,
-                min_abs_level=3*std, beam=beam, show_beam=True, blc=blc, trc=trc,
+                min_abs_level=3*std, beam=(beam[0], beam[1], np.rad2deg(beam[2])), show_beam=True, blc=blc, trc=trc,
                 components=None, close=False, plot_colorbar=False, show=False,
                 contour_linewidth=0.25, contour_color='k')
     fig.savefig(os.path.join(save_dir, "CLEAN_image.png"), dpi=600)
@@ -455,10 +456,11 @@ if __name__ == "__main__":
         n_samples = len(samples_to_plot)
         if n_samples > n_max_samples_to_plot:
             n_samples = n_max_samples_to_plot
+        fig_p = pickle.loads(pickle.dumps(fig))
         fig_out = plot_position_posterior(samples_to_plot[:n_max_samples_to_plot, :],
                                           savefn=None, ra_lim=None, dec_lim=None,
-                                          difmap_model_fn=None, type=component_type, s=0.5, figsize=None,
-                                          sorted_componets=False, fig=fig,
+                                          difmap_model_fn=None, type=component_type, s=1.0, figsize=None,
+                                          sorted_componets=False, fig=fig_p,
                                           inverse_xaxis=False,
                                           alpha_opacity=0.03)
         fig_out.savefig(os.path.join(save_dir, f"CLEAN_image_ncomp_{n_component}.png"), dpi=600)
@@ -470,6 +472,6 @@ if __name__ == "__main__":
         f = plot_tb_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :], freq_ghz, type="eg",
                                        savefn=os.path.join(save_dir, f"r_Tb_ncomp_{n_component}.png"))
         plt.close(f)
-        f = plot_model_predictions(samples_to_plot[:n_max_samples_to_plot, :], df,
-                                   savefname=os.path.join(save_dir, f"radplot_{n_component}.png"), show=False)
-        plt.close(f)
+        # f = plot_model_predictions(samples_to_plot[:n_max_samples_to_plot, :], df,
+        #                            savefname=os.path.join(save_dir, f"radplot_{n_component}.png"), show=False)
+        # plt.close(f)
