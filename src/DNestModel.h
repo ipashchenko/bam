@@ -29,12 +29,18 @@ class DNestModel {
         std::string description() const;
 
     private:
-        double logjitter;
+        std::vector<double> logjitter;
         unsigned int counter;
         DNest4::RJObject<MyConditionalPrior> components;
         std::valarray<double> mu_real;
-        std::valarray<double> mu_imag;
+		std::valarray<double> mu_imag;
+		std::valarray<double> var;
         void calculate_sky_mu();
+		void calculate_var();
+		
+		// Pre-calculation of indexes
+		std::vector<int> ant_ik;
+		std::vector<int> ant_jk;
 };
 
 #endif //BAM_DNESTMODEL_H

@@ -5,9 +5,21 @@
 
 // TODO: Optionally, use per-antenna jitter!
 DNestModel::DNestModel() :
-    logjitter(0.0),
     counter(0),
-    components(6, 20, false, MyConditionalPrior(-5., 1., -3., 2.), DNest4::PriorType::log_uniform) {}
+    components(6, 20, false, MyConditionalPrior(-5., 5., -5., 5.), DNest4::PriorType::log_uniform) {
+	
+	// Mapping from antenna numbers (ant_i/j) to position in vector of antennas.
+	std::unordered_map<int, int>& antennas_map = Data::get_instance().get_antennas_map();
+	const std::vector<int>& ant_i = Data::get_instance().get_ant_i();
+	const std::vector<int>& ant_j = Data::get_instance().get_ant_j();
+	for (int k=0; k<ant_i.size(); k++) {
+		ant_ik.emplace_back(antennas_map[ant_i[k]]);
+		ant_jk.emplace_back(antennas_map[ant_j[k]]);
+	}
+	
+	int n_antennas = Data::get_instance().n_antennas();
+	logjitter.resize(n_antennas);
+}
 
 
 void DNestModel::from_prior(DNest4::RNG &rng) {
@@ -16,21 +28,44 @@ void DNestModel::from_prior(DNest4::RNG &rng) {
     std::valarray<double> zero (0.0, u.size());
     mu_real = zero;
     mu_imag = zero;
-    logjitter = -4.0 + 2.0*rng.randn();
+	for(double & logj : logjitter)
+	{
+		logj = -4.0 + 2.0*rng.randn();
+	}
+	calculate_var();
     components.from_prior(rng);
     components.consolidate_diff();
     calculate_sky_mu();
 }
 
 
+void DNestModel::calculate_var()
+{
+	auto antenna_map = Data::get_instance().get_antennas_map();
+	const std::valarray<double>& sigma = Data::get_instance().get_sigma();
+	// Measured variance
+	std::valarray<double> measured_var = sigma*sigma;
+	// Jitter
+	std::valarray<double> current_jitter (0.0, sigma.size());
+	for (size_t k=0; k<sigma.size(); k++) {
+		current_jitter[k] = logjitter[antenna_map[ant_ik[k]]] + logjitter[antenna_map[ant_jk[k]]];
+	}
+	var = measured_var + exp(current_jitter);
+}
+
 double DNestModel::perturb(DNest4::RNG &rng) {
     double logH = 0.;
 
     // Perturb jitter
-    if(rng.rand() <= 0.1) {
-        logH -= -0.5*pow((logjitter+4)/2.0, 2.0);
-        logjitter += 2.0*rng.randh();
-        logH += -0.5*pow((logjitter+4)/2.0, 2.0);
+    if(rng.rand() <= 0.2) {
+	
+		int which_antenna = rng.rand_int(logjitter.size());
+		auto perturbed_jitter = logjitter[which_antenna];
+        logH -= -0.5*pow((perturbed_jitter + 4)/2.0, 2.0);
+        perturbed_jitter += 2.0*rng.randh();
+        logH += -0.5*pow((perturbed_jitter + 4)/2.0, 2.0);
+		logjitter[which_antenna] = perturbed_jitter;
+		
 
         // Pre-reject
         if(rng.rand() >= exp(logH)) {
@@ -38,7 +73,8 @@ double DNestModel::perturb(DNest4::RNG &rng) {
         }
         else
             logH = 0.0;
-        // No need to re-calculate model. Just calculate loglike.
+        // No need to re-calculate model. Re-calculate variance and calculate loglike.
+		calculate_var();
     }
 
     // Perturb SkyModel
@@ -109,14 +145,9 @@ void DNestModel::calculate_sky_mu() {
 double DNestModel::log_likelihood() const {
     const std::valarray<double>& vis_real = Data::get_instance().get_vis_real();
     const std::valarray<double>& vis_imag = Data::get_instance().get_vis_imag();
-    const std::valarray<double>& sigma = Data::get_instance().get_sigma();
 
-    // Variance
-    // TODO: Keep variance in data not to square sigma each time
-    const std::valarray<double> var = sigma*sigma;
     // Complex Gaussian sampling distribution
-    std::valarray<double> result = -log(2*M_PI*(var+exp(2.0*logjitter))) - 0.5*(pow(vis_real - mu_real, 2) +
-        pow(vis_imag - mu_imag, 2))/(var+exp(2.0*logjitter))   ;
+    std::valarray<double> result = -log(2*M_PI*var) - 0.5*(pow(vis_real - mu_real, 2) + pow(vis_imag - mu_imag, 2))/var;
     double loglik = result.sum();
     return loglik;
 
@@ -124,7 +155,10 @@ double DNestModel::log_likelihood() const {
 
 
 void DNestModel::print(std::ostream &out) const {
-    out << logjitter << '\t';
+	for(double logj : logjitter)
+	{
+		out << logj << '\t';
+	}
     components.print(out);
 }
 
@@ -134,7 +168,10 @@ std::string DNestModel::description() const
     std::string descr;
 
     // Anything printed by DNestModel::print (except the last line)
-    descr += "logjitter ";
+	for(int i = 0; i < logjitter.size(); i++)
+	{
+		descr += "logjitter[" + std::to_string(i) + "] ";
+	}
 
     // The rest is all what happens when you call .print on an RJObject
     descr += " dim_components max_num_components ";

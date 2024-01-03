@@ -1,12 +1,15 @@
 import os
+from collections import OrderedDict
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
 from matplotlib.patches import Ellipse, Circle
 from itertools import cycle
+import seaborn as sns
 from astropy import units as u
 from astropy import constants as const
+import ehtim as eh
 from data_utils import radplot, gaussian_circ_ft
 import sys
 sys.path.insert(0, '/home/ilya/github/ve/vlbi_errors')
@@ -411,6 +414,23 @@ def plot_position_posterior(samples, savefn=None, ra_lim=(-10, 10),
     return fig
 
 
+def plot_per_antenna_jitters(samples, uvfits=None, n_jitters=10):
+    if uvfits is not None:
+        obs = eh.obsdata.load_uvfits(uvfits)
+        tkey = {i: j for (j, i) in obs.tkey.items()}
+    else:
+        tkey = {i: str(i) for i in range(n_jitters)}
+    data = [samples[:, i] for i in range(n_jitters)]
+    labels = [tkey[i] for i in range(n_jitters)]
+    df = pd.DataFrame.from_dict(OrderedDict(zip(labels, data)))
+    axes = sns.boxplot(data=df, orient='h')
+    axes.set_xlabel(r"$\log{\sigma_{\rm ant}}$")
+    axes.set_ylabel("Antenna")
+    plt.tight_layout()
+    plt.show()
+    return axes
+
+
 if __name__ == "__main__":
 
     data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
@@ -420,6 +440,7 @@ if __name__ == "__main__":
     save_rj_ncomp_distribution_file = os.path.join(save_dir, "ncomponents_distribution.png")
     original_ccfits = "/home/ilya/data/bam/0851+202/0851+202.u.2023_07_01.icn.fits"
     n_max = 20
+    n_jitters = 1
     n_max_samples_to_plot = 500
     jitter_first = True
     component_type = "eg"
@@ -427,10 +448,10 @@ if __name__ == "__main__":
     freq_ghz = 15.4
     posterior_samples = np.loadtxt(posterior_file)
     fig = rj_plot_ncomponents_distribution(posterior_file, picture_fn=save_rj_ncomp_distribution_file,
-                                           jitter_first=jitter_first, n_jitters=1, type=component_type,
+                                           jitter_first=jitter_first, n_jitters=n_jitters, type=component_type,
                                            normed=True, show=False)
     samples_for_each_n = get_samples_for_each_n(posterior_samples, jitter_first,
-                                                n_jitters=1, n_max=n_max,
+                                                n_jitters=n_jitters, n_max=n_max,
                                                 skip_hyperparameters=False,
                                                 type=component_type)
 
@@ -452,7 +473,7 @@ if __name__ == "__main__":
                 contour_linewidth=0.25, contour_color='k')
     fig.savefig(os.path.join(save_dir, "CLEAN_image.png"), dpi=600)
     for n_component in n_components_spread:
-        samples_to_plot = samples_for_each_n[n_component][:, 1:]
+        samples_to_plot = samples_for_each_n[n_component][:, n_jitters:]
         n_samples = len(samples_to_plot)
         if n_samples > n_max_samples_to_plot:
             n_samples = n_max_samples_to_plot
