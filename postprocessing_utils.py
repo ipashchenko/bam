@@ -445,7 +445,7 @@ if __name__ == "__main__":
     std = find_image_std(ccimage.image, npixels_beam, min_num_pixels_used_to_estimate_std=100,
                          blc=None, trc=None)
     blc, trc = find_bbox(ccimage.image, level=4*std, min_maxintensity_jyperbeam=10*std,
-                         min_area_pix=3*npixels_beam, delta=0)
+                         min_area_pix=3*npixels_beam, delta=30)
     fig = iplot(ccimage.image, x=ccimage.x, y=ccimage.y,
                 min_abs_level=3*std, beam=(beam[0], beam[1], np.rad2deg(beam[2])), show_beam=True, blc=blc, trc=trc,
                 components=None, close=False, plot_colorbar=False, show=False,
