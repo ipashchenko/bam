@@ -1,19 +1,29 @@
 import os
 import numpy as np
-import astropy.io.fits as pf
-from astropy.time import Time
 from astropy import units as u
 import matplotlib.pyplot as plt
 import pandas as pd
 import ehtim as eh
-from tqdm import tqdm
 import sys
-sys.path.insert(0, '/home/ilya/github/agn_abc')
-from data import Data
-sys.path.insert(0, '/home/ilya/github/ve/vlbi_errors')
-from spydiff import time_average
+from subprocess import Popen, PIPE
 
 mas_to_rad = u.mas.to(u.rad)
+
+
+def time_average(uvfits, outfname, time_sec=60, show_difmap_output=True,
+                 reweight=True):
+    if reweight:
+        cmd = "observe " + uvfits + ", {}, true\n".format(time_sec)
+    else:
+        cmd = "observe " + uvfits + ", {}, false\n".format(time_sec)
+    cmd += "wobs {}\n".format(outfname)
+    cmd += "exit\n"
+
+    with Popen('difmap', stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True) as difmap:
+        outs, errs = difmap.communicate(input=cmd)
+    if show_difmap_output:
+        print(outs)
+        print(errs)
 
 
 def gaussian_circ_ft(flux, dx, dy, bmaj, uv):
@@ -43,9 +53,37 @@ def gaussian_circ_ft(flux, dx, dy, bmaj, uv):
     return result.real, result.imag
 
 
+def optically_thin_sphere_ft(flux, dx, dy, size, uv):
+    """
+    FT of circular gaussian at ``uv`` points.
+
+    :param flux:
+        Full flux [Jy].
+    :param dx:
+        Distance from phase center [mas].
+    :param dy:
+        Distance from phase center [mas].
+    :param size:
+        Size of a sphere [mas].
+    :param uv:
+        2D numpy array of (u,v)-coordinates (dimensionless).
+    :return:
+        Tuple of real and imaginary visibilities parts.
+    """
+    shift = [dx*mas_to_rad, dy*mas_to_rad]
+    result = np.exp(-2.0*np.pi*1j*(uv @ shift))
+    pi_D_rho = np.pi*size*mas_to_rad*np.sqrt(uv[:, 0]**2 + uv[:, 1]**2)
+    ft = 3*flux*(np.sin(pi_D_rho) - pi_D_rho*np.cos(pi_D_rho))/pi_D_rho**3
+    ft = np.array(ft, dtype=complex)
+    result *= ft
+    return result.real, result.imag
+
+
 # For now better average using difmap, that assures that weights are reasonable
 def get_data_file_from_ehtim(uvfits, outname, avg_time_sec=0, average_using="difmap"):
-    assert average_using in ("difmap", "eht")
+
+    assert average_using in ("difmap", "eht-imager")
+
     if avg_time_sec > 0:
         if average_using == "difmap":
             uvfits_dir, uvfits_fname = os.path.split(uvfits)
@@ -55,6 +93,7 @@ def get_data_file_from_ehtim(uvfits, outname, avg_time_sec=0, average_using="dif
             uvfits = uvfits_ta
     # eht-imager estimates errors from weights!
     obs = eh.obsdata.load_uvfits(uvfits)
+
     if avg_time_sec > 0:
         if average_using == "eht":
             obs = obs.avg_coherent(avg_time_sec)
@@ -68,96 +107,6 @@ def get_data_file_from_ehtim(uvfits, outname, avg_time_sec=0, average_using="dif
     df = df.replace({"t1": obs.tkey})
     df = df.replace({"t2": obs.tkey})
     df.to_csv(outname, sep=" ", header=False, index=False)
-    return df
-
-
-def create_data_file(uvfits, outfile=None):
-    """
-    :param uvfits:
-        Path to UVFITS file.
-    :param outfile:
-        Path to output txt-file.
-    """
-    hdus = pf.open(uvfits)
-    data = hdus[0].data
-    header = hdus[0].header
-    freq = header["CRVAL4"]
-
-    df = pd.DataFrame(columns=["u", "v", "vis_re", "vis_im", "error"])
-
-    for group in data:
-        try:
-            u = group["UU"]
-            v = group["VV"]
-        except KeyError:
-            u = group["UU--"]
-            v = group["VV--"]
-        if abs(u) < 1.:
-            u *= freq
-            v *= freq
-        # IF, STOKES, COMPLEX
-        # data_ = group["DATA"].squeeze()
-        data_ = group["DATA"][0, 0, :, 0, :, :]
-        weights = data_[:, :, 2]
-        mask = weights <= 0
-        mask = np.repeat(mask[:, :, np.newaxis], 3, axis=2)
-        masked_data = np.ma.array(data_, mask=mask)
-        if np.alltrue(weights <= 0):
-            continue
-        weights = np.ma.array(weights, mask=mask[..., 0])
-        weight = np.ma.sum(weights)
-        error = 1/np.sqrt(weight)
-
-        # FIXME: Comment out this block for some specific STOKES data sets (e.g. 3C84 RA)
-        if data_.shape[1] > 1:
-            # print("Stokes I")
-            vis_re = 0.5*(masked_data[:, 0, 0] + masked_data[:, 1, 0])
-            vis_im = 0.5*(masked_data[:, 0, 1] + masked_data[:, 1, 1])
-        else:
-            # print("Stokes RR or LL")
-            vis_re = masked_data[:, 0, 0]
-            vis_im = masked_data[:, 0, 1]
-
-        # # For LL (3 84 RA)
-        # vis_re = masked_data[:, 1, 0]
-        # vis_im = masked_data[:, 1, 1]
-
-        vis_re = np.ma.mean(vis_re)
-        vis_im = np.ma.mean(vis_im)
-        df_ = pd.Series({"u": u, "v": v, "vis_re": vis_re, "vis_im": vis_im, "error": error})
-        df = df.append(df_, ignore_index=True)
-
-    if outfile is not None:
-        df.to_csv(outfile, sep=" ", index=False, header=True)
-    return df
-
-
-def create_data_file_v2(uvfits, outfile, time_average_sec=None, error_from_weight=False):
-    """
-    :param uvfits:
-        Path to UVFITS file.
-    :param outfile:
-        Path to output txt-file.
-    """
-    if time_average_sec is not None:
-        path, fname = os.path.split(uvfits)
-        to_read_uvfits = os.path.join(path, "ta{}sec_{}".format(time_average_sec, fname))
-        time_average(uvfits, to_read_uvfits, time_sec=time_average_sec)
-    else:
-        to_read_uvfits = uvfits
-    all_data = Data(to_read_uvfits)
-    if error_from_weight:
-        error = all_data.error
-    else:
-        error = all_data.error_wt
-    df = pd.DataFrame.from_dict({"u": all_data.uv[:, 0],
-                                 "v": all_data.uv[:, 1],
-                                 "vis_re": all_data.data.real,
-                                 "vis_im": all_data.data.imag,
-                                 "error": error})
-    df = df.dropna()
-    if outfile is not None:
-        df.to_csv(outfile, sep=" ", index=False, header=False)
     return df
 
 
@@ -272,6 +221,7 @@ if __name__ == "__main__":
 
     sys.exit(0)
 
+
     # Artificial source
     # Zero observed data
     df["vis_re"] = 0
@@ -287,62 +237,13 @@ if __name__ == "__main__":
     df["vis_re"] += re
     df["vis_im"] += im
 
+    # try:
+    #     fig = radplot(df, label="Data")
+    # except AttributeError:
+    #     fig = radplot(df, label="Data", style="reim")
+
     df_updated = add_noise(df, use_global_median_noise=True, global_noise_scale=1)
                            # logjitters_dict={0: -8, 1: -8, 2: -8, 3: -8, 4: -8, 5: -8, 6: -8, 7: -8, 8: -3, 9: -4},
                            # offsets_dict={0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1.3, 9: 1})
-    df_updated.to_csv(out_fname, sep=" ", index=False, header=False)
-
-    sys.exit(0)
-
-
-
-    import glob
-    uvfits_files = glob.glob(os.path.join("/home/ilya/github/dterms/data/mojave/", "0506+056.u*.uvf"))
-    for uvfits_file in uvfits_files:
-        fname = os.path.split(uvfits_file)[-1]
-        epoch = fname.split(".")[2]
-        out_fname = "/home/ilya/github/bam/data/0506+056_{}_120s.txt".format(epoch)
-        df = create_data_file_v2(uvfits_file, out_fname, time_average_sec=120)
-
-    sys.exit(0)
-
-    # # Zero observed data
-    # df["vis_re"] = 0
-    # df["vis_im"] = 0
-    # # Add model
-    # re, im = gaussian_circ_ft(flux=2.0, dx=0.0, dy=0.0, bmaj=0.1, uv=df[["u", "v"]].values)
-    # df["vis_re"] += re
-    # df["vis_im"] += im
-    # re, im = gaussian_circ_ft(flux=1.0, dx=0.5, dy=0.0, bmaj=0.2, uv=df[["u", "v"]].values)
-    # df["vis_re"] += re
-    # df["vis_im"] += im
-    # re, im = gaussian_circ_ft(flux=0.5, dx=1.5, dy=1.0, bmaj=0.3, uv=df[["u", "v"]].values)
-    # df["vis_re"] += re
-    # df["vis_im"] += im
-    # re, im = gaussian_circ_ft(flux=0.25, dx=3.5, dy=2.0, bmaj=0.5, uv=df[["u", "v"]].values)
-    # df["vis_re"] += re
-    # df["vis_im"] += im
-    # re, im = gaussian_circ_ft(flux=0.125, dx=5, dy=5.0, bmaj=0.5, uv=df[["u", "v"]].values)
-    # df["vis_re"] += re
-    # df["vis_im"] += im
-    # re, im = gaussian_circ_ft(flux=0.075, dx=7.5, dy=8.0, bmaj=0.5, uv=df[["u", "v"]].values)
-    # df["vis_re"] += re
-    # df["vis_im"] += im
-    # re, im = gaussian_circ_ft(flux=0.05, dx=8.0, dy=9.0, bmaj=0.75, uv=df[["u", "v"]].values)
-    # df["vis_re"] += re
-    # df["vis_im"] += im
-    # re, im = gaussian_circ_ft(flux=0.035, dx=9.0, dy=9.5, bmaj=0.75, uv=df[["u", "v"]].values)
-    # df["vis_re"] += re
-    # df["vis_im"] += im
-
-    try:
-        fig = radplot(df, label="Data")
-    except AttributeError:
-        fig = radplot(df, label="Data", style="reim")
-
-    #
-    # # # Add noise and plot
-    # df_updated = add_noise(df, use_global_median_noise=True, global_noise_scale=10)
     # fig = radplot(df_updated, color="#ff7f0e", fig=fig, label="With noise")
-    df_updated = df
     df_updated.to_csv(out_fname, sep=" ", index=False, header=False)
