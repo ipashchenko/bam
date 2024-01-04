@@ -3,7 +3,7 @@
 #include "DNestModel.h"
 #include "Data.h"
 
-// TODO: Optionally, use per-antenna jitter!
+
 DNestModel::DNestModel() :
     counter(0),
 	reference_antenna_number(4),
