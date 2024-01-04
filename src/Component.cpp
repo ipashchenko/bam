@@ -52,7 +52,7 @@ ArrayXcd Component::ft(double nu, const ArrayXd& u, const ArrayXd& v)
 			theta = 2*M_PI*mas_to_rad*(u*position.first + v*position.second);
 			// Calculate FT of a Sphere in a phase center
 			
-			ArrayXd pi_D_rho = M_PI*exp(logD)*sqrt(u*u + v*v);
+			ArrayXd pi_D_rho = M_PI*exp(logD)*mas_to_rad*sqrt(u*u + v*v);
 			ft = 3*exp(logflux)*(sin(pi_D_rho) - pi_D_rho*cos(pi_D_rho))/pow(pi_D_rho, 3);
 			
 			// Prediction of visibilities
