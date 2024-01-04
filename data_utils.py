@@ -26,15 +26,38 @@ def time_average(uvfits, outfname, time_sec=60, show_difmap_output=True,
         print(errs)
 
 
-def gaussian_circ_ft(flux, dx, dy, bmaj, uv):
+def point_ft(flux, ra, dec, uv):
+    """
+    FT of delta function at ``uv`` points.
+
+    :param flux:
+        Full flux [Jy].
+    :param ra:
+        Distance from phase center [mas].
+    :param dec:
+        Distance from phase center [mas].
+    :param uv:
+        2D numpy array of (u,v)-coordinates (dimensionless).
+    :return:
+        Tuple of real and imaginary visibilities parts.
+    """
+    shift = [ra*mas_to_rad, dec*mas_to_rad]
+    result = np.exp(2.0*np.pi*1j*(uv @ shift))
+    ft = flux
+    ft = np.array(ft, dtype=complex)
+    result *= ft
+    return result.real, result.imag
+
+
+def gaussian_circ_ft(flux, ra, dec, bmaj, uv):
     """
     FT of circular gaussian at ``uv`` points.
 
     :param flux:
-        Full flux of gaussian.
-    :param dx:
+        Full flux of gaussian [Jy].
+    :param ra:
         Distance from phase center [mas].
-    :param dy:
+    :param dec:
         Distance from phase center [mas].
     :param bmaj:
         FWHM of a gaussian [mas].
@@ -43,8 +66,8 @@ def gaussian_circ_ft(flux, dx, dy, bmaj, uv):
     :return:
         Tuple of real and imaginary visibilities parts.
     """
-    shift = [dx*mas_to_rad, dy*mas_to_rad]
-    result = np.exp(-2.0*np.pi*1j*(uv @ shift))
+    shift = [ra*mas_to_rad, dec*mas_to_rad]
+    result = np.exp(2.0*np.pi*1j*(uv @ shift))
     c = (np.pi*bmaj*mas_to_rad)**2/(4. * np.log(2.))
     b = uv[:, 0]**2 + uv[:, 1]**2
     ft = flux*np.exp(-c*b)
@@ -53,15 +76,46 @@ def gaussian_circ_ft(flux, dx, dy, bmaj, uv):
     return result.real, result.imag
 
 
-def optically_thin_sphere_ft(flux, dx, dy, size, uv):
+def gaussian_ell_ft(flux, ra, dec, bmaj, e, bpa, uv):
+    """
+    FT of elliptical gaussian at ``uv`` points.
+
+    :param flux:
+        Full flux of gaussian [Jy].
+    :param ra:
+        Distance from phase center [mas].
+    :param dec:
+        Distance from phase center [mas].
+    :param bmaj:
+        FWHM of a gaussian [mas].
+    :param e:
+        Eccentricity.
+    :param bpa:
+        Positional angle [rad]. As usual - from N to E (positive RA).
+    :param uv:
+        2D numpy array of (u,v)-coordinates (dimensionless).
+    :return:
+        Tuple of real and imaginary visibilities parts.
+    """
+    shift = [ra*mas_to_rad, dec*mas_to_rad]
+    result = np.exp(2.0*np.pi*1j*(uv @ shift))
+    c = (np.pi*bmaj*mas_to_rad)**2/(4. * np.log(2.))
+    b = e**2 * (uv[:, 0]*np.cos(bpa) - uv[:, 1]*np.sin(bpa))**2 + (uv[:, 0]*np.sin(bpa) + uv[:, 1]*np.cos(bpa))**2
+    ft = flux*np.exp(-c*b)
+    ft = np.array(ft, dtype=complex)
+    result *= ft
+    return result.real, result.imag
+
+
+def optically_thin_sphere_ft(flux, ra, dec, size, uv):
     """
     FT of circular gaussian at ``uv`` points.
 
     :param flux:
         Full flux [Jy].
-    :param dx:
+    :param ra:
         Distance from phase center [mas].
-    :param dy:
+    :param dec:
         Distance from phase center [mas].
     :param size:
         Size of a sphere [mas].
@@ -70,8 +124,8 @@ def optically_thin_sphere_ft(flux, dx, dy, size, uv):
     :return:
         Tuple of real and imaginary visibilities parts.
     """
-    shift = [dx*mas_to_rad, dy*mas_to_rad]
-    result = np.exp(-2.0*np.pi*1j*(uv @ shift))
+    shift = [ra*mas_to_rad, dec*mas_to_rad]
+    result = np.exp(2.0*np.pi*1j*(uv @ shift))
     pi_D_rho = np.pi*size*mas_to_rad*np.sqrt(uv[:, 0]**2 + uv[:, 1]**2)
     ft = 3*flux*(np.sin(pi_D_rho) - pi_D_rho*np.cos(pi_D_rho))/pi_D_rho**3
     ft = np.array(ft, dtype=complex)
@@ -227,13 +281,13 @@ if __name__ == "__main__":
     df["vis_re"] = 0
     df["vis_im"] = 0
     # Add model
-    re, im = gaussian_circ_ft(flux=2.0, dx=0.0, dy=0.0, bmaj=0.1, uv=df[["u", "v"]].values)
+    re, im = gaussian_circ_ft(flux=2.0, ra=0.0, dec=0.0, bmaj=0.1, uv=df[["u", "v"]].values)
     df["vis_re"] += re
     df["vis_im"] += im
-    re, im = gaussian_circ_ft(flux=1.0, dx=1.0, dy=0.0, bmaj=0.5, uv=df[["u", "v"]].values)
+    re, im = gaussian_circ_ft(flux=1.0, ra=1.0, dec=0.0, bmaj=0.5, uv=df[["u", "v"]].values)
     df["vis_re"] += re
     df["vis_im"] += im
-    re, im = gaussian_circ_ft(flux=0.5, dx=2.5, dy=2.0, bmaj=0.5, uv=df[["u", "v"]].values)
+    re, im = gaussian_circ_ft(flux=0.5, ra=2.5, dec=2.0, bmaj=0.5, uv=df[["u", "v"]].values)
     df["vis_re"] += re
     df["vis_im"] += im
 

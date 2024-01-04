@@ -464,20 +464,27 @@ def plot_per_antenna_jitters_and_offsets(samples, uvfits=None, n_antennas=10):
 
 if __name__ == "__main__":
 
-    data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
-    df = pd.read_csv(data_file, names=["u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
+    uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01.uvf"
+    # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
+    # df = pd.read_csv(data_file, names=["u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
+    data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec_antennas.txt"
+    df = pd.read_csv(data_file, names=["t1", "t2", "u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
     posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
-    save_dir = "/home/ilya/data/bam/0851+202"
+    save_dir = "/home/ilya/data/rjbam/0851+202/2023_07_01/jitters_offsets"
+    # save_dir = "/home/ilya/data/rjbam/0851+202/2023_05_03"
     save_rj_ncomp_distribution_file = os.path.join(save_dir, "ncomponents_distribution.png")
-    original_ccfits = "/home/ilya/data/bam/0851+202/0851+202.u.2023_07_01.icn.fits"
+    original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2023_07_01.icn.fits"
     n_max = 20
-    n_jitters = 1
+    n_jitters = 20
     n_max_samples_to_plot = 500
     jitter_first = True
     component_type = "eg"
     pixsize_mas = 0.1
     freq_ghz = 15.4
     posterior_samples = np.loadtxt(posterior_file)
+    import matplotlib
+    matplotlib.use("TkAgg")
+    plot_per_antenna_jitters_and_offsets(posterior_samples, uvfits=uvfits)
     fig = rj_plot_ncomponents_distribution(posterior_file, picture_fn=save_rj_ncomp_distribution_file,
                                            jitter_first=jitter_first, n_jitters=n_jitters, type=component_type,
                                            normed=True, show=False)
