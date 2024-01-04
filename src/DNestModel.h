@@ -31,6 +31,7 @@ class DNestModel {
     private:
 		std::vector<double> per_antenna_logjitter;
 		std::vector<double> per_antenna_offset;
+		unsigned int reference_antenna_number;
         unsigned int counter;
         DNest4::RJObject<MyConditionalPrior> components;
         std::valarray<double> mu_real;

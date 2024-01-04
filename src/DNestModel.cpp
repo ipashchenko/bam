@@ -6,6 +6,7 @@
 // TODO: Optionally, use per-antenna jitter!
 DNestModel::DNestModel() :
     counter(0),
+	reference_antenna_number(4),
     components(6, 20, false, MyConditionalPrior(-10., 1., -7., 2.), DNest4::PriorType::log_uniform) {
 	
 	// Mapping from antenna numbers (ant_i/j) to position in vector of antennas.
@@ -38,6 +39,7 @@ void DNestModel::from_prior(DNest4::RNG &rng) {
 	{
 		off = truncated_cauchy.generate(rng);
 	}
+	per_antenna_offset[reference_antenna_number] = 1.0;
 	calculate_var();
 	calculate_offset();
     components.from_prior(rng);
@@ -100,7 +102,11 @@ double DNestModel::perturb(DNest4::RNG &rng) {
 	
 	else if(0.2 <= u && u <= 0.4) {
 		DNest4::TruncatedCauchy truncated_cauchy(1.0, 0.05, 0., 2.);
-		int which_antenna = rng.rand_int(per_antenna_offset.size());
+		int which_antenna = reference_antenna_number;
+		while(which_antenna == reference_antenna_number)
+		{
+			which_antenna = rng.rand_int(per_antenna_offset.size());
+		}
 		auto perturbed_offset = per_antenna_offset[which_antenna];
 		logH += truncated_cauchy.perturb(perturbed_offset, rng);
 		per_antenna_offset[which_antenna] = perturbed_offset;
