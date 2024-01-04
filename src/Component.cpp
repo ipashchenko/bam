@@ -202,6 +202,7 @@ CoreComponent::CoreComponent(const CoreComponent &other)
 	PA_ = other.PA_;
 	logsize_1_ = other.logsize_1_;
 	k_r_ = other.k_r_;
+  k_theta_ = other.k_theta_;
 //	logS_1_ = other.logS_1_;
 //	alpha_ = other.alpha_;
 	lognu_max_ = other.lognu_max_;
@@ -218,7 +219,7 @@ CoreComponent *CoreComponent::clone()
 
 double CoreComponent::get_logsize(double nu)
 {
-	return logsize_1_ - (1./k_r_)*log(nu);
+	return logsize_1_ - (1./k_theta_)*log(nu);
 }
 
 double CoreComponent::get_logflux(double nu)
@@ -236,30 +237,31 @@ std::pair<double, double> CoreComponent::get_pos(double nu)
 void CoreComponent::print(std::ostream &out) const
 {
 //	out << a_ << "\t" << PA_ << "\t" << logsize_1_ << "\t" << k_r_ << "\t" << logS_1_ << "\t" << alpha_ << "\t";
-	out << a_ << "\t" << PA_ << "\t" << logsize_1_ << "\t" << k_r_ << "\t" << lognu_max_ << "\t" << logS_max_ << "\t" << alpha_thick_ << "\t" << alpha_thin_ << "\t";
+	out << a_ << "\t" << PA_ << "\t" << logsize_1_ << "\t" << k_r_ << "\t" << k_theta_ << "\t" << lognu_max_ << "\t" << logS_max_ << "\t" << alpha_thick_ << "\t" << alpha_thin_ << "\t";
 }
 
 std::string CoreComponent::print() const
 {
 	return  std::to_string(a_) + "\t" + std::to_string(PA_) + "\t" + std::to_string(logsize_1_) + "\t" + std::to_string(k_r_) +
-	"\t" + std::to_string(lognu_max_) + "\t" + std::to_string(logS_max_) + "\t" + std::to_string(alpha_thick_) + "\t" + std::to_string(alpha_thin_) + "\n";
+	"\t" + std::to_string(k_theta_) + "\t" + std::to_string(lognu_max_) + "\t" + std::to_string(logS_max_) + "\t" + std::to_string(alpha_thick_) + "\t" + std::to_string(alpha_thin_) + "\n";
 }
 
 std::string CoreComponent::description() const
 {
 	std::string descr;
 //	descr += "a\tPA\tlogsize_1\tk_r\tlogS_1\talpha";
-	descr += "a\tPA\tlogsize_1\tk_r\tlognu_max_core\tlogS_max_core\talpha_thick_core\talpha_thin_core";
+	descr += "a\tPA\tlogsize_1\tk_r\tk_theta\tlognu_max_core\tlogS_max_core\talpha_thick_core\talpha_thin_core";
 	return descr;
 }
 
 void CoreComponent::from_prior(DNest4::RNG &rng)
 {
-	DNest4::TruncatedCauchy cauchy_pos(0.0, 1.0, 0.0, 10.0);
+	DNest4::TruncatedCauchy cauchy_pos(0.0, 1.0, 0.0, 3.0);
 	DNest4::Uniform gaussian_direction(0.0, 2*M_PI);
 	DNest4::Gaussian gaussian_logsize(0.0, 0.7);
 	DNest4::Gaussian gaussian_logflux(1.0, 0.7);
-	DNest4::Gaussian gaussian_k(1.0, 0.3);
+	DNest4::Gaussian gaussian_k(2.0, 0.3);
+	DNest4::Gaussian gaussian_theta(1.5, 0.3);
 //	DNest4::Fixed cauchy_k(1.0);
 	DNest4::Gaussian gaussian_alpha_thick(1.5, 0.5);
 	DNest4::Gaussian gaussian_alpha_thin(-0.5, 0.25);
@@ -277,12 +279,12 @@ void CoreComponent::from_prior(DNest4::RNG &rng)
 double CoreComponent::perturb(DNest4::RNG &rng)
 {
 	double log_H = 0.;
-	int which = rng.rand_int(7);
+	int which = rng.rand_int(8);
 	// Perturb k or a or both
 	if(which == 0)
 	{
-		DNest4::TruncatedCauchy cauchy_pos(0.0, 1.0, 0.0, 10.0);
-		DNest4::Gaussian gaussian_k(1.0, 0.3);
+		DNest4::TruncatedCauchy cauchy_pos(0.0, 1.0, 0.0, 3.0);
+		DNest4::Gaussian gaussian_k(2.0, 0.3);
 		
 //			DNest4::Fixed cauchy_k(1.0);
 		double u = rng.rand();
@@ -305,28 +307,33 @@ double CoreComponent::perturb(DNest4::RNG &rng)
 			}
 		}
 	}
-	else if(which == 1)
+  else if(which == 1)
+  {
+    DNest4::Gaussian gaussian_theta(1.5, 0.3);
+    log_H += gaussian_theta.perturb(k_theta_, rng);
+  }
+	else if(which == 2)
 	{
 		DNest4::Uniform gaussian_direction(0.0, 2*M_PI);
 		log_H += gaussian_direction.perturb(PA_, rng);
 	}
-	else if(which == 2)
+	else if(which == 3)
 	{
 		DNest4::Gaussian gaussian_logsize(0.0, 0.7);
 		log_H += gaussian_logsize.perturb(logsize_1_, rng);
 	}
-	else if(which == 3)
+	else if(which == 4)
 	{
 		DNest4::Gaussian gaussian_logflux(1.0, 0.7);
 		log_H += gaussian_logflux.perturb(logS_max_, rng);
 	}
-	else if(which == 4)
+	else if(which == 5)
 	{
 		DNest4::Uniform uniform_numax(0., 4.);
 		log_H += uniform_numax.perturb(lognu_max_, rng);
 		
 	}
-	else if(which == 5)
+	else if(which == 6)
 	{
 		DNest4::Gaussian gaussian_alpha_thick(1.5, 0.5);
 		log_H += gaussian_alpha_thick.perturb(alpha_thick_, rng);
