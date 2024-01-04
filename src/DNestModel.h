@@ -29,6 +29,9 @@ class DNestModel {
         std::string description() const;
 
     private:
+		bool use_jitter;
+		bool use_offsets;
+		
 		std::vector<double> per_antenna_logjitter;
 		std::vector<double> per_antenna_offset;
 		unsigned int reference_antenna_number;

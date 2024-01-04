@@ -6,6 +6,8 @@
 
 DNestModel::DNestModel() :
     counter(0),
+	use_jitter(true),
+	use_offsets(true),
 	reference_antenna_number(4),
     components(6, 20, false, MyConditionalPrior(-10., 1., -7., 2.), DNest4::PriorType::log_uniform) {
 	
@@ -37,7 +39,14 @@ void DNestModel::from_prior(DNest4::RNG &rng) {
 	DNest4::TruncatedCauchy truncated_cauchy(1.0, 0.05, 0., 2.);
 	for(double & off : per_antenna_offset)
 	{
-		off = truncated_cauchy.generate(rng);
+		if(use_offsets)
+		{
+			off = truncated_cauchy.generate(rng);
+		}
+		else
+		{
+			off = 1.0;
+		}
 	}
 	per_antenna_offset[reference_antenna_number] = 1.0;
 	calculate_var();
@@ -54,12 +63,20 @@ void DNestModel::calculate_var()
 	const std::valarray<double>& sigma = Data::get_instance().get_sigma();
 	// Measured variance
 	std::valarray<double> measured_var = sigma*sigma;
-	// Jitter
-	std::valarray<double> current_jitter (0.0, sigma.size());
-	for (size_t k=0; k<sigma.size(); k++) {
-		current_jitter[k] = per_antenna_logjitter[antenna_map[ant_ik[k]]] + per_antenna_logjitter[antenna_map[ant_jk[k]]];
+	if(use_jitter)
+	{
+		// Jitter
+		std::valarray<double> current_jitter(0.0, sigma.size());
+		for (size_t k = 0; k < sigma.size(); k++)
+		{
+			current_jitter[k] = per_antenna_logjitter[antenna_map[ant_ik[k]]] + per_antenna_logjitter[antenna_map[ant_jk[k]]];
+		}
+		var = measured_var + exp(current_jitter);
 	}
-	var = measured_var + exp(current_jitter);
+	else
+	{
+		var = measured_var;
+	}
 }
 
 
@@ -78,8 +95,18 @@ double DNestModel::perturb(DNest4::RNG &rng) {
     double logH = 0.;
 	double u = rng.rand();
 	
+	double r_jitter = 0.0;
+	double r_offset = 0.0;
+	if (use_jitter) {
+		r_jitter = 0.2;
+	}
+	if (use_offsets) {
+		r_offset = 0.2;
+	}
+	
+	
     // Perturb jitter
-    if(u <= 0.2) {
+    if(u < r_jitter) {
 	
 		int which_antenna = rng.rand_int(per_antenna_logjitter.size());
 		auto perturbed_jitter = per_antenna_logjitter[which_antenna];
@@ -100,7 +127,7 @@ double DNestModel::perturb(DNest4::RNG &rng) {
 		calculate_var();
     }
 	
-	else if(0.2 <= u && u <= 0.4) {
+	else if(r_jitter < u && u < (r_jitter + r_offset)) {
 		DNest4::TruncatedCauchy truncated_cauchy(1.0, 0.05, 0., 2.);
 		int which_antenna = reference_antenna_number;
 		while(which_antenna == reference_antenna_number)
@@ -192,13 +219,19 @@ double DNestModel::log_likelihood() const {
 
 
 void DNestModel::print(std::ostream &out) const {
-	for(double logj : per_antenna_logjitter)
+	if(use_jitter)
 	{
-		out << logj << '\t';
+		for (double logj : per_antenna_logjitter)
+		{
+			out << logj << '\t';
+		}
 	}
-	for(double off : per_antenna_offset)
+	if(use_offsets)
 	{
-		out << off << '\t';
+		for (double off : per_antenna_offset)
+		{
+			out << off << '\t';
+		}
 	}
     components.print(out);
 }
@@ -208,17 +241,21 @@ std::string DNestModel::description() const
 {
     std::string descr;
 
-    // Anything printed by DNestModel::print (except the last line)
-	for(int i = 0; i < per_antenna_logjitter.size(); i++)
+	if(use_jitter)
 	{
-		descr += "logjitter[" + std::to_string(i) + "] ";
+		for (int i = 0; i < per_antenna_logjitter.size(); i++)
+		{
+			descr += "logjitter[" + std::to_string(i) + "] ";
+		}
 	}
 	
-	for(int i = 0; i < per_antenna_offset.size(); i++)
+	if(use_offsets)
 	{
-		descr += "offset[" + std::to_string(i) + "] ";
+		for (int i = 0; i < per_antenna_offset.size(); i++)
+		{
+			descr += "offset[" + std::to_string(i) + "] ";
+		}
 	}
-	
 	
 	// The rest is all what happens when you call .print on an RJObject
     descr += " dim_components max_num_components ";
