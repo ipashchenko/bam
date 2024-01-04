@@ -6,7 +6,7 @@
 // TODO: Optionally, use per-antenna jitter!
 DNestModel::DNestModel() :
     counter(0),
-    components(6, 20, false, MyConditionalPrior(-5., 5., -5., 5.), DNest4::PriorType::log_uniform) {
+    components(6, 20, false, MyConditionalPrior(-10., 1., -7., 2.), DNest4::PriorType::log_uniform) {
 	
 	// Mapping from antenna numbers (ant_i/j) to position in vector of antennas.
 	std::unordered_map<int, int>& antennas_map = Data::get_instance().get_antennas_map();
