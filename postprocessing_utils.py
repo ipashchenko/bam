@@ -414,20 +414,51 @@ def plot_position_posterior(samples, savefn=None, ra_lim=(-10, 10),
     return fig
 
 
-def plot_per_antenna_jitters(samples, uvfits=None, n_jitters=10):
+def plot_per_antenna_jitters(samples, uvfits=None, n_antennas=10):
     if uvfits is not None:
         obs = eh.obsdata.load_uvfits(uvfits)
         tkey = {i: j for (j, i) in obs.tkey.items()}
     else:
-        tkey = {i: str(i) for i in range(n_jitters)}
-    data = [samples[:, i] for i in range(n_jitters)]
-    labels = [tkey[i] for i in range(n_jitters)]
+        tkey = {i: str(i) for i in range(n_antennas)}
+    data = [samples[:, i] for i in range(n_antennas)]
+    labels = [tkey[i] for i in range(n_antennas)]
     df = pd.DataFrame.from_dict(OrderedDict(zip(labels, data)))
     axes = sns.boxplot(data=df, orient='h')
     axes.set_xlabel(r"$\log{\sigma_{\rm ant}}$")
     axes.set_ylabel("Antenna")
     plt.tight_layout()
     plt.show()
+    return axes
+
+
+def plot_per_antenna_jitters_and_offsets(samples, uvfits=None, n_antennas=10):
+    if uvfits is not None:
+        obs = eh.obsdata.load_uvfits(uvfits)
+        tkey = {i: j for (j, i) in obs.tkey.items()}
+    else:
+        tkey = {i: str(i) for i in range(n_antennas)}
+
+    # Jitters
+    data = [samples[:, i] for i in range(n_antennas)]
+    labels = [tkey[i] for i in range(n_antennas)]
+    df = pd.DataFrame.from_dict(OrderedDict(zip(labels, data)))
+    axes = sns.boxplot(data=df, orient='h')
+    axes.set_xlabel(r"$\log{\sigma_{\rm ant}}$")
+    axes.set_ylabel("Antenna")
+    plt.tight_layout()
+    plt.show()
+
+    # Offsets
+    data = [samples[:, i+n_antennas] for i in range(n_antennas)]
+    labels = [tkey[i] for i in range(n_antennas)]
+    df = pd.DataFrame.from_dict(OrderedDict(zip(labels, data)))
+    axes = sns.boxplot(data=df, orient='h')
+    axes.set_xlabel(r"Offset")
+    axes.set_ylabel("Antenna")
+    axes.axvline(1., lw=1, color="k")
+    plt.tight_layout()
+    plt.show()
+
     return axes
 
 
