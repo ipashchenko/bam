@@ -29,14 +29,19 @@ class DNestModel {
         std::string description() const;
 
     private:
-        std::vector<double> logjitter;
+		std::vector<double> per_antenna_logjitter;
+		std::vector<double> per_antenna_offset;
         unsigned int counter;
         DNest4::RJObject<MyConditionalPrior> components;
         std::valarray<double> mu_real;
 		std::valarray<double> mu_imag;
+		// Dispersion for each point
 		std::valarray<double> var;
+		// Multiplicative amplitude offset for each point
+		std::valarray<double> offset;
         void calculate_sky_mu();
 		void calculate_var();
+		void calculate_offset();
 		
 		// Pre-calculation of indexes
 		std::vector<int> ant_ik;
