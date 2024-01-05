@@ -194,15 +194,26 @@ void DNestModel::calculate_sky_mu() {
 
     for(const auto& comp: comps)
     {
+		// Elliptical Gaussian
         // Phase shift due to not being in a phase center
-        theta = 2*M_PI*mas_to_rad*(u*comp[0]+v*comp[1]);
+        theta = 2*M_PI*mas_to_rad*(u*comp[0] + v*comp[1]);
         // Calculate FT of a Gaussian in a phase center
         c = pow(M_PI*exp(comp[3])*mas_to_rad, 2)/(4.*log(2.));
 		b = comp[4]*comp[4]*pow((u*cos(comp[5]) - v*sin(comp[5])), 2) + pow((u*sin(comp[5]) + v*cos(comp[5])), 2);
-        ft = comp[2] * exp(-c*b);
+        ft = comp[2]*exp(-c*b);
         // Prediction of visibilities
         mu_real += ft*cos(theta);
         mu_imag += ft*sin(theta);
+		
+//		// Circular Gaussian
+//		// Phase shift due to not being in a phase center
+//		theta = 2*M_PI*mas_to_rad*(u*comp[0] + v*comp[1]);
+//		// Calculate FT of a Gaussian in a phase center
+//		c = pow(M_PI*exp(comp[3])*mas_to_rad, 2)/(4.*log(2.));
+//		ft = comp[2]*exp(-c*(u*u + v*v));
+//		// Prediction of visibilities
+//		mu_real += ft*cos(theta);
+//		mu_imag += ft*sin(theta);
     }
 }
 
