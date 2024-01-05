@@ -61,6 +61,7 @@ def rj_plot_ncomponents_distribution(posterior_file="posterior_sample.txt",
 def get_samples_for_each_n(samples, jitter_first=True, n_jitters=1, n_max=30,
                            skip_hyperparameters=False,
                            type="cg"):
+    samples = np.atleast_2d(samples)
     if type == "cg":
         nn = 0
         comp_length = 4
@@ -431,32 +432,46 @@ def plot_per_antenna_jitters(samples, uvfits=None, n_antennas=10):
     return axes
 
 
-def plot_per_antenna_jitters_and_offsets(samples, uvfits=None, n_antennas=10):
+def plot_per_antenna_jitters_and_offsets(samples, uvfits=None, n_antennas=10, save_dir=None, save_basename=None):
     if uvfits is not None:
         obs = eh.obsdata.load_uvfits(uvfits)
         tkey = {i: j for (j, i) in obs.tkey.items()}
     else:
         tkey = {i: str(i) for i in range(n_antennas)}
 
+    if save_basename is None:
+        save_basename = ""
+    else:
+        save_basename = f"{save_basename}_"
+
+    if save_dir is None:
+        save_dir = os.getcwd()
+
+    samples = np.atleast_2d(samples)
+
     # Jitters
     data = [samples[:, i] for i in range(n_antennas)]
     labels = [tkey[i] for i in range(n_antennas)]
     df = pd.DataFrame.from_dict(OrderedDict(zip(labels, data)))
-    axes = sns.boxplot(data=df, orient='h')
+    fig, axes = plt.subplots(1, 1)
+    axes = sns.boxplot(data=df, orient='h', ax=axes)
     axes.set_xlabel(r"$\log{\sigma_{\rm ant}}$")
     axes.set_ylabel("Antenna")
     plt.tight_layout()
+    fig.savefig(os.path.join(save_dir, f"{save_basename}jitters.png"), bbox_inches="tight")
     plt.show()
 
     # Offsets
     data = [samples[:, i+n_antennas] for i in range(n_antennas)]
     labels = [tkey[i] for i in range(n_antennas)]
     df = pd.DataFrame.from_dict(OrderedDict(zip(labels, data)))
-    axes = sns.boxplot(data=df, orient='h')
+    fig, axes = plt.subplots(1, 1)
+    axes = sns.boxplot(data=df, orient='h', ax=axes)
     axes.set_xlabel(r"Offset")
     axes.set_ylabel("Antenna")
     axes.axvline(1., lw=1, color="k")
     plt.tight_layout()
+    fig.savefig(os.path.join(save_dir, f"{save_basename}offsets.png"), bbox_inches="tight")
     plt.show()
 
     return axes
@@ -464,16 +479,18 @@ def plot_per_antenna_jitters_and_offsets(samples, uvfits=None, n_antennas=10):
 
 if __name__ == "__main__":
 
-    uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01.uvf"
+    uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03.uvf"
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
     # df = pd.read_csv(data_file, names=["u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
-    data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec_antennas.txt"
+    data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03_60sec_antennas.txt"
     df = pd.read_csv(data_file, names=["t1", "t2", "u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
     posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
-    save_dir = "/home/ilya/data/rjbam/0851+202/2023_07_01/jitters_offsets"
+    # posterior_file = "/home/ilya/github/bam/Release/posterior_sample.txt"
+    save_dir = "/home/ilya/data/rjbam/0851+202/2023_05_03/jitters_offsets"
+    # save_dir = "/home/ilya/data/rjbam/0851+202/2012_11_11/jitters_offsets"
     # save_dir = "/home/ilya/data/rjbam/0851+202/2023_05_03"
     save_rj_ncomp_distribution_file = os.path.join(save_dir, "ncomponents_distribution.png")
-    original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2023_07_01.icn.fits"
+    original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2023_05_03.icn.fits"
     n_max = 20
     n_jitters = 20
     n_max_samples_to_plot = 500
@@ -484,7 +501,10 @@ if __name__ == "__main__":
     posterior_samples = np.loadtxt(posterior_file)
     import matplotlib
     matplotlib.use("TkAgg")
-    plot_per_antenna_jitters_and_offsets(posterior_samples, uvfits=uvfits)
+    save_basename = os.path.split(uvfits)[-1].split(".uvf")[0]
+
+    plot_per_antenna_jitters_and_offsets(posterior_samples, uvfits=uvfits, save_dir=save_dir, save_basename=save_basename)
+
     fig = rj_plot_ncomponents_distribution(posterior_file, picture_fn=save_rj_ncomp_distribution_file,
                                            jitter_first=jitter_first, n_jitters=n_jitters, type=component_type,
                                            normed=True, show=False)
