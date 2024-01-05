@@ -262,11 +262,12 @@ def radplot(df, fig=None, color=None, label=None, style="ap", savefname=None, sh
 if __name__ == "__main__":
     # uvfits_file = "/home/ilya/Downloads/0212+735/u/0212+735.u.2019_08_15.uvf"
     # out_fname = "/home/ilya/Downloads/0212+735/u/0212+735.u.2019_08_15.txt"
-    uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01.uvf"
+    # uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01.uvf"
     # uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03.uvf"
+    uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11.uvf"
 
     # out_fname = "/home/ilya/Downloads/mojave/0851+202/3comp.txt"
-    out_fname = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec_antennas.txt"
+    out_fname = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
     # df = create_data_file_v2(uvfits_file, out_fname, time_average_sec=60)
 
     # This uses antenna sites for per-antenna jitter.
