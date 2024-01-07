@@ -26,7 +26,7 @@ def time_average(uvfits, outfname, time_sec=60, show_difmap_output=True,
         print(errs)
 
 
-def point_ft(flux, ra, dec, uv):
+def point_ft(uv, ra, dec, flux):
     """
     FT of delta function at ``uv`` points.
 
@@ -49,7 +49,7 @@ def point_ft(flux, ra, dec, uv):
     return result.real, result.imag
 
 
-def gaussian_circ_ft(flux, ra, dec, bmaj, uv):
+def gaussian_circ_ft(uv, ra, dec, flux, bmaj):
     """
     FT of circular gaussian at ``uv`` points.
 
@@ -76,7 +76,7 @@ def gaussian_circ_ft(flux, ra, dec, bmaj, uv):
     return result.real, result.imag
 
 
-def gaussian_ell_ft(flux, ra, dec, bmaj, e, bpa, uv):
+def gaussian_ell_ft(uv, ra, dec, flux, bmaj, e, bpa):
     """
     FT of elliptical gaussian at ``uv`` points.
 
@@ -107,7 +107,7 @@ def gaussian_ell_ft(flux, ra, dec, bmaj, e, bpa, uv):
     return result.real, result.imag
 
 
-def optically_thin_sphere_ft(flux, ra, dec, size, uv):
+def optically_thin_sphere_ft(uv, ra, dec, flux, size):
     """
     FT of circular gaussian at ``uv`` points.
 
