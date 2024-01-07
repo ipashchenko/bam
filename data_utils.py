@@ -240,7 +240,7 @@ def radplot(df, fig=None, color=None, label=None, style="ap", savefname=None, sh
         axes[0].plot(r, value1, '.', color=color, label=label)
         axes[1].plot(r, value2, '.', color=color)
     else:
-        axes[0].errorbar(r, value1, yerr=error, fmt=".", color=color, label=label)
+        axes[0].errorbar(r, value1, yerr=error, fmt=".", color=color, label=label, capsize=3)
         axes[1].errorbar(r, value2, yerr=error, fmt=".", color=color)
     if style == "ap":
         axes[0].set_ylabel("Amp, Jy")
@@ -260,14 +260,14 @@ def radplot(df, fig=None, color=None, label=None, style="ap", savefname=None, sh
 
 
 if __name__ == "__main__":
-    # uvfits_file = "/home/ilya/Downloads/0212+735/u/0212+735.u.2019_08_15.uvf"
-    # out_fname = "/home/ilya/Downloads/0212+735/u/0212+735.u.2019_08_15.txt"
     # uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01.uvf"
     # uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03.uvf"
-    uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11.uvf"
+    # uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11.uvf"
+    uvfits_file = "/home/ilya/Downloads/mojave/0212+735/0212+735.u.2019_08_15.uvf"
 
     # out_fname = "/home/ilya/Downloads/mojave/0851+202/3comp.txt"
-    out_fname = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
+    # out_fname = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
+    out_fname = "/home/ilya/Downloads/mojave/0212+735/0212+735.u.2019_08_15_60sec_antennas.txt"
     # df = create_data_file_v2(uvfits_file, out_fname, time_average_sec=60)
 
     # This uses antenna sites for per-antenna jitter.
