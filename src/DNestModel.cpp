@@ -51,7 +51,10 @@ void DNestModel::from_prior(DNest4::RNG &rng) {
 	per_antenna_offset[reference_antenna_number] = 1.0;
 	calculate_var();
 	calculate_offset();
-    components.from_prior(rng);
+	// Assert #comp > 0
+	do
+	{	components.from_prior(rng);
+	}while (components.get_components().size() == 0);
     components.consolidate_diff();
     calculate_sky_mu();
 }
@@ -145,17 +148,22 @@ double DNestModel::perturb(DNest4::RNG &rng) {
     // Perturb SkyModel
     else {
         logH += components.perturb(rng);
-        components.consolidate_diff();
-        // After this ``removed`` is empty and gone to ``added`` with ``-`` sign. We use ``added`` when
-        // ``update = True``. Else we use all components.
-
+		// Do not allow zero components
+		if(components.get_components().size() == 0)
+		{
+			return -std::numeric_limits<double>::max();
+		}
+		
         // Pre-reject
         if(rng.rand() >= exp(logH)) {
             return -1E300;
         }
         else
             logH = 0.0;
-
+	
+		components.consolidate_diff();
+		// After this ``removed`` is empty and gone to ``added`` with ``-`` sign. We use ``added`` when
+		// ``update = True``. Else we use all components.
         // This shouldn't be called in case of pre-rejection
         calculate_sky_mu();
     }
@@ -173,9 +181,11 @@ void DNestModel::calculate_sky_mu() {
     std::valarray<double> ft;
 
     // Update or from scratch?
+	// From DNest4:
+//	bool update_ = components.get_removed().size() == 0
     bool update = (components.get_added().size() < components.get_components().size()) &&
         (counter <= 20);
-    // Get the components
+    // Get the components: comps will have only ``added`` if updating, all components if from scratch.
     const std::vector<std::vector<double>>& comps = (update)?(components.get_added()):
                                                     (components.get_components());
 
