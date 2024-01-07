@@ -10,7 +10,7 @@ import seaborn as sns
 from astropy import units as u
 from astropy import constants as const
 import ehtim as eh
-from data_utils import radplot, gaussian_circ_ft
+from data_utils import radplot, gaussian_circ_ft, gaussian_ell_ft, optically_thin_sphere_ft, point_ft
 import sys
 sys.path.insert(0, '/home/ilya/github/ve/vlbi_errors')
 from from_fits import create_clean_image_from_fits_file
@@ -188,11 +188,22 @@ def plot_tb_distance_posterior(samples, freq_ghz, z=0.0, type="cg", savefn=None,
 
 
 # FIXME: Implement elliptical gaussians
-def plot_model_predictions(post_samples, data_df, jitter_first=True, style="reim", savefname=None, show=True,
-                           n_samples_to_plot=24):
+def plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=0, style="reim", savefname=None, show=True,
+                           n_samples_to_plot=100, component_type="cg", alpha_model=0.03):
+
+    allowed_component_types = ("cg", "eg", "sphere", "delta")
+    if component_type not in allowed_component_types:
+        raise Exception(f"Allowed component types are: {allowed_component_types}")
     if style not in ("reim", "ap"):
         raise Exception("Only reim or ap style plotting is supported!")
 
+
+    function_dict = {"cg": gaussian_circ_ft,
+                     "eg": gaussian_ell_ft,
+                     "sphere": optically_thin_sphere_ft,
+                     "delta": point_ft}
+
+    data_df = pd.read_csv(data_file, names=["t1", "t2", "u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
     uv = data_df[["u", "v"]].values
     r = np.hypot(uv[:, 0], uv[:, 1])/10**6
     # dr = np.max(r) - np.min(r)
@@ -203,43 +214,70 @@ def plot_model_predictions(post_samples, data_df, jitter_first=True, style="reim
     df["vis_re"] = 0
     df["vis_im"] = 0
 
-    # Add model
-    n_post, n_components = post_samples.shape
-    if jitter_first:
-        n_components -= 1
-    n_components = int(n_components/4)
+    post_samples = np.atleast_2d(np.loadtxt(posterior_file))
+
+    n_post, len_of_sample = post_samples.shape
     samples = post_samples[np.random.randint(0, n_post, n_samples_to_plot)]
+
     samples_predictions_re = list()
     samples_predictions_im = list()
 
-    if jitter_first:
-        jitter = 1
+    if n_jitters > 0:
+        jitter_first = True
     else:
-        jitter = 0
+        jitter_first = False
 
-    for sample in samples:
-        sample_prediction_re = np.zeros(len(df))
-        sample_prediction_im = np.zeros(len(df))
-        for n_comp in range(n_components):
-            dx, dy, flux, bmaj = sample[jitter+n_comp*4:jitter+(n_comp+1)*4]
-            flux = np.exp(flux)
-            bmaj = np.exp(bmaj)
-            re, im = gaussian_circ_ft(flux=flux, dx=dx, dy=dy, bmaj=bmaj, uv=uv)
-            sample_prediction_re += re
-            sample_prediction_im += im
-        samples_predictions_re.append(sample_prediction_re)
-        samples_predictions_im.append(sample_prediction_im)
+
+    if rj:
+
+        n_max = int(post_samples[0, n_jitters + 1])
+        comp_length = int(post_samples[0, n_jitters])
+        if component_type in ("cg", "shpere"):
+            assert comp_length == 4
+        elif component_type == "eg":
+            assert comp_length == 6
+        else:
+            assert comp_length == 3
+
+        samples_for_each_n = get_samples_for_each_n(samples, jitter_first,
+                                                    n_jitters=n_jitters, n_max=n_max,
+                                                    skip_hyperparameters=False,
+                                                    type=component_type)
+
+        for n_local, samples_local in samples_for_each_n.items():
+            for sample in samples_local:
+                sample_prediction_re = np.zeros(len(df))
+                sample_prediction_im = np.zeros(len(df))
+                for i_comp in range(n_local):
+                    params = sample[n_jitters+i_comp*comp_length: n_jitters + (i_comp + 1)*comp_length]
+                    # log of size (except the point)
+                    try:
+                        params[3] = np.exp(params[3])
+                    except IndexError:
+                        pass
+                    re, im = function_dict[component_type](uv, *params)
+                    sample_prediction_re += re
+                    sample_prediction_im += im
+                samples_predictions_re.append(sample_prediction_re)
+                samples_predictions_im.append(sample_prediction_im)
+
+
+    else:
+
+        # TODO
+        raise NotImplementedError
+
 
     # Original data plot
-    fig = radplot(data_df, style=style, show=False)
+    fig = radplot(data_df, style=style, show=False, color="black")
     axes = fig.get_axes()
     for sample_prediction_re, sample_prediction_im in zip(samples_predictions_re, samples_predictions_im):
         if style == "reim":
-            axes[0].plot(r, sample_prediction_re, "_", alpha=0.25, color="C1", ms=5, mew=0.2)
-            axes[1].plot(r, sample_prediction_im, "_", alpha=0.25, color="C1", ms=5, mew=0.2)
+            axes[0].plot(r, sample_prediction_re, "_", alpha=alpha_model, color="red", ms=5, mew=1.)
+            axes[1].plot(r, sample_prediction_im, "_", alpha=alpha_model, color="red", ms=5, mew=1.)
         else:
-            axes[0].plot(r, np.hypot(sample_prediction_re, sample_prediction_im), "_", alpha=0.25, color="C1", ms=5, mew=0.2)
-            axes[1].plot(r, np.arctan2(sample_prediction_im, sample_prediction_re), "_", alpha=0.25, color="C1", ms=5, mew=0.2)
+            axes[0].plot(r, np.hypot(sample_prediction_re, sample_prediction_im), "_", alpha=alpha_model, color="red", ms=5, mew=1.)
+            axes[1].plot(r, np.arctan2(sample_prediction_im, sample_prediction_re), "_", alpha=alpha_model, color="red", ms=5, mew=1.)
     if savefname is not None:
         fig.savefig(savefname, bbox_inches="tight", dpi=300)
     if show:
@@ -479,18 +517,20 @@ def plot_per_antenna_jitters_and_offsets(samples, uvfits=None, n_antennas=10, sa
 
 if __name__ == "__main__":
 
-    uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03.uvf"
+    # uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03.uvf"
+    uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11.uvf"
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
     # df = pd.read_csv(data_file, names=["u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
-    data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03_60sec_antennas.txt"
+    # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03_60sec_antennas.txt"
+    data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
     df = pd.read_csv(data_file, names=["t1", "t2", "u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
     posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
     # posterior_file = "/home/ilya/github/bam/Release/posterior_sample.txt"
-    save_dir = "/home/ilya/data/rjbam/0851+202/2023_05_03/jitters_offsets"
-    # save_dir = "/home/ilya/data/rjbam/0851+202/2012_11_11/jitters_offsets"
-    # save_dir = "/home/ilya/data/rjbam/0851+202/2023_05_03"
+    # save_dir = "/home/ilya/data/rjbam/0851+202/2023_05_03/jitters_offsets"
+    save_dir = "/home/ilya/data/rjbam/0851+202/2012_11_11/jitters_offsets"
     save_rj_ncomp_distribution_file = os.path.join(save_dir, "ncomponents_distribution.png")
-    original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2023_05_03.icn.fits"
+    # original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2023_05_03.icn.fits"
+    original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2012_11_11.icn.fits"
     n_max = 20
     n_jitters = 20
     n_max_samples_to_plot = 500
@@ -502,6 +542,10 @@ if __name__ == "__main__":
     import matplotlib
     matplotlib.use("TkAgg")
     save_basename = os.path.split(uvfits)[-1].split(".uvf")[0]
+
+    plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=n_jitters, component_type="eg",
+                           style="reim", n_samples_to_plot=1000, alpha_model=0.01)
+
 
     plot_per_antenna_jitters_and_offsets(posterior_samples, uvfits=uvfits, save_dir=save_dir, save_basename=save_basename)
 
