@@ -4,13 +4,14 @@
 #include "Gaussian2D.h"
 
 
-Gaussian2D::Gaussian2D(std::vector<double> mean, double rho, double sigma_1, double sigma_2) :
-mean_(mean.data()), rho_(rho), sigma_1_(sigma_1), sigma_2_(sigma_2)
+Gaussian2D::Gaussian2D(double mean_1, double mean_2, double rho, double sigma_1, double sigma_2) :
+mean_1_(mean_1), mean_2_(mean_2), rho_(rho), sigma_1_(sigma_1), sigma_2_(sigma_2)
 {
-	if(sigma_1 <=0 || sigma_2 <=0)
-		throw std::domain_error("Gaussian2D distribution must have positive widths.");
-	if(abs(rho) >= 1)
-		throw std::domain_error("Gaussian2D distribution must have correlation > 1.");
+//	std::cout << "In G2D ctor\n";
+//	if(sigma_1 <=0 || sigma_2 <=0)
+//		throw std::domain_error("Gaussian2D distribution must have positive widths.");
+//	if(abs(rho) >= 1)
+//		throw std::domain_error("Gaussian2D distribution must have correlation > 1.");
 		
 	Cov << sigma_1_*sigma_1_, rho_*sigma_1_*sigma_2_,
 	       rho_*sigma_1_*sigma_2_, sigma_2_*sigma_2_;
@@ -29,7 +30,8 @@ mean_(mean.data()), rho_(rho), sigma_1_(sigma_1), sigma_2_(sigma_2)
 std::vector<double> Gaussian2D::cdf(std::vector<double> x) const
 {
 	Eigen::Vector2d xx(x.data());
-	Eigen::Vector2d diff = xx - mean_;
+	Eigen::Vector2d mean(mean_1_, mean_2_);
+	Eigen::Vector2d diff = xx - mean;
 	Eigen::Vector2d x_st = M.inverse()*diff;
 	DNest4::Gaussian gaussian(0, 1);
 	return {gaussian.cdf(x_st[0]), gaussian.cdf(x_st[1])};
@@ -41,14 +43,16 @@ std::vector<double> Gaussian2D::cdf_inverse(std::vector<double> u) const
 	DNest4::Gaussian gaussian(0, 1);
 	Eigen::Vector2d u_st = {gaussian.cdf_inverse(u[0]), gaussian.cdf_inverse(u[1])};
 	Eigen::Vector2d sample = u_st.transpose()*M;
-	sample += mean_;
+	Eigen::Vector2d mean(mean_1_, mean_2_);
+	sample += mean;
 	return {sample.data(), sample.data() + sample.size()};
 }
 
 double Gaussian2D::log_pdf(std::vector<double> x) const
 {
 	Eigen::Vector2d xx(x.data());
-	Eigen::Vector2d diff = xx - mean_;
+	Eigen::Vector2d mean(mean_1_, mean_2_);
+	Eigen::Vector2d diff = xx - mean;
 	
 	return log_Norm - 0.5*diff.transpose()*Cov_inv*diff;
 }
@@ -57,7 +61,8 @@ std::vector<double> Gaussian2D::generate(DNest4::RNG& rng) const
 {
 	Eigen::Vector2d x_st(rng.randn(), rng.randn());
     Eigen::Vector2d sample = x_st.transpose()*M;
-	sample += mean_;
+	Eigen::Vector2d mean(mean_1_, mean_2_);
+	sample += mean;
 	return {sample.data(), sample.data() + sample.size()};
 }
 

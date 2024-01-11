@@ -4,13 +4,9 @@
 #include "Data.h"
 
 
-DNestModel::DNestModel() :
-    counter(0),
-	use_jitter(true),
-	use_offsets(true),
-	reference_antenna_number(4),
-    components(6, 20, false, MyConditionalPrior(-10., 1., -7., 2.), DNest4::PriorType::log_uniform) {
-	
+DNestModel::DNestModel()
+{
+	std::cout << "DNestModel ctor\n";
 	// Mapping from antenna numbers (ant_i/j) to position in vector of antennas.
 	std::unordered_map<int, int>& antennas_map = Data::get_instance().get_antennas_map();
 	const std::vector<int>& ant_i = Data::get_instance().get_ant_i();
@@ -19,19 +15,11 @@ DNestModel::DNestModel() :
 		ant_ik.emplace_back(antennas_map[ant_i[k]]);
 		ant_jk.emplace_back(antennas_map[ant_j[k]]);
 	}
-	
-	int n_antennas = Data::get_instance().n_antennas();
-	per_antenna_logjitter.resize(n_antennas);
-	per_antenna_offset.resize(n_antennas);
 }
 
 
 void DNestModel::from_prior(DNest4::RNG &rng) {
-    // I do this because in ``calculate_sky_mu`` ``mu_real`` and ``mu_imag`` are multiplied and added.
-    const std::valarray<double>& u = Data::get_instance().get_u();
-    std::valarray<double> zero (0.0, u.size());
-    mu_real = zero;
-    mu_imag = zero;
+	std::cout << "DNestModel from_prior\n";
 	for(double & logj : per_antenna_logjitter)
 	{
 		logj = -4.0 + 2.0*rng.randn();
@@ -204,26 +192,26 @@ void DNestModel::calculate_sky_mu() {
 
     for(const auto& comp: comps)
     {
-		// Elliptical Gaussian
-        // Phase shift due to not being in a phase center
-        theta = 2*M_PI*mas_to_rad*(u*comp[0] + v*comp[1]);
-        // Calculate FT of a Gaussian in a phase center
-        c = pow(M_PI*exp(comp[3])*mas_to_rad, 2)/(4.*log(2.));
-		b = comp[4]*comp[4]*pow((u*cos(comp[5]) - v*sin(comp[5])), 2) + pow((u*sin(comp[5]) + v*cos(comp[5])), 2);
-        ft = comp[2]*exp(-c*b);
-        // Prediction of visibilities
-        mu_real += ft*cos(theta);
-        mu_imag += ft*sin(theta);
+//		// Elliptical Gaussian
+//        // Phase shift due to not being in a phase center
+//        theta = 2*M_PI*mas_to_rad*(u*comp[0] + v*comp[1]);
+//        // Calculate FT of a Gaussian in a phase center
+//        c = pow(M_PI*exp(comp[3])*mas_to_rad, 2)/(4.*log(2.));
+//		b = comp[4]*comp[4]*pow((u*cos(comp[5]) - v*sin(comp[5])), 2) + pow((u*sin(comp[5]) + v*cos(comp[5])), 2);
+//        ft = comp[2]*exp(-c*b);
+//        // Prediction of visibilities
+//        mu_real += ft*cos(theta);
+//        mu_imag += ft*sin(theta);
 		
-//		// Circular Gaussian
-//		// Phase shift due to not being in a phase center
-//		theta = 2*M_PI*mas_to_rad*(u*comp[0] + v*comp[1]);
-//		// Calculate FT of a Gaussian in a phase center
-//		c = pow(M_PI*exp(comp[3])*mas_to_rad, 2)/(4.*log(2.));
-//		ft = comp[2]*exp(-c*(u*u + v*v));
-//		// Prediction of visibilities
-//		mu_real += ft*cos(theta);
-//		mu_imag += ft*sin(theta);
+		// Circular Gaussian
+		// Phase shift due to not being in a phase center
+		theta = 2*M_PI*mas_to_rad*(u*comp[0] + v*comp[1]);
+		// Calculate FT of a Gaussian in a phase center
+		c = pow(M_PI*exp(comp[3])*mas_to_rad, 2)/(4.*log(2.));
+		ft = comp[2]*exp(-c*(u*u + v*v));
+		// Prediction of visibilities
+		mu_real += ft*cos(theta);
+		mu_imag += ft*sin(theta);
     }
 }
 
@@ -282,7 +270,7 @@ std::string DNestModel::description() const
     descr += " dim_components max_num_components ";
 
     // Then the hyperparameters (i.e. whatever MyConditionalPrior::print prints)
-    descr += " typical_flux dev_log_flux typical_radius dev_log_radius typical_a typical_b";
+//    descr += " typical_flux dev_log_flux typical_radius dev_log_radius typical_a typical_b";
 
     // Then the actual number of components
     descr += " num_components ";
@@ -298,9 +286,9 @@ std::string DNestModel::description() const
         descr += " flux[" + std::to_string(i) + "] ";
     for(int i=0; i<components.get_max_num_components(); ++i)
         descr += " logbmaj[" + std::to_string(i) + "] ";
-	for(int i=0; i<components.get_max_num_components(); ++i)
-		descr += " e[" + std::to_string(i) + "] ";
-	for(int i=0; i<components.get_max_num_components(); ++i)
-		descr += " bpa[" + std::to_string(i) + "] ";
+//	for(int i=0; i<components.get_max_num_components(); ++i)
+//		descr += " e[" + std::to_string(i) + "] ";
+//	for(int i=0; i<components.get_max_num_components(); ++i)
+//		descr += " bpa[" + std::to_string(i) + "] ";
     return descr;
 }

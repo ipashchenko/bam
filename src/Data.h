@@ -41,6 +41,9 @@ class Data
 		int n_antennas() const
 		{ return antennas.size(); }
 		
+		int n_vis() const
+		{ return u.size(); }
+		
         // Load data from a file
         void load(const char* filename);
 
