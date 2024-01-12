@@ -189,7 +189,7 @@ def plot_tb_distance_posterior(samples, freq_ghz, z=0.0, type="cg", savefn=None,
 
 # FIXME: Implement elliptical gaussians
 def plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=0, style="reim", savefname=None, show=True,
-                           n_samples_to_plot=100, component_type="cg", alpha_model=0.03):
+                           n_samples_to_plot=100, component_type="cg", alpha_model=0.03, skip_hyperparameters=False):
 
     allowed_component_types = ("cg", "eg", "sphere", "delta")
     if component_type not in allowed_component_types:
@@ -217,6 +217,8 @@ def plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=0, styl
     post_samples = np.atleast_2d(np.loadtxt(posterior_file))
 
     n_post, len_of_sample = post_samples.shape
+    print("Posterior shape : ", n_post, len_of_sample)
+
     samples = post_samples[np.random.randint(0, n_post, n_samples_to_plot)]
 
     samples_predictions_re = list()
@@ -241,7 +243,7 @@ def plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=0, styl
 
         samples_for_each_n = get_samples_for_each_n(samples, jitter_first,
                                                     n_jitters=n_jitters, n_max=n_max,
-                                                    skip_hyperparameters=False,
+                                                    skip_hyperparameters=skip_hyperparameters,
                                                     type=component_type)
 
         for n_local, samples_local in samples_for_each_n.items():

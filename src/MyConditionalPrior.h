@@ -13,7 +13,7 @@ class MyConditionalPrior:public DNest4::ConditionalPrior
     private:
 
         // Parameters of hyper-distributions
-        double x_min{-1.}, x_max{20.}, y_min{-3.}, y_max{3.};
+        double x_min{-1.}, x_max{15.}, y_min{-3.}, y_max{3.};
 		
         double perturb_hyperparameters(DNest4::RNG& rng);
 

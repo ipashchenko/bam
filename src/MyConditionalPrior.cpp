@@ -155,6 +155,7 @@ void MyConditionalPrior::from_uniform(std::vector<double>& vec) const
 
 }
 
+// TODO: Does it transform x (given HP) to uniform(0, 1)?
 void MyConditionalPrior::to_uniform(std::vector<double>& vec) const
 {
     //std::cout << "to_uniform" << vec[0] << " " << vec[1] << " " << vec[2] << " " << vec[3] << "\n";

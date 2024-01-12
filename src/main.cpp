@@ -32,7 +32,8 @@ write_2dvector(std::ostream &os, std::vector<std::vector<double>> &v) {
 //make
 int main(int argc, char** argv)
 {
-    Data::get_instance().load("/home/ilya/Downloads/mojave/0212+735/0212+735.u.2019_08_15_60sec_antennas.txt");
+//	Data::get_instance().load("/home/ilya/Downloads/mojave/0212+735/0212+735.u.2019_08_15_60sec_antennas.txt");
+	Data::get_instance().load("/home/ilya/Downloads/mojave/1502+106/4comp.txt");
     // set the sampler and run it!
     Sampler<DNestModel> sampler = setup<DNestModel>(argc, argv);
     sampler.run();
