@@ -91,7 +91,9 @@ double MyConditionalPrior::log_pdf(const std::vector<double>& vec) const
     logp += uniform_y.log_pdf(vec[1]);
 	
 	// x, y, flux, bmaj
-	std::vector<double> fluxsize = {vec.begin() + 2, vec.end()};
+	std::vector<double> fluxsize(2);
+	fluxsize[0] = log(vec[2]);
+	fluxsize[1] = vec[3];
 	logp += FluxSizePrior->log_pdf(fluxsize);
 //	Gaussian2D gaussian_2_d(mean, rho, sigma_1, sigma_2);
 //	logp += gaussian_2_d.log_pdf({})
@@ -130,7 +132,7 @@ void MyConditionalPrior::from_uniform(std::vector<double>& vec) const
 	
 	std::vector<double> u_fluxsize = {vec.begin() + 2, vec.end()};
 	std::vector<double> fluxsize = FluxSizePrior->cdf_inverse(u_fluxsize);
-	vec[2] = fluxsize[0];
+	vec[2] = exp(fluxsize[0]);
 	vec[3] = fluxsize[1];
 	
 //    // Flux
@@ -164,7 +166,9 @@ void MyConditionalPrior::to_uniform(std::vector<double>& vec) const
 //    DNest4::Gaussian gaussy(0.0, std);
     vec[1] = uniform_y.cdf(vec[1]);
 	
-	std::vector<double> fluxsize = {vec.begin() + 2, vec.end()};
+	std::vector<double> fluxsize(2);
+	fluxsize[0] = log(vec[2]);
+	fluxsize[1] = vec[3];
 	std::vector<double> u_fluxsize = FluxSizePrior->cdf(fluxsize);
 	vec[2] = u_fluxsize[0];
 	vec[3] = u_fluxsize[1];
