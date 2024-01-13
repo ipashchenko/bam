@@ -264,22 +264,22 @@ if __name__ == "__main__":
     # uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03.uvf"
     # uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11.uvf"
     # uvfits_file = "/home/ilya/Downloads/mojave/0212+735/0212+735.u.2019_08_15.uvf"
-    # uvfits_file = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2012_06_25.uvf"
-    uvfits_file = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27.uvf"
+    uvfits_file = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2011_07_24.uvf"
+    # uvfits_file = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27.uvf"
 
     # out_fname = "/home/ilya/Downloads/mojave/0851+202/3comp.txt"
     # out_fname = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
     # out_fname = "/home/ilya/Downloads/mojave/0212+735/0212+735.u.2019_08_15_60sec_antennas.txt"
-    # out_fname = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2012_06_25_60sec_antennas.txt"
+    out_fname = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2011_07_24_60sec_antennas.txt"
     # out_fname = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27_60sec_antennas.txt"
-    out_fname = "/home/ilya/Downloads/mojave/1502+106/3comp.txt"
+    # out_fname = "/home/ilya/Downloads/mojave/1502+106/4comp.txt"
     # df = create_data_file_v2(uvfits_file, out_fname, time_average_sec=60)
 
     # This uses antenna sites for per-antenna jitter.
     df = get_data_file_from_ehtim(uvfits_file, out_fname, avg_time_sec=60, average_using="difmap")
 
 
-    # sys.exit(0)
+    sys.exit(0)
 
 
     # Artificial source
@@ -287,18 +287,18 @@ if __name__ == "__main__":
     df["vis_re"] = 0
     df["vis_im"] = 0
     # Add model
-    re, im = gaussian_circ_ft(flux=0.5, ra=0.0, dec=0.0, bmaj=0.05, uv=df[["u", "v"]].values)
+    re, im = gaussian_circ_ft(flux=2.0, ra=0.0, dec=0.0, bmaj=0.05, uv=df[["u", "v"]].values)
     df["vis_re"] += re
     df["vis_im"] += im
-    re, im = gaussian_circ_ft(flux=0.25, ra=1.0, dec=0.1, bmaj=0.25, uv=df[["u", "v"]].values)
+    re, im = gaussian_circ_ft(flux=1.0, ra=1.0, dec=0.1, bmaj=0.25, uv=df[["u", "v"]].values)
     df["vis_re"] += re
     df["vis_im"] += im
-    re, im = gaussian_circ_ft(flux=0.1, ra=2.5, dec=0.5, bmaj=0.5, uv=df[["u", "v"]].values)
+    re, im = gaussian_circ_ft(flux=0.5, ra=2.5, dec=0.5, bmaj=0.5, uv=df[["u", "v"]].values)
     df["vis_re"] += re
     df["vis_im"] += im
-    # re, im = gaussian_circ_ft(flux=0.1, ra=10., dec=-1.0, bmaj=2.0, uv=df[["u", "v"]].values)
-    # df["vis_re"] += re
-    # df["vis_im"] += im
+    re, im = gaussian_circ_ft(flux=0.1, ra=10., dec=-1.0, bmaj=2.0, uv=df[["u", "v"]].values)
+    df["vis_re"] += re
+    df["vis_im"] += im
 
     try:
         fig = radplot(df, label="Data", show=False)

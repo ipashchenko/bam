@@ -521,33 +521,33 @@ if __name__ == "__main__":
 
     # uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03.uvf"
     # uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11.uvf"
-    uvfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.uvf"
-    # uvfits = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27.uvf"
+    # uvfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.uvf"
+    uvfits = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27.uvf"
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
     # df = pd.read_csv(data_file, names=["u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03_60sec_antennas.txt"
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
-    data_file = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15_60sec_antennas.txt"
-    # data_file = "/home/ilya/Downloads/mojave/1502+106/4comp.txt"
+    # data_file = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15_60sec_antennas.txt"
+    data_file = "/home/ilya/Downloads/mojave/1502+106/4comp.txt"
     df = pd.read_csv(data_file, names=["t1", "t2", "u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
-    posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
-    # posterior_file = "/home/ilya/github/bam/Release/posterior_sample.txt"
+    # posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
+    posterior_file = "/home/ilya/github/bam/Release/posterior_sample.txt"
     # old
     # posterior_file = "/home/ilya/github/bam/posterior_sample_rjell.txt"
     # save_dir = "/home/ilya/data/rjbam/0851+202/2023_05_03/jitters_offsets"
     # save_dir = "/home/ilya/data/rjbam/0851+202/2012_11_11/jitters_offsets/circular"
     # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/jitters_offsets"
-    save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/jitters_offsets/circular_2Dprior/"
-    # save_dir = "/home/ilya/data/rjbam/1502+106/4comp_jitters_offsets_2D"
+    # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/jitters_offsets/circular_2Dprior/"
+    save_dir = "/home/ilya/data/rjbam/1502+106/4comp_jitters_2D"
     # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/old"
     save_rj_ncomp_distribution_file = os.path.join(save_dir, "ncomponents_distribution.png")
     # original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2023_05_03.icn.fits"
     # original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2012_11_11.icn.fits"
     original_ccfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.icn.fits"
     n_max = 20
-    n_jitters = 0
+    n_jitters = 10
     n_max_samples_to_plot = 500
-    jitter_first = False
+    jitter_first = True
     skip_hp = True
     component_type = "cg"
     pixsize_mas = 0.1
@@ -564,11 +564,11 @@ if __name__ == "__main__":
                                            jitter_first=jitter_first, n_jitters=n_jitters, type=component_type,
                                            normed=True, show=False, skip_hyperparameters=skip_hp)
 
-    plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=n_jitters, component_type=component_type,
-                           style="ap", n_samples_to_plot=1000, alpha_model=0.01, skip_hyperparameters=skip_hp)
+    # plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=n_jitters, component_type=component_type,
+    #                        style="ap", n_samples_to_plot=1000, alpha_model=0.01, skip_hyperparameters=skip_hp)
 
 
-    # sys.exit(0)
+    sys.exit(0)
 
     samples_for_each_n = get_samples_for_each_n(posterior_samples, jitter_first,
                                                 n_jitters=n_jitters, n_max=n_max,
