@@ -3,6 +3,9 @@
 #include <vector>
 #include <iostream>
 #include <set>
+#include <iomanip>
+#include "rapidcsv.h"
+
 
 using namespace std;
 
@@ -11,39 +14,22 @@ Data Data::instance;
 
 Data::Data() = default;
 
-// TODO: Use files with header
+
 void Data::load(const char* filename)
 {
+	
+	rapidcsv::Document doc(filename);
+	ant_i = doc.GetColumn<int>("t1");
+	ant_j = doc.GetColumn<int>("t2");
+	std::vector<double> _u = doc.GetColumn<double>("u");
+	std::vector<double> _v = doc.GetColumn<double>("v");
+	std::vector<double> _vis_real = doc.GetColumn<double>("vis_re");
+	std::vector<double> _vis_imag = doc.GetColumn<double>("vis_im");
+	std::vector<double> _sigma = doc.GetColumn<double>("error");
+
+	std::cout << "First raw : " << std::setprecision(15) << ant_i[0] << ", " << ant_j[0] << ", " << _u[0] << ", " << _v[0] << ", " << _vis_real[0] << ", " << _vis_imag[0] << ", " << _sigma[0] << "\n";
+	
 	std::vector<int> _antennas;
-    // Vectors to hold the data
-    std::vector<double> _u;
-    std::vector<double> _v;
-    std::vector<double> _vis_real;
-    std::vector<double> _vis_imag;
-    std::vector<double> _sigma;
-
-    // Open the file
-    fstream fin(filename, ios::in);
-
-    // Temporary variables
-    // u, v, re, im, var
-    double temp1, temp2, temp3, temp4, temp5;
-	int temp01, temp02;
-
-    // Read until end of file
-    while(fin >> temp01 && fin >> temp02 && fin >> temp1 && fin >> temp2 && fin >> temp3 && fin >> temp4 && fin >> temp5)
-    {
-		ant_i.push_back(temp01);
-		ant_j.push_back(temp02);
-        _u.push_back(temp1);
-        _v.push_back(temp2);
-        _vis_real.push_back(temp3);
-        _vis_imag.push_back(temp4);
-        _sigma.push_back(temp5);
-    }
-
-    // Close the file
-    fin.close();
 	
 	// Vector of the unique antenna numbers
 	antennas.insert(antennas.end(), ant_i.begin(), ant_i.end());

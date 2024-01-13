@@ -160,7 +160,7 @@ def get_data_file_from_ehtim(uvfits, outname, avg_time_sec=0, average_using="dif
     df = df[["t1", "t2", "u", "v", "vis_re", "vis_im", "error"]]
     df = df.replace({"t1": obs.tkey})
     df = df.replace({"t2": obs.tkey})
-    df.to_csv(outname, sep=" ", header=False, index=False)
+    df.to_csv(outname, sep=",", header=True, index=False)
     return df
 
 
@@ -267,19 +267,20 @@ if __name__ == "__main__":
     # uvfits_file = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2011_07_24.uvf"
     uvfits_file = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27.uvf"
 
-    # out_fname = "/home/ilya/Downloads/mojave/0851+202/3comp.txt"
-    # out_fname = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
-    # out_fname = "/home/ilya/Downloads/mojave/0212+735/0212+735.u.2019_08_15_60sec_antennas.txt"
-    # out_fname = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2011_07_24_60sec_antennas.txt"
-    # out_fname = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27_60sec_antennas.txt"
-    out_fname = "/home/ilya/Downloads/mojave/1502+106/4comp_eg.txt"
+    # out_fname = "/home/ilya/Downloads/mojave/0851+202/3comp.csv"
+    # out_fname = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.csv"
+    # out_fname = "/home/ilya/Downloads/mojave/0212+735/0212+735.u.2019_08_15_60sec_antennas.csv"
+    # out_fname = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2011_07_24_60sec_antennas.csv"
+    # out_fname = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27_60sec_antennas.csv"
+    # out_fname = "/home/ilya/Downloads/mojave/1502+106/4comp_eg.csv"
+    out_fname = "/home/ilya/Downloads/mojave/1502+106/test.csv"
     # df = create_data_file_v2(uvfits_file, out_fname, time_average_sec=60)
 
     # This uses antenna sites for per-antenna jitter.
     df = get_data_file_from_ehtim(uvfits_file, out_fname, avg_time_sec=60, average_using="difmap")
 
 
-    # sys.exit(0)
+    sys.exit(0)
 
 
     # Artificial source
@@ -309,4 +310,4 @@ if __name__ == "__main__":
                            # logjitters_dict={0: -8, 1: -8, 2: -8, 3: -8, 4: -8, 5: -8, 6: -8, 7: -8, 8: -3, 9: -4},
                            # offsets_dict={0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1.3, 9: 1})
     fig = radplot(df_updated, color="#ff7f0e", fig=fig, label="With noise")
-    df_updated.to_csv(out_fname, sep=" ", index=False, header=False)
+    df_updated.to_csv(out_fname, sep=",", index=False, header=True)

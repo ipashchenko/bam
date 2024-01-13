@@ -203,7 +203,7 @@ def plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=0, styl
                      "sphere": optically_thin_sphere_ft,
                      "delta": point_ft}
 
-    data_df = pd.read_csv(data_file, names=["t1", "t2", "u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
+    data_df = pd.read_csv(data_file)
     uv = data_df[["u", "v"]].values
     r = np.hypot(uv[:, 0], uv[:, 1])/10**6
     # dr = np.max(r) - np.min(r)
@@ -529,7 +529,7 @@ if __name__ == "__main__":
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
     # data_file = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15_60sec_antennas.txt"
     data_file = "/home/ilya/Downloads/mojave/1502+106/4comp.txt"
-    df = pd.read_csv(data_file, names=["t1", "t2", "u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
+    df = pd.read_csv(data_file)
     # posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
     posterior_file = "/home/ilya/github/bam/Release/posterior_sample.txt"
     # old
@@ -558,14 +558,14 @@ if __name__ == "__main__":
     save_basename = os.path.split(uvfits)[-1].split(".uvf")[0]
 
 
-    # plot_per_antenna_jitters_and_offsets(posterior_samples, uvfits=uvfits, save_dir=save_dir, save_basename=save_basename)
+    plot_per_antenna_jitters_and_offsets(posterior_samples, uvfits=uvfits, save_dir=save_dir, save_basename=save_basename)
 
     fig = rj_plot_ncomponents_distribution(posterior_file, picture_fn=save_rj_ncomp_distribution_file,
                                            jitter_first=jitter_first, n_jitters=n_jitters, type=component_type,
                                            normed=True, show=False, skip_hyperparameters=skip_hp)
 
-    # plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=n_jitters, component_type=component_type,
-    #                        style="ap", n_samples_to_plot=1000, alpha_model=0.01, skip_hyperparameters=skip_hp)
+    plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=n_jitters, component_type=component_type,
+                           style="ap", n_samples_to_plot=1000, alpha_model=0.01, skip_hyperparameters=skip_hp)
 
 
     sys.exit(0)

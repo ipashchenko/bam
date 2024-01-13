@@ -44,7 +44,7 @@ class Data
 		int n_vis() const
 		{ return u.size(); }
 		
-        // Load data from a file
+        // Load data from a csv file with header: t1, t2, u, v, vis_re, vis_im, error
         void load(const char* filename);
 
         // Access to the data points
