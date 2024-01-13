@@ -8,12 +8,6 @@ class Gaussian2D
 {
 	private:
 		double mean_1_, mean_2_, rho_, sigma_1_, sigma_2_, log_Norm;
-		// Covariance matrix
-		Eigen::Matrix2d Cov;
-		// Inverse covariance matrix
-		Eigen::Matrix2d Cov_inv;
-		// Choleski decomposition of Sigma (upper tri: Mt M = Cov)
-		Eigen::Matrix2d M;
 		
 	public:
 		Gaussian2D(double mean_1, double mean_2, double rho, double sigma_1, double sigma_2);

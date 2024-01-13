@@ -12,15 +12,16 @@ class MyConditionalPrior:public DNest4::ConditionalPrior
 {
     private:
 
-        // Parameters of hyper-distributions
-        double x_min{-1.}, x_max{15.}, y_min{-3.}, y_max{3.};
-		
         double perturb_hyperparameters(DNest4::RNG& rng);
 
     public:
         MyConditionalPrior();
 		
+		std::shared_ptr<DNest4::Uniform> raPrior;
+		std::shared_ptr<DNest4::Uniform> decPrior;
 		std::shared_ptr<Gaussian2D> FluxSizePrior;
+		std::shared_ptr<DNest4::Kumaraswamy> ePrior;
+		std::shared_ptr<DNest4::Uniform> bpaPrior;
 		
         void from_prior(DNest4::RNG& rng);
 

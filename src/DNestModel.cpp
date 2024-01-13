@@ -6,7 +6,6 @@
 
 DNestModel::DNestModel()
 {
-	std::cout << "DNestModel ctor\n";
 	// Mapping from antenna numbers (ant_i/j) to position in vector of antennas.
 	std::unordered_map<int, int>& antennas_map = Data::get_instance().get_antennas_map();
 	const std::vector<int>& ant_i = Data::get_instance().get_ant_i();
@@ -54,7 +53,7 @@ void DNestModel::calculate_var()
 	const std::valarray<double>& sigma = Data::get_instance().get_sigma();
 	// Measured variance
 	std::valarray<double> measured_var = sigma*sigma;
-	if(use_jitter)
+	if(use_jitters)
 	{
 		// Jitter
 		std::valarray<double> current_jitter(0.0, sigma.size());
@@ -88,7 +87,7 @@ double DNestModel::perturb(DNest4::RNG &rng) {
 	
 	double r_jitter = 0.0;
 	double r_offset = 0.0;
-	if (use_jitter) {
+	if (use_jitters) {
 		r_jitter = 0.2;
 	}
 	if (use_offsets) {
@@ -163,7 +162,7 @@ void DNestModel::calculate_sky_mu() {
     const std::valarray<double>& u = Data::get_instance().get_u();
     const std::valarray<double>& v = Data::get_instance().get_v();
 
-    std::valarray<double> theta;
+    std::valarray<double> theta, pi_D_rho;
     double c;
     std::valarray<double> b;
     std::valarray<double> ft;
@@ -189,30 +188,63 @@ void DNestModel::calculate_sky_mu() {
         //std::cout << "diff " << counter << "\n";
         counter++;
     }
-
-    for(const auto& comp: comps)
-    {
-//		// Elliptical Gaussian
-//        // Phase shift due to not being in a phase center
-//        theta = 2*M_PI*mas_to_rad*(u*comp[0] + v*comp[1]);
-//        // Calculate FT of a Gaussian in a phase center
-//        c = pow(M_PI*exp(comp[3])*mas_to_rad, 2)/(4.*log(2.));
-//		b = comp[4]*comp[4]*pow((u*cos(comp[5]) - v*sin(comp[5])), 2) + pow((u*sin(comp[5]) + v*cos(comp[5])), 2);
-//        ft = comp[2]*exp(-c*b);
-//        // Prediction of visibilities
-//        mu_real += ft*cos(theta);
-//        mu_imag += ft*sin(theta);
+	
+	
+	switch (component_type)
+	{
+	case circular:
+		{
+			for(const auto& comp: comps)
+			{
+				// Circular Gaussian
+				// Phase shift due to not being in a phase center
+				theta = 2*M_PI*mas_to_rad*(u*comp[0] + v*comp[1]);
+				// Calculate FT of a Gaussian in a phase center
+				c = pow(M_PI*exp(comp[3])*mas_to_rad, 2)/(4.*log(2.));
+				ft = comp[2]*exp(-c*(u*u + v*v));
+				// Prediction of visibilities
+				mu_real += ft*cos(theta);
+				mu_imag += ft*sin(theta);
+			}
+			break;
+		}
 		
-		// Circular Gaussian
-		// Phase shift due to not being in a phase center
-		theta = 2*M_PI*mas_to_rad*(u*comp[0] + v*comp[1]);
-		// Calculate FT of a Gaussian in a phase center
-		c = pow(M_PI*exp(comp[3])*mas_to_rad, 2)/(4.*log(2.));
-		ft = comp[2]*exp(-c*(u*u + v*v));
-		// Prediction of visibilities
-		mu_real += ft*cos(theta);
-		mu_imag += ft*sin(theta);
-    }
+	case sphere:
+		{
+			for(const auto& comp: comps)
+			{
+				// Circular Gaussian
+				// Phase shift due to not being in a phase center
+				theta = 2*M_PI*mas_to_rad*(u*comp[0] + v*comp[1]);
+				// Calculate FT of a Sphere in a phase center
+				pi_D_rho = M_PI*exp(comp[3])*mas_to_rad*sqrt(u*u + v*v);
+				ft = 3.*comp[2]*(sin(pi_D_rho) - pi_D_rho*cos(pi_D_rho)) / pow(pi_D_rho, 3.);
+				// Prediction of visibilities
+				mu_real += ft*cos(theta);
+				mu_imag += ft*sin(theta);
+			}
+			break;
+		}
+	
+	case elliptical:
+		{
+			for(const auto& comp: comps)
+			{
+				// Elliptical Gaussian
+				// Phase shift due to not being in a phase center
+				theta = 2*M_PI*mas_to_rad*(u*comp[0] + v*comp[1]);
+				// Calculate FT of a Gaussian in a phase center
+				// NOTE: comp[3] is bmin!
+				c = pow(M_PI*exp(comp[3])*mas_to_rad/comp[4], 2)/(4.*log(2.));
+				b = comp[4]*comp[4]*pow((u*cos(comp[5]) - v*sin(comp[5])), 2) + pow((u*sin(comp[5]) + v*cos(comp[5])), 2);
+				ft = comp[2]*exp(-c*b);
+				// Prediction of visibilities
+				mu_real += ft*cos(theta);
+				mu_imag += ft*sin(theta);
+			}
+			break;
+		}
+	}
 }
 
 
@@ -228,7 +260,7 @@ double DNestModel::log_likelihood() const {
 
 
 void DNestModel::print(std::ostream &out) const {
-	if(use_jitter)
+	if(use_jitters)
 	{
 		for (double logj : per_antenna_logjitter)
 		{
@@ -248,47 +280,47 @@ void DNestModel::print(std::ostream &out) const {
 
 std::string DNestModel::description() const
 {
-    std::string descr;
-
-	if(use_jitter)
-	{
-		for (int i = 0; i < per_antenna_logjitter.size(); i++)
-		{
+	std::string descr;
+	
+	if (use_jitters) {
+		for (int i = 0; i < per_antenna_logjitter.size(); i++) {
 			descr += "logjitter[" + std::to_string(i) + "] ";
 		}
 	}
 	
-	if(use_offsets)
-	{
-		for (int i = 0; i < per_antenna_offset.size(); i++)
-		{
+	if (use_offsets) {
+		for (int i = 0; i < per_antenna_offset.size(); i++) {
 			descr += "offset[" + std::to_string(i) + "] ";
 		}
 	}
 	
 	// The rest is all what happens when you call .print on an RJObject
-    descr += " dim_components max_num_components ";
-
-    // Then the hyperparameters (i.e. whatever MyConditionalPrior::print prints)
+	descr += " dim_components max_num_components ";
+	
+	// Then the hyperparameters (i.e. whatever MyConditionalPrior::print prints)
 //    descr += " typical_flux dev_log_flux typical_radius dev_log_radius typical_a typical_b";
-
-    // Then the actual number of components
-    descr += " num_components ";
-
-    // Then it's all the components, padded with zeros
-    // max_num_components is known in this model, so that's how far the
-    // zero padding goes.
-    for(int i=0; i<components.get_max_num_components(); ++i)
-        descr += " x[" + std::to_string(i) + "] ";
-    for(int i=0; i<components.get_max_num_components(); ++i)
-        descr += " y[" + std::to_string(i) + "] ";
-    for(int i=0; i<components.get_max_num_components(); ++i)
-        descr += " flux[" + std::to_string(i) + "] ";
-    for(int i=0; i<components.get_max_num_components(); ++i)
-        descr += " logbmaj[" + std::to_string(i) + "] ";
-//	for(int i=0; i<components.get_max_num_components(); ++i)
-//		descr += " e[" + std::to_string(i) + "] ";
-//	for(int i=0; i<components.get_max_num_components(); ++i)
-//		descr += " bpa[" + std::to_string(i) + "] ";
+	
+	// Then the actual number of components
+	descr += " num_components ";
+	
+	// Then it's all the components, padded with zeros
+	// max_num_components is known in this model, so that's how far the
+	// zero padding goes.
+	for (int i = 0; i < components.get_max_num_components(); ++i)
+		descr += " x[" + std::to_string(i) + "] ";
+	for (int i = 0; i < components.get_max_num_components(); ++i)
+		descr += " y[" + std::to_string(i) + "] ";
+	for (int i = 0; i < components.get_max_num_components(); ++i)
+		descr += " flux[" + std::to_string(i) + "] ";
+	for (int i = 0; i < components.get_max_num_components(); ++i)
+		descr += " logsize[" + std::to_string(i) + "] ";
+	
+	if (component_type == elliptical)
+	{
+		for (int i = 0; i < components.get_max_num_components(); ++i)
+			descr += " e[" + std::to_string(i) + "] ";
+		for (int i = 0; i < components.get_max_num_components(); ++i)
+			descr += " bpa[" + std::to_string(i) + "] ";
+	}
     return descr;
 }

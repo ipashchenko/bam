@@ -520,31 +520,36 @@ def plot_per_antenna_jitters_and_offsets(samples, uvfits=None, n_antennas=10, sa
 if __name__ == "__main__":
 
     # uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03.uvf"
-    uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11.uvf"
-    # uvfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.uvf"
+    # uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11.uvf"
+    uvfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.uvf"
+    # uvfits = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27.uvf"
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
     # df = pd.read_csv(data_file, names=["u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03_60sec_antennas.txt"
-    data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
-    # data_file = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15_60sec_antennas.txt"
+    # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
+    data_file = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15_60sec_antennas.txt"
+    # data_file = "/home/ilya/Downloads/mojave/1502+106/4comp.txt"
     df = pd.read_csv(data_file, names=["t1", "t2", "u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
     posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
     # posterior_file = "/home/ilya/github/bam/Release/posterior_sample.txt"
     # old
     # posterior_file = "/home/ilya/github/bam/posterior_sample_rjell.txt"
     # save_dir = "/home/ilya/data/rjbam/0851+202/2023_05_03/jitters_offsets"
-    save_dir = "/home/ilya/data/rjbam/0851+202/2012_11_11/jitters_offsets/circular"
+    # save_dir = "/home/ilya/data/rjbam/0851+202/2012_11_11/jitters_offsets/circular"
     # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/jitters_offsets"
+    save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/jitters_offsets/circular_2Dprior/"
+    # save_dir = "/home/ilya/data/rjbam/1502+106/4comp_jitters_offsets_2D"
     # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/old"
     save_rj_ncomp_distribution_file = os.path.join(save_dir, "ncomponents_distribution.png")
     # original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2023_05_03.icn.fits"
-    original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2012_11_11.icn.fits"
-    # original_ccfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.icn.fits"
+    # original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2012_11_11.icn.fits"
+    original_ccfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.icn.fits"
     n_max = 20
-    n_jitters = 20
+    n_jitters = 0
     n_max_samples_to_plot = 500
-    jitter_first = True
-    component_type = "eg"
+    jitter_first = False
+    skip_hp = True
+    component_type = "cg"
     pixsize_mas = 0.1
     freq_ghz = 15.4
     posterior_samples = np.loadtxt(posterior_file)
@@ -552,18 +557,22 @@ if __name__ == "__main__":
     matplotlib.use("TkAgg")
     save_basename = os.path.split(uvfits)[-1].split(".uvf")[0]
 
-    plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=n_jitters, component_type="eg",
-                           style="reim", n_samples_to_plot=1000, alpha_model=0.01)
 
-
-    plot_per_antenna_jitters_and_offsets(posterior_samples, uvfits=uvfits, save_dir=save_dir, save_basename=save_basename)
+    # plot_per_antenna_jitters_and_offsets(posterior_samples, uvfits=uvfits, save_dir=save_dir, save_basename=save_basename)
 
     fig = rj_plot_ncomponents_distribution(posterior_file, picture_fn=save_rj_ncomp_distribution_file,
                                            jitter_first=jitter_first, n_jitters=n_jitters, type=component_type,
-                                           normed=True, show=False)
+                                           normed=True, show=False, skip_hyperparameters=skip_hp)
+
+    plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=n_jitters, component_type=component_type,
+                           style="ap", n_samples_to_plot=1000, alpha_model=0.01, skip_hyperparameters=skip_hp)
+
+
+    # sys.exit(0)
+
     samples_for_each_n = get_samples_for_each_n(posterior_samples, jitter_first,
                                                 n_jitters=n_jitters, n_max=n_max,
-                                                skip_hyperparameters=False,
+                                                skip_hyperparameters=skip_hp,
                                                 type=component_type)
 
     n_components_spread = samples_for_each_n.keys()
@@ -594,14 +603,14 @@ if __name__ == "__main__":
                                           difmap_model_fn=None, type=component_type, s=1.0, figsize=None,
                                           sorted_componets=False, fig=fig_p,
                                           inverse_xaxis=False,
-                                          alpha_opacity=0.03)
+                                          alpha_opacity=0.5)
         fig_out.savefig(os.path.join(save_dir, f"CLEAN_image_ncomp_{n_component}.png"), dpi=600)
         plt.close(fig_out)
         f = plot_size_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :],
                                          savefn=os.path.join(save_dir, f"r_R_ncomp_{n_component}.png"),
-                                         type="eg")
+                                         type=component_type)
         plt.close(f)
-        f = plot_tb_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :], freq_ghz, type="eg",
+        f = plot_tb_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :], freq_ghz, type=component_type,
                                        savefn=os.path.join(save_dir, f"r_Tb_ncomp_{n_component}.png"))
         plt.close(f)
         # f = plot_model_predictions(samples_to_plot[:n_max_samples_to_plot, :], df,

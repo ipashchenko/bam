@@ -7,82 +7,46 @@
 Gaussian2D::Gaussian2D(double mean_1, double mean_2, double rho, double sigma_1, double sigma_2) :
 mean_1_(mean_1), mean_2_(mean_2), rho_(rho), sigma_1_(sigma_1), sigma_2_(sigma_2)
 {
-//	std::cout << "In G2D ctor\n";
-//	if(sigma_1 <=0 || sigma_2 <=0)
-//		throw std::domain_error("Gaussian2D distribution must have positive widths.");
-//	if(abs(rho) >= 1)
-//		throw std::domain_error("Gaussian2D distribution must have correlation > 1.");
-		
-	Cov << sigma_1_*sigma_1_, rho_*sigma_1_*sigma_2_,
-	       rho_*sigma_1_*sigma_2_, sigma_2_*sigma_2_;
-
-	Cov_inv << 1./(sigma_1_*sigma_1_), -rho_/(sigma_1_*sigma_2_),
-		       -rho_/(sigma_1_*sigma_2_), 1./(sigma_2_*sigma_2_);
-	Cov_inv *= (1./(1. - rho_*rho_));
-	
-	M << sigma_1_, rho_*sigma_2_,
-	     0., sigma_2_*sqrt(1. - rho_*rho_);
-			
-	log_Norm = -log(2.*M_PI*sqrt(Cov.determinant()));
+	log_Norm = -log(2.*M_PI*sqrt(1. - rho*rho)*sigma_1_*sigma_2_);
 }
 
 
 std::vector<double> Gaussian2D::cdf(std::vector<double> x) const
 {
-	Eigen::Vector2d xx(x.data());
-	Eigen::Vector2d mean(mean_1_, mean_2_);
-	Eigen::Vector2d diff = xx - mean;
-	Eigen::Vector2d x_st = M.inverse()*diff;
-	DNest4::Gaussian gaussian(0, 1);
-	return {gaussian.cdf(x_st[0]), gaussian.cdf(x_st[1])};
+	DNest4::Gaussian norm_1(mean_1_, sigma_1_);
+	double u_1 = norm_1.cdf(x[0]);
+	DNest4::Gaussian norm_2(mean_2_ + rho_*sigma_2_/sigma_1_*(x[0] - mean_1_), sqrt(1. - rho_*rho_)*sigma_2_);
+	double u_2 = norm_2.cdf(x[1]);
+	return {u_1, u_2};
 	
 }
 std::vector<double> Gaussian2D::cdf_inverse(std::vector<double> u) const
 {
-	// First, generate two cdf_inverse for standard normal
-	DNest4::Gaussian gaussian(0, 1);
-	Eigen::Vector2d u_st = {gaussian.cdf_inverse(u[0]), gaussian.cdf_inverse(u[1])};
-	Eigen::Vector2d sample = u_st.transpose()*M;
-	Eigen::Vector2d mean(mean_1_, mean_2_);
-	sample += mean;
-	return {sample.data(), sample.data() + sample.size()};
+	DNest4::Gaussian norm_1(mean_1_, sigma_1_);
+	double x_1 = norm_1.cdf_inverse(u[0]);
+	DNest4::Gaussian norm_2(mean_2_ + rho_*sigma_2_/sigma_1_*(x_1 - mean_1_), sqrt(1. - rho_*rho_)*sigma_2_);
+	double x_2 = norm_2.cdf_inverse(u[1]);
+	return {x_1, x_2};
 }
 
 double Gaussian2D::log_pdf(std::vector<double> x) const
 {
-	Eigen::Vector2d xx(x.data());
-	Eigen::Vector2d mean(mean_1_, mean_2_);
-	Eigen::Vector2d diff = xx - mean;
-	
-	return log_Norm - 0.5*diff.transpose()*Cov_inv*diff;
+	return log_Norm - 0.5*(x[0]*x[0]/(sigma_1_*sigma_1_) - 2.*rho_*x[0]*x[1]/(sigma_1_*sigma_2_) + x[1]*x[1]/(sigma_2_*sigma_2_))/(1. - rho_*rho_);
 }
 
 std::vector<double> Gaussian2D::generate(DNest4::RNG& rng) const
 {
-	Eigen::Vector2d x_st(rng.randn(), rng.randn());
-    Eigen::Vector2d sample = x_st.transpose()*M;
-	Eigen::Vector2d mean(mean_1_, mean_2_);
-	sample += mean;
-	return {sample.data(), sample.data() + sample.size()};
+	return cdf_inverse({rng.rand(), rng.rand()});
 }
 
 double Gaussian2D::perturb(std::vector<double>& x, DNest4::RNG& rng) const
 {
-	std::vector<double> xx;
-	xx.resize(2);
-    xx = cdf(x);
-	// This works
-//	std::cout << "Before adding randh : " << xx[0] << "\n";
-	xx[0] += rng.randh();
-	xx[1] += rng.randh();
-//	std::cout << "After adding randh: " << xx[0] << "\n";
-	// ?
-//	std::cout << "Before : " << xx[0] << "\n";
-	DNest4::wrap(xx[0], 0.0, 1.0);
-	DNest4::wrap(xx[1], 0.0, 1.0);
-//	std::cout << "After : " << xx[0] << "\n";
-    xx = cdf_inverse(xx);
-	x = xx;
+	x = cdf(x);
+	x[0] += rng.randh();
+	DNest4::wrap(x[0], 0.0, 1.0);
+	x[1] += rng.randh();
+	DNest4::wrap(x[1], 0.0, 1.0);
+	x = cdf_inverse(x);
 	
-    return 0.0;
+	return 0.0;
 }
