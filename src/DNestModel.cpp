@@ -17,18 +17,25 @@ DNestModel::DNestModel()
 }
 
 
+void DNestModel::setPriors()
+{
+	Jprior = make_prior<DNest4::Gaussian>(-5., 1.);
+	Oprior = make_prior<DNest4::TruncatedCauchy>(1.0, 0.05, 0., 2.);
+}
+
 void DNestModel::from_prior(DNest4::RNG &rng) {
-	std::cout << "DNestModel from_prior\n";
+	
+	setPriors();
+	
 	for(double & logj : per_antenna_logjitter)
 	{
-		logj = -4.0 + 2.0*rng.randn();
+		logj = Jprior->generate(rng);
 	}
-	DNest4::TruncatedCauchy truncated_cauchy(1.0, 0.05, 0., 2.);
 	for(double & off : per_antenna_offset)
 	{
 		if(use_offsets)
 		{
-			off = truncated_cauchy.generate(rng);
+			off = Oprior->generate(rng);
 		}
 		else
 		{
@@ -100,34 +107,21 @@ double DNestModel::perturb(DNest4::RNG &rng) {
 	
 		int which_antenna = rng.rand_int(per_antenna_logjitter.size());
 		auto perturbed_jitter = per_antenna_logjitter[which_antenna];
-        logH -= -0.5*pow((perturbed_jitter + 4)/2.0, 2.0);
-        perturbed_jitter += 2.0*rng.randh();
-        logH += -0.5*pow((perturbed_jitter + 4)/2.0, 2.0);
+		Jprior->perturb(perturbed_jitter, rng);
 		per_antenna_logjitter[which_antenna] = perturbed_jitter;
-		
-
-        // Pre-reject
-        if(rng.rand() >= exp(logH)) {
-            return -1E300;
-        }
-        else {
-			logH = 0.0;
-		}
         // No need to re-calculate model. Re-calculate variance and calculate loglike.
 		calculate_var();
     }
 	
 	else if(r_jitter < u && u < (r_jitter + r_offset)) {
-		DNest4::TruncatedCauchy truncated_cauchy(1.0, 0.05, 0., 2.);
 		int which_antenna = reference_antenna_number;
 		while(which_antenna == reference_antenna_number)
 		{
 			which_antenna = rng.rand_int(per_antenna_offset.size());
 		}
 		auto perturbed_offset = per_antenna_offset[which_antenna];
-		logH += truncated_cauchy.perturb(perturbed_offset, rng);
+		Oprior->perturb(perturbed_offset, rng);
 		per_antenna_offset[which_antenna] = perturbed_offset;
-	
 		// No need to re-calculate model. Re-calculate variance and calculate loglike.
 		calculate_offset();
 	}
