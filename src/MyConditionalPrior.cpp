@@ -9,10 +9,10 @@ extern const ComponentType component_type;
 MyConditionalPrior::MyConditionalPrior()
 {
 	if(!raPrior){
-		raPrior = std::make_shared<Uniform>(-1., 10.);
+		raPrior = std::make_shared<Uniform>(-10., 1.);
 	}
 	if(!decPrior){
-		decPrior = std::make_shared<Uniform>(-5., 5.);
+		decPrior = std::make_shared<Uniform>(-2., 4.);
 	}
 	if(!FluxSizePrior){
 		FluxSizePrior = std::make_shared<Gaussian2D>(-1.74, -0.71, -0.8, 1.62, 1.03);

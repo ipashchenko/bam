@@ -260,22 +260,8 @@ def radplot(df, fig=None, color=None, label=None, style="ap", savefname=None, sh
 
 
 if __name__ == "__main__":
-    # uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01.uvf"
-    # uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03.uvf"
-    # uvfits_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11.uvf"
-    # uvfits_file = "/home/ilya/Downloads/mojave/0212+735/0212+735.u.2019_08_15.uvf"
-    # uvfits_file = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2011_07_24.uvf"
-    uvfits_file = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27.uvf"
-
-    # out_fname = "/home/ilya/Downloads/mojave/0851+202/3comp.csv"
-    # out_fname = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.csv"
-    # out_fname = "/home/ilya/Downloads/mojave/0212+735/0212+735.u.2019_08_15_60sec_antennas.csv"
-    # out_fname = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2011_07_24_60sec_antennas.csv"
-    # out_fname = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27_60sec_antennas.csv"
-    # out_fname = "/home/ilya/Downloads/mojave/1502+106/4comp_eg.csv"
-    out_fname = "/home/ilya/Downloads/mojave/1502+106/test.csv"
-    # df = create_data_file_v2(uvfits_file, out_fname, time_average_sec=60)
-
+    uvfits_file = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28.uvf"
+    out_fname = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28_60sec_antennas.csv"
     # This uses antenna sites for per-antenna jitter.
     df = get_data_file_from_ehtim(uvfits_file, out_fname, avg_time_sec=60, average_using="difmap")
 

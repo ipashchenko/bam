@@ -5,7 +5,7 @@
 
 using namespace DNest4;
 
-const ComponentType component_type = elliptical;
+const ComponentType component_type = circular;
 const bool hyperpriors = false;
 const bool use_jitters = true;
 const bool use_offsets = false;
@@ -13,7 +13,7 @@ const bool use_offsets = false;
 
 int main(int argc, char** argv)
 {
-	Data::get_instance().load("/home/ilya/Downloads/mojave/1502+106/4comp_eg.txt");
+	Data::get_instance().load("/home/ilya/Downloads/mojave/0136+176/2011_07_24/0136+176.u.2011_07_24_60sec_antennas.csv");
 	// set the sampler and run it!
 	Sampler<DNestModel> sampler = setup<DNestModel>(argc, argv);
 	sampler.run();
