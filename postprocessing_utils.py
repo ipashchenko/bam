@@ -9,6 +9,7 @@ from itertools import cycle
 import seaborn as sns
 from astropy import units as u
 from astropy import constants as const
+from sklearn.cluster import DBSCAN, HDBSCAN, OPTICS, cluster_optics_dbscan, SpectralClustering
 import ehtim as eh
 from data_utils import radplot, gaussian_circ_ft, gaussian_ell_ft, optically_thin_sphere_ft, point_ft
 import sys
@@ -22,6 +23,39 @@ mas_to_rad = u.mas.to(u.rad)
 # Speed of light [cm / s]
 c = const.c.cgs.value
 k = const.k_B.cgs.value
+
+
+def get_r(sample, comp_length, n_comp, jitter_first=True, n_jitters=1):
+    j = 0
+    if jitter_first:
+        j += n_jitters
+    return [np.hypot(sample[i*comp_length+j], sample[i*comp_length+j+1]) for i in
+            range(n_comp)]
+
+
+def sort_sample_by_r(sample, n_comp, comp_length=4, jitter_first=True,
+                     n_jitters=1):
+    r = get_r(sample, comp_length, n_comp, jitter_first, n_jitters)
+    indices = np.argsort(r)
+    # Construct re-labelled sample
+    j = 0
+    if jitter_first:
+        j += n_jitters
+    else:
+        n_jitters = 0
+    result = np.hstack([sample[j+i*comp_length: j+(i+1)*comp_length] for i in
+                        indices])
+    return np.hstack((sample[: n_jitters], result))
+
+
+def sort_samples_by_r(samples, n_comp, comp_length=4, jitter_first=True,
+                      n_jitters=1):
+    new_samples = list()
+    for sample in samples:
+        sorted_sample = sort_sample_by_r(sample, n_comp, comp_length, jitter_first,
+                                         n_jitters)
+        new_samples.append(sorted_sample)
+    return np.atleast_2d(new_samples)
 
 
 def rj_plot_ncomponents_distribution(posterior_file="posterior_sample.txt",
@@ -342,6 +376,8 @@ def convert_sample_to_difmap_model(sample, out_fname, freq_ghz, type="cg"):
         comp_length = 4
     elif type == "eg":
         comp_length = 6
+    else:
+        raise Exception("Converting sample to difmap model works for Gaussians only")
     n_comps = int(len(sample)/comp_length)
     components = list()
     for i in range(n_comps):
@@ -462,26 +498,88 @@ def plot_position_posterior(samples, savefn=None, ra_lim=(-10, 10),
     return fig
 
 
-def plot_per_antenna_jitters(samples, uvfits=None, n_antennas=10):
-    if uvfits is not None:
-        obs = eh.obsdata.load_uvfits(uvfits)
-        tkey = {i: j for (j, i) in obs.tkey.items()}
+def plot_position_posterior_clustered(samples, savefn=None, ra_lim=(-10, 10),
+                            dec_lim=(-10, 10), difmap_model_fn=None,
+                            n_relative_posterior=None, s=0.6,
+                            n_relative_difmap=None, type="cg", figsize=None,
+                            sorted_componets=False,
+                            fig=None,
+                            inverse_xaxis=True,
+                            alpha_opacity=0.01,
+                            cluster_membership=None):
+
+    """
+
+    :param samples:
+        Already sorted posterior samples. For nonRJ gain samples you should
+        do first ``postprocess_labebels_gains.sort_samples_by_r`` than feed
+        only non-jitter part of the sorted sampler here.
+    :param savefn:
+    :param ra_lim:
+    :param dec_lim:
+    :param difmap_model_fn:
+    :param n_relative_posterior:
+        Number of component in already sorted posterior that should be in phase
+        center.
+    :param n_relative_difmap:
+        Number of component in difmap model that should be in phase center.
+    :return:
+    """
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    colors = cycle(colors)
+    if fig is None:
+        fig, axes = plt.subplots(1, 1, figsize=figsize)
     else:
-        tkey = {i: str(i) for i in range(n_antennas)}
-    data = [samples[:, i] for i in range(n_antennas)]
-    labels = [tkey[i] for i in range(n_antennas)]
-    df = pd.DataFrame.from_dict(OrderedDict(zip(labels, data)))
-    axes = sns.boxplot(data=df, orient='h')
-    axes.set_xlabel(r"$\log{\sigma_{\rm ant}}$")
-    axes.set_ylabel("Antenna")
-    plt.tight_layout()
-    plt.show()
-    return axes
+        axes = fig.gca()
+    xs = dict()
+    ys = dict()
+    fluxes = dict()
+
+    if type == "cg":
+        comp_length = 4
+    elif type == "eg":
+        comp_length = 6
+    n_comps = int(len(samples[0])/comp_length)
+    print("# comp = ", n_comps)
+
+    components = list()
+    components_cluster_dict = dict()
+    for i in np.unique(cluster_membership):
+        components_cluster_dict[i] = list()
+    for sample in samples:
+        # print(f"Splitting sample {sample} into components")
+        splitted = np.split(sample, n_comps)
+        for comp in splitted:
+            # print(f"Appending component {comp}")
+            components.append(comp[:2])
 
 
-def plot_per_antenna_jitters_and_offsets(samples, uvfits=None, n_antennas=10, save_dir=None, save_basename=None):
+    for comp, cluster_id in zip(components, cluster_membership):
+        components_cluster_dict[cluster_id].append(comp)
+
+    for i, color in zip(sorted(np.unique(cluster_membership)), colors):
+        xs = [comp[0] for comp in components_cluster_dict[i]]
+        ys = [comp[1] for comp in components_cluster_dict[i]]
+        axes.scatter(xs, ys, s=s, color=color, edgecolors='none', alpha=alpha_opacity)
+
+    axes.set_xlim(ra_lim)
+    axes.set_ylim(dec_lim)
+    axes.set_xlabel("RA, mas")
+    axes.set_ylabel("DEC, mas")
+    if inverse_xaxis:
+        axes.invert_xaxis()
+    axes.set_aspect("equal")
+
+    if savefn is not None:
+        fig.savefig(savefn, dpi=600, bbox_inches="tight")
+    return fig
+
+
+def plot_per_antenna_jitters_and_offsets(samples, uvfits=None, n_antennas=10, save_dir=None, save_basename=None,
+                                         plot_jitters=True, plot_offsets=True):
     if uvfits is not None:
         obs = eh.obsdata.load_uvfits(uvfits)
+        print(obs.tkey)
         tkey = {i: j for (j, i) in obs.tkey.items()}
     else:
         tkey = {i: str(i) for i in range(n_antennas)}
@@ -497,31 +595,175 @@ def plot_per_antenna_jitters_and_offsets(samples, uvfits=None, n_antennas=10, sa
     samples = np.atleast_2d(samples)
 
     # Jitters
-    data = [samples[:, i] for i in range(n_antennas)]
-    labels = [tkey[i] for i in range(n_antennas)]
-    df = pd.DataFrame.from_dict(OrderedDict(zip(labels, data)))
-    fig, axes = plt.subplots(1, 1)
-    axes = sns.boxplot(data=df, orient='h', ax=axes)
-    axes.set_xlabel(r"$\log{\sigma_{\rm ant}}$")
-    axes.set_ylabel("Antenna")
-    plt.tight_layout()
-    fig.savefig(os.path.join(save_dir, f"{save_basename}jitters.png"), bbox_inches="tight")
-    plt.show()
+    if plot_jitters:
+        data = [samples[:, i] for i in range(n_antennas)]
+        labels = [tkey[i] for i in range(n_antennas)]
+        df = pd.DataFrame.from_dict(OrderedDict(zip(labels, data)))
+        fig, axes = plt.subplots(1, 1)
+        axes = sns.boxplot(data=df, orient='h', ax=axes)
+        axes.set_xlabel(r"$\log{\sigma_{\rm ant}}$")
+        axes.set_ylabel("Antenna")
+        plt.tight_layout()
+        fig.savefig(os.path.join(save_dir, f"{save_basename}jitters.png"), bbox_inches="tight")
+        plt.show()
 
     # Offsets
-    data = [samples[:, i+n_antennas] for i in range(n_antennas)]
-    labels = [tkey[i] for i in range(n_antennas)]
-    df = pd.DataFrame.from_dict(OrderedDict(zip(labels, data)))
-    fig, axes = plt.subplots(1, 1)
-    axes = sns.boxplot(data=df, orient='h', ax=axes)
-    axes.set_xlabel(r"Offset")
-    axes.set_ylabel("Antenna")
-    axes.axvline(1., lw=1, color="k")
-    plt.tight_layout()
-    fig.savefig(os.path.join(save_dir, f"{save_basename}offsets.png"), bbox_inches="tight")
-    plt.show()
+    if plot_offsets:
+        data = [samples[:, i+n_antennas] for i in range(n_antennas)]
+        labels = [tkey[i] for i in range(n_antennas)]
+        df = pd.DataFrame.from_dict(OrderedDict(zip(labels, data)))
+        fig, axes = plt.subplots(1, 1)
+        axes = sns.boxplot(data=df, orient='h', ax=axes)
+        axes.set_xlabel(r"Offset")
+        axes.set_ylabel("Antenna")
+        axes.axvline(1., lw=1, color="k")
+        plt.tight_layout()
+        fig.savefig(os.path.join(save_dir, f"{save_basename}offsets.png"), bbox_inches="tight")
+        plt.show()
 
     return axes
+
+
+def get_points_for_clustering_from_samples(samples, n_comp, standardize=False):
+    from sklearn.preprocessing import StandardScaler
+    components = list()
+    for sample in samples:
+        # print(f"Splitting sample {sample} into components")
+        splitted = np.split(sample, n_comp)
+        for comp in splitted:
+            # print(f"Appending component {comp}")
+            components.append(comp[:2])
+    components = np.atleast_2d(components)
+    print("========================================================================")
+    print(f"Number of components in current model: {n_comp}, # of posterior samples : {len(samples)}")
+    if standardize:
+        components = StandardScaler().fit_transform(components)
+    return components
+
+
+def clusterization(posterior_file, jitter_first=True, n_jitters=1, n_max=30,
+                   skip_hyperparameters=False, component_type="cg",
+                   algorithm="hdbscan",
+                   dbscan_min_core_samples_frac_of_posterior_size=0.5,
+                   dbscan_eps=0.1,
+                   hdbscan_min_cluster_frac_of_posterior_size=0.5):
+
+    # if type == "cg":
+    #     comp_length = 4
+    # elif type == "eg":
+    #     comp_length = 6
+    # else:
+    #     raise Exception
+
+    posterior_samples = np.loadtxt(posterior_file)
+    samples_for_each_n = get_samples_for_each_n(posterior_samples, jitter_first,
+                                                n_jitters=n_jitters, n_max=n_max,
+                                                skip_hyperparameters=skip_hyperparameters,
+                                                type=component_type)
+
+    labels_dict = dict()
+    for n_comp, samples in samples_for_each_n.items():
+        if jitter_first and n_jitters > 0:
+            samples = samples[:, n_jitters:]
+
+        X = get_points_for_clustering_from_samples(samples, n_comp)
+
+        print("========================================================================")
+        print(f"Number of components in current model: {n_comp}, # of posterior samples : {len(samples)}")
+        # The number of samples (or total weight) in a neighborhood for a point
+        # to be considered as a core point. It is set as a fraction of posterior samples per component. 
+        print("number of points to cluster : ", len(X))
+        min_core_samples = int(dbscan_min_core_samples_frac_of_posterior_size*len(X)/n_comp)
+        if min_core_samples == 0:
+            min_core_samples = 1
+        print("min core # of points : ", min_core_samples)
+        if algorithm == "dbscan":
+            db = DBSCAN(eps=dbscan_eps, min_samples=min_core_samples).fit(X)
+        elif algorithm == "hdbscan":
+            min_cluster_size = int(hdbscan_min_cluster_frac_of_posterior_size*len(samples))
+            if min_cluster_size < 2:
+                min_cluster_size = 2
+            db = HDBSCAN(min_cluster_size=min_cluster_size).fit(X)
+        else:
+            raise Exception
+
+        labels = db.labels_
+
+        # Number of clusters in labels, ignoring noise if present.
+        n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+        n_noise_ = list(labels).count(-1)
+
+        print("Estimated number of clusters: {}".format(n_clusters_))
+        print("Estimated percent of noise points: {:.2f}".format(100*n_noise_/len(X)))
+
+        labels_dict[n_comp] = db.labels_
+
+    return labels_dict
+
+
+def cluster_optics(samples):
+    clust = OPTICS(min_samples=50, xi=0.05, min_cluster_size=0.05)
+    X = samples.copy()
+    clust.fit(X)
+    space = np.arange(len(X))
+    reachability = clust.reachability_[clust.ordering_]
+    labels = clust.labels_[clust.ordering_]
+    fig, ax1 = plt.subplots(1, 1)
+    # Reachability plot
+    colors = ["g.", "r.", "b.", "y.", "c."]
+    for klass, color in zip(range(0, 5), colors):
+        Xk = space[labels == klass]
+        Rk = reachability[labels == klass]
+        ax1.plot(Xk, Rk, color, alpha=0.3)
+    ax1.plot(space[labels == -1], reachability[labels == -1], "k.", alpha=0.3)
+    ax1.plot(space, np.full_like(space, 2.0, dtype=float), "k-", alpha=0.5)
+    ax1.plot(space, np.full_like(space, 0.5, dtype=float), "k-.", alpha=0.5)
+    ax1.set_ylabel("Reachability (epsilon distance)")
+    ax1.set_title("Reachability Plot")
+    plt.show()
+
+
+def plot(X, labels, probabilities=None, parameters=None, ground_truth=False, ax=None):
+    if ax is None:
+        _, ax = plt.subplots(figsize=(10, 4))
+    labels = labels if labels is not None else np.ones(X.shape[0])
+    probabilities = probabilities if probabilities is not None else np.ones(X.shape[0])
+    # Black removed and is used for noise instead.
+    unique_labels = set(labels)
+    colors = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels))]
+    # The probability of a point belonging to its labeled cluster determines
+    # the size of its marker
+    proba_map = {idx: probabilities[idx] for idx in range(len(labels))}
+    for k, col in zip(unique_labels, colors):
+        if k == -1:
+            # Black used for noise.
+            col = [0, 0, 0, 1]
+
+        class_index = np.where(labels == k)[0]
+        for ci in class_index:
+            ax.plot(
+                X[ci, 0],
+                X[ci, 1],
+                "x" if k == -1 else "o",
+                markerfacecolor=tuple(col),
+                markeredgecolor="k",
+                markersize=4 if k == -1 else 1 + 5 * proba_map[ci],
+            )
+    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    preamble = "True" if ground_truth else "Estimated"
+    title = f"{preamble} number of clusters: {n_clusters_}"
+    if parameters is not None:
+        parameters_str = ", ".join(f"{k}={v}" for k, v in parameters.items())
+        title += f" | {parameters_str}"
+    ax.set_title(title)
+    plt.tight_layout()
+
+
+def cluster_hdbscan(samples, n_comp):
+    X = get_points_for_clustering_from_samples(samples, n_comp, standardize=True)
+    # First, tune ``min_cluster_size``, then - ``min_samples``
+    hdb = HDBSCAN(min_cluster_size=int(0.5*len(samples))).fit(X)
+    plot(X, hdb.labels_, hdb.probabilities_)
 
 
 if __name__ == "__main__":
@@ -531,16 +773,17 @@ if __name__ == "__main__":
     # uvfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.uvf"
     # uvfits = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27.uvf"
     # uvfits = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2012_06_25.uvf"
-    uvfits = "/home/ilya/Downloads/mojave/0136+176/ta60_0136+176.u.2012_06_25.uvf"
+    uvfits = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/ta60_0136+176.u.2009_05_28.uvf"
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
     # df = pd.read_csv(data_file, names=["u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03_60sec_antennas.txt"
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
     # data_file = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15_60sec_antennas.txt"
     # data_file = "/home/ilya/Downloads/mojave/1502+106/4comp.txt"
-    data_file = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2012_06_25_60sec_antennas.txt"
+    data_file = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28_60sec_antennas.csv"
     df = pd.read_csv(data_file)
-    posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
+    # posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
+    posterior_file = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/cg/posterior_sample.txt"
     # posterior_file = "/home/ilya/github/bam/Release/posterior_sample.txt"
     # posterior_file = "/home/ilya/Downloads/mojave/0136+176/2012_06_25/eg/posterior_sample.txt"
     # old
@@ -550,19 +793,27 @@ if __name__ == "__main__":
     # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/jitters_offsets"
     # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/jitters_offsets/circular_2Dprior/"
     # save_dir = "/home/ilya/data/rjbam/1502+106/4comp_jitters_2D"
-    save_dir = "/home/ilya/Downloads/mojave/0136+176/2012_06_25/eg"
+    save_dir = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/cg"
     # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/old"
     save_rj_ncomp_distribution_file = os.path.join(save_dir, "ncomponents_distribution.png")
     # original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2023_05_03.icn.fits"
     # original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2012_11_11.icn.fits"
     # original_ccfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.icn.fits"
-    original_ccfits = "/home/ilya/Downloads/mojave/0136+176/2012_06_25/0136+176.u.2012_06_25.icn.fits"
+    original_ccfits = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28.icn.fits"
     n_max = 20
-    n_jitters = 9
-    n_max_samples_to_plot = 500
+    n_antennas = 10
+    n_jitters = n_antennas
+    # Plot all samples - for easy handling component cluster membership
+    n_max_samples_to_plot = 1000
     jitter_first = True
     skip_hp = True
-    component_type = "eg"
+    component_type = "cg"
+    if component_type == "cg":
+        comp_length = 4
+    elif component_type == "eg":
+        comp_length = 6
+    else:
+        raise Exception
     pixsize_mas = 0.1
     freq_ghz = 15.4
     posterior_samples = np.loadtxt(posterior_file)
@@ -571,14 +822,32 @@ if __name__ == "__main__":
     save_basename = os.path.split(uvfits)[-1].split(".uvf")[0]
 
 
-    # plot_per_antenna_jitters_and_offsets(posterior_samples, uvfits=uvfits, save_dir=save_dir, save_basename=save_basename)
+    plot_per_antenna_jitters_and_offsets(posterior_samples, uvfits=uvfits, save_dir=save_dir,
+                                         save_basename=save_basename, plot_offsets=False,
+                                         n_antennas=n_antennas)
 
     fig = rj_plot_ncomponents_distribution(posterior_file, picture_fn=save_rj_ncomp_distribution_file,
                                            jitter_first=jitter_first, n_jitters=n_jitters, type=component_type,
                                            normed=True, show=False, skip_hyperparameters=skip_hp)
+    # samples_for_each_n = get_samples_for_each_n(posterior_samples, jitter_first,
+    #                                             n_jitters=n_jitters, n_max=n_max,
+    #                                             skip_hyperparameters=skip_hp,
+    #                                             type=component_type)
+
+    # sys.exit(0)
+
+    labels_dict = clusterization(posterior_file, jitter_first=jitter_first, n_jitters=n_jitters, n_max=n_max,
+                                 skip_hyperparameters=skip_hp, component_type=component_type,
+                                 algorithm="hdbscan",
+                                 dbscan_min_core_samples_frac_of_posterior_size=0.3,
+                                 dbscan_eps=0.2,
+                                 hdbscan_min_cluster_frac_of_posterior_size=0.5)
+
+    # sys.exit(0)
 
     plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=n_jitters, component_type=component_type,
-                           style="ap", n_samples_to_plot=1000, alpha_model=0.01, skip_hyperparameters=skip_hp)
+                           style="ap", n_samples_to_plot=1000, alpha_model=0.01, skip_hyperparameters=skip_hp,
+                           savefname=os.path.join(save_dir, "radplot.png"))
 
 
     # sys.exit(0)
@@ -606,11 +875,18 @@ if __name__ == "__main__":
                 contour_linewidth=0.25, contour_color='k')
     fig.savefig(os.path.join(save_dir, "CLEAN_image.png"), dpi=600)
     for n_component in n_components_spread:
+        # Remove jitters & offsets
         samples_to_plot = samples_for_each_n[n_component][:, n_jitters:]
+        # Sort samples by r
+        sorted_samples_to_plot = sort_samples_by_r(samples_to_plot, n_component, comp_length=comp_length, jitter_first=False)
         n_samples = len(samples_to_plot)
         if n_samples > n_max_samples_to_plot:
             n_samples = n_max_samples_to_plot
         fig_p = pickle.loads(pickle.dumps(fig))
+        fig_p1 = pickle.loads(pickle.dumps(fig))
+        fig_p2 = pickle.loads(pickle.dumps(fig))
+
+        # Vanilla
         fig_out = plot_position_posterior(samples_to_plot[:n_max_samples_to_plot, :],
                                           savefn=None, ra_lim=None, dec_lim=None,
                                           difmap_model_fn=None, type=component_type, s=3.0, figsize=None,
@@ -619,13 +895,32 @@ if __name__ == "__main__":
                                           alpha_opacity=0.3)
         fig_out.savefig(os.path.join(save_dir, f"CLEAN_image_ncomp_{n_component}.png"), dpi=600)
         plt.close(fig_out)
-        f = plot_size_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :],
-                                         savefn=os.path.join(save_dir, f"r_R_ncomp_{n_component}.png"),
-                                         type=component_type)
-        plt.close(f)
-        f = plot_tb_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :], freq_ghz, type=component_type,
-                                       savefn=os.path.join(save_dir, f"r_Tb_ncomp_{n_component}.png"))
-        plt.close(f)
-        # f = plot_model_predictions(samples_to_plot[:n_max_samples_to_plot, :], df,
-        #                            savefname=os.path.join(save_dir, f"radplot_{n_component}.png"), show=False)
+
+        # Sorted samples
+        fig_out = plot_position_posterior(sorted_samples_to_plot[:n_max_samples_to_plot, :],
+                                          savefn=None, ra_lim=None, dec_lim=None,
+                                          difmap_model_fn=None, type=component_type, s=3.0, figsize=None,
+                                          sorted_componets=True, fig=fig_p1,
+                                          inverse_xaxis=False,
+                                          alpha_opacity=0.3)
+        fig_out.savefig(os.path.join(save_dir, f"CLEAN_image_ncomp_{n_component}_sorted.png"), dpi=600)
+        plt.close(fig_out)
+
+        fig_out = plot_position_posterior_clustered(samples_to_plot,
+                                                    savefn=None, ra_lim=None, dec_lim=None,
+                                                    difmap_model_fn=None, type=component_type, s=1.0, figsize=None,
+                                                    sorted_componets=False, fig=fig_p2,
+                                                    inverse_xaxis=False,
+                                                    alpha_opacity=0.3,
+                                                    cluster_membership=labels_dict[n_component])
+        fig_out.savefig(os.path.join(save_dir, f"CLEAN_image_ncomp_{n_component}_clusters.png"), dpi=600)
+        plt.close(fig_out)
+
+        # f = plot_size_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :],
+        #                                  savefn=os.path.join(save_dir, f"r_R_ncomp_{n_component}.png"),
+        #                                  type=component_type)
+        # plt.close(f)
+        #
+        # f = plot_tb_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :], freq_ghz, type=component_type,
+        #                                savefn=os.path.join(save_dir, f"r_Tb_ncomp_{n_component}.png"))
         # plt.close(f)
