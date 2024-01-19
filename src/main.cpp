@@ -6,7 +6,7 @@ using namespace DNest4;
 
 const ComponentType component_type = circular;
 const bool hyperpriors = false;
-const bool use_jitters = true;
+const bool use_jitters = false;
 const bool use_offsets = false;
 
 
