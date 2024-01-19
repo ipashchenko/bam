@@ -15,11 +15,11 @@ uvfits_files = None
 # Directory to save the results
 base_save_dir = "/home/ilya/data/rjbam"
 n_jobs = 5
+maxnsaves = 70000
 
 # FIXME: Choose executable depending on ``component_type``
 executable = "/home/ilya/github/bam/Release/bam"
 
-maxnsaves = 70000
 # Average time in difmap. It uses weighted vector averaging and also re-calculate weightsю This is helpful when they are
 # not reliable.
 difmap_avg_time_sec = 60
@@ -66,15 +66,15 @@ print("args\n", args)
 
 if dry_run:
     os.system('parallel --files --results {}/res_{{1}} --joblog {}/joblog --jobs {} --dryrun --link '
-              '"python fit_mojave_uvfits_single_ncomponents.py --executable {} --template_options {} --basename {{1}} '
+              '"python fit_mojave_uvfits_single_ncomponents.py --executable {} --maxnsaves {} --template_options {} --basename {{1}} '
               '--data_file {{2}} --results_dir {{3}}" ::: {} ::: {} ::: {}'.format(results_dir, results_dir, n_jobs,
-                                                                                   executable, template_options,
+                                                                                   executable, maxnsaves, template_options,
                                                                                    basenames, out_fnames, results_dirs))
 else:
     os.system('parallel --files --results {}/res_{{1}} --joblog {}/joblog --jobs {} --link '
-              '"python fit_mojave_uvfits_single_ncomponents.py --executable {} --template_options {} --basename {{1}} '
+              '"python fit_mojave_uvfits_single_ncomponents.py --executable {} --maxnsaves {} --template_options {} --basename {{1}} '
               '--data_file {{2}} --results_dir {{3}}" ::: {} ::: {} ::: {}'.format(results_dir, results_dir, n_jobs,
-                                                                                   executable, template_options,
+                                                                                   executable, maxnsaves, template_options,
                                                                                    basenames, out_fnames, results_dirs))
 
 # This works in bash
