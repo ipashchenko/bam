@@ -5,21 +5,21 @@ from data_utils import get_data_file_from_ehtim
 
 
 dry_run = False
-source = "1502+106"
+source = "0136+176"
 # cg, eg, sp. Not used now.
 component_type = "cg"
 # Directory with UVFITS files for this source in MOJAVE format
-uvfits_dir = "/home/ilya/Downloads/mojave/1502+106/uvfits_dir"
+uvfits_dir = "/home/ilya/Downloads/mojave/0136+176/uvfits_dir"
 # Or iterable of UVFITS files
 uvfits_files = None
 # Directory to save the results
 base_save_dir = "/home/ilya/data/rjbam"
-n_jobs = 6
+n_jobs = 5
 
 # FIXME: Choose executable depending on ``component_type``
 executable = "/home/ilya/github/bam/Release/bam"
 
-maxnsaves = 50000
+maxnsaves = 70000
 # Average time in difmap. It uses weighted vector averaging and also re-calculate weightsю This is helpful when they are
 # not reliable.
 difmap_avg_time_sec = 60
