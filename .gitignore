@@ -1,0 +1,13 @@
+ ignore all root items (files and folders)
+/*
+
+# unignore Python code files
+!*.py
+
+# unignore folders
+!src
+
+# unignore files
+!.gitignore
+!CMakeLists.txt
+!README.md
