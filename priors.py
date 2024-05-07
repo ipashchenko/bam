@@ -42,8 +42,8 @@ class Gaussian2D(object):
         return self.cdf_inverse(u)
 
 
-# g2d = Gaussian2D(-1.74, -0.71, -0.8, 1.62, 1.03)
-g2d = Gaussian2D(-1.74, -0.71, -0.8, 0.75*1.62, 0.75*1.03)
+g2d = Gaussian2D(-1.74, -0.71, -0.8, 1.62, 1.03)
+# g2d = Gaussian2D(-1.74, -0.71, -0.8, 0.75*1.62, 0.75*1.03)
 samples = list()
 u_samples = list()
 for i in tqdm(range(num_samples)):

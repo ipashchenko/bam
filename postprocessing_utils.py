@@ -773,16 +773,19 @@ if __name__ == "__main__":
     # uvfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.uvf"
     # uvfits = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27.uvf"
     # uvfits = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2012_06_25.uvf"
-    uvfits = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/ta60_0136+176.u.2009_05_28.uvf"
+    # uvfits = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/ta60_0136+176.u.2009_05_28.uvf"
+    uvfits = "/home/ilya/data/VLBI_Gaia/J1443+0809_C_2013_04_22_pet_vis.fits"
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
     # df = pd.read_csv(data_file, names=["u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03_60sec_antennas.txt"
     # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
     # data_file = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15_60sec_antennas.txt"
     # data_file = "/home/ilya/Downloads/mojave/1502+106/4comp.txt"
-    data_file = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28_60sec_antennas.csv"
+    # data_file = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28_60sec_antennas.csv"
+    data_file = "/home/ilya/data/VLBI_Gaia/J1443+0809_C_2013_04_22_pet_vis.csv"
     df = pd.read_csv(data_file)
-    posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
+    posterior_file = "/home/ilya/data/VLBI_Gaia/posterior_sample_test.txt"
+    # posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
     # posterior_file = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/eg/posterior_sample.txt"
     # posterior_file = "/home/ilya/github/bam/Release/posterior_sample.txt"
     # posterior_file = "/home/ilya/Downloads/mojave/0136+176/2012_06_25/eg/posterior_sample.txt"
@@ -793,29 +796,31 @@ if __name__ == "__main__":
     # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/jitters_offsets"
     # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/jitters_offsets/circular_2Dprior/"
     # save_dir = "/home/ilya/data/rjbam/1502+106/4comp_jitters_2D"
-    save_dir = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/eg_noj"
+    # save_dir = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/eg_noj"
+    save_dir = "/home/ilya/data/VLBI_Gaia"
     # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/old"
     save_rj_ncomp_distribution_file = os.path.join(save_dir, "ncomponents_distribution.png")
     # original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2023_05_03.icn.fits"
     # original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2012_11_11.icn.fits"
     # original_ccfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.icn.fits"
-    original_ccfits = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28.icn.fits"
-    n_max = 20
+    # original_ccfits = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28.icn.fits"
+    original_ccfits = "/home/ilya/data/VLBI_Gaia/J1443+0809_C_2013_04_22_pet_map.fits"
+    n_max = 2
     n_antennas = 0
     n_jitters = n_antennas
     # Plot all samples - for easy handling component cluster membership
     n_max_samples_to_plot = 1000
     jitter_first = False
     skip_hp = True
-    component_type = "eg"
+    component_type = "cg"
     if component_type == "cg":
         comp_length = 4
     elif component_type == "eg":
         comp_length = 6
     else:
         raise Exception
-    pixsize_mas = 0.1
-    freq_ghz = 15.4
+    pixsize_mas = 0.3
+    freq_ghz = 4.6
     posterior_samples = np.loadtxt(posterior_file)
     import matplotlib
     matplotlib.use("TkAgg")
