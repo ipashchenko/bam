@@ -1,6 +1,8 @@
 import os
 import numpy as np
 from astropy import units as u
+import astropy.io.fits as pf
+from astropy.stats import mad_std
 import matplotlib.pyplot as plt
 import pandas as pd
 import ehtim as eh
@@ -133,7 +135,17 @@ def optically_thin_sphere_ft(uv, ra, dec, flux, size):
     return result.real, result.imag
 
 
+def get_rms(obs, t1, t2):
+    rec = obs.unpack_bl(t1, t2, "vis")
+    real = rec["vis"].real
+    imag = rec["vis"].imag
+    sigma_real = mad_std(np.diff(real, axis=0))/np.sqrt(2)
+    sigma_imag = mad_std(np.diff(imag, axis=0))/np.sqrt(2)
+    return 0.5*(sigma_real + sigma_imag)
+
+
 # For now better average using difmap, that assures that weights are reasonable
+# 08.05.2024: Now it uses successive differences approach and does not trust the weights
 def get_data_file_from_ehtim(uvfits, outname, avg_time_sec=0, average_using="difmap"):
 
     assert average_using in ("difmap", "eht-imager")
@@ -156,10 +168,75 @@ def get_data_file_from_ehtim(uvfits, outname, avg_time_sec=0, average_using="dif
     df = pd.DataFrame.from_records(rec)
     df["vis_re"] = np.real(df["vis"])
     df["vis_im"] = np.imag(df["vis"])
-    df["error"] = df["sigma"]
+    # df["error"] = df["sigma"]
+    df["error"] = df.apply(lambda x: get_rms(obs, x.t1, x.t2), axis=1)
     df = df[["t1", "t2", "u", "v", "vis_re", "vis_im", "error"]]
     df = df.replace({"t1": obs.tkey})
     df = df.replace({"t2": obs.tkey})
+    df.to_csv(outname, sep=",", header=True, index=False)
+    return df
+
+
+def get_data_file_from_ehtim_multiple_IFs(uvfits, outname, avg_time_sec=0, average_using="difmap"):
+
+    # Find n_IF
+    header = pf.getheader(uvfits)
+    n_IF = None
+    if header["CTYPE5"] == "IF":
+        n_IF = int(header["NAXIS5"])
+    else:
+        raise Exception("Can't find n_IF from header")
+
+    # Find frequencies of all IFs
+    # Origin frequency of first IF
+    ref_fr = header["CRVAL4"]
+    # Width of the IF
+    IF_bandwidth = header["CDELT4"]
+    IF_center_freqs = np.ones(n_IF)*ref_fr + (0.5 + np.arange(n_IF))*IF_bandwidth
+
+
+    assert average_using in ("difmap", "eht-imager")
+
+    if avg_time_sec > 0:
+        if average_using == "difmap":
+            uvfits_dir, uvfits_fname = os.path.split(uvfits)
+            uvfits_ta = os.path.join(uvfits_dir, f"ta{avg_time_sec}_{uvfits_fname}")
+            # difmap uses vector weighted averaging
+            time_average(uvfits, uvfits_ta, time_sec=avg_time_sec)
+            uvfits = uvfits_ta
+
+    dfs = list()
+    for i_IF in range(n_IF):
+        # eht-imager estimates errors from weights!
+        obs = eh.obsdata.load_uvfits(uvfits, IF=[i_IF])
+        obs.tlist()
+        if avg_time_sec > 0:
+            if average_using == "eht":
+                obs = obs.avg_coherent(avg_time_sec)
+
+
+
+        rec = obs.unpack(["t1", "t2", "u", "v", "vis", "sigma"])
+        # Correct for wrong conversion of (u,v) from light seconds to lambdas
+        rec["u"] = IF_center_freqs[i_IF]/ref_fr * rec["u"]
+        rec["v"] = IF_center_freqs[i_IF]/ref_fr * rec["v"]
+        df = pd.DataFrame.from_records(rec)
+
+        # Queries
+        # query("u == -@row.u and v == -@row.v")
+
+        df["vis_re"] = np.real(df["vis"])
+        df["vis_im"] = np.imag(df["vis"])
+        df["error"] = df["sigma"]
+
+        df["error"] = df.apply(lambda x: get_rms(obs, x.t1, x.t2), axis=1)
+
+        df = df[["t1", "t2", "u", "v", "vis_re", "vis_im", "error"]]
+        df = df.replace({"t1": obs.tkey})
+        df = df.replace({"t2": obs.tkey})
+        dfs.append(df)
+
+    df = pd.concat(dfs, axis=0, ignore_index=False)
     df.to_csv(outname, sep=",", header=True, index=False)
     return df
 
@@ -260,10 +337,12 @@ def radplot(df, fig=None, color=None, label=None, style="ap", savefname=None, sh
 
 
 if __name__ == "__main__":
-    uvfits_file = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28.uvf"
-    out_fname = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28_60sec_antennas.csv"
+    # uvfits_file = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28.uvf"
+    uvfits_file = "/home/ilya/data/VLBI_Gaia/J1443+0809_C_2013_04_22_pet_vis.fits"
+    # out_fname = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28_60sec_antennas.csv"
+    out_fname = "/home/ilya/data/VLBI_Gaia/J1443+0809_C_2013_04_22_pet_vis.csv"
     # This uses antenna sites for per-antenna jitter.
-    df = get_data_file_from_ehtim(uvfits_file, out_fname, avg_time_sec=60, average_using="difmap")
+    df = get_data_file_from_ehtim(uvfits_file, out_fname, avg_time_sec=0, average_using="difmap")
 
 
     sys.exit(0)
