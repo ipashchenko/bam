@@ -5,13 +5,14 @@ include_directories("/usr/include/eigen3", "/home/ilya/github/DNest4/code", "src
 
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -std=c++11 -march=native -O3 -DNDEBUG -w -DEIGEN_MPL2_ONLY")
 
 include(FetchContent)
 FetchContent_Declare(
         rapidcsv
         GIT_REPOSITORY "https://github.com/d99kris/rapidcsv.git"
-        GIT_TAG        "v8.50"
+        GIT_TAG        "v8.80"
 )
 FetchContent_MakeAvailable(rapidcsv)
 
