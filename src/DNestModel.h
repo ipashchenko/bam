@@ -58,8 +58,8 @@ class DNestModel {
 		std::shared_ptr<T> make_prior( Args&&... args ) { return std::make_shared<T>(args...); }
 
     private:
-		bool fixed {false};
-		int max_number_of_components {20};
+		bool fixed {true};
+		int max_number_of_components {2};
 		
 		std::unordered_map<ComponentType, int> component_length{{circular, 4}, {sphere, 4}, {elliptical, 6}};
 		
