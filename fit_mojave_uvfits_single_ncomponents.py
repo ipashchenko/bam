@@ -12,8 +12,8 @@ def run(basename, maxnsaves, data_file, results_dir, template_options, excecutab
     run_name = basename
     result_options = os.path.join(results_dir, "OPTIONS_{}".format(run_name))
     options = {'nparticles': 1,
-               'newlevel': 200000,
-               'saveinterval': 20000,
+               'newlevel': 10000,
+               'saveinterval': 10000,
                'threadsteps': 100,
                'maxnlevels': 0,
                'lambda': 30,
@@ -31,7 +31,7 @@ def run(basename, maxnsaves, data_file, results_dir, template_options, excecutab
 
     executable_dir = os.path.split(executable)[0]
     os.chdir(executable_dir)
-    os.system("{} -t 5 -o {} -d {}".format(excecutable,
+    os.system("{} -t 4 -o {} -d {}".format(excecutable,
                                            result_options,
                                            data_file))
     print("POSTPROCESSING DNEST OUTPUT...")
@@ -49,8 +49,8 @@ def run(basename, maxnsaves, data_file, results_dir, template_options, excecutab
 
     post_samples = np.loadtxt(post_samples_file)
     n_post_samples = len(post_samples)
-    if n_post_samples < 1000:
-        os.system("touch {}/WARNING_SMALL_SAMPLE_SIZE_FOR_NCOMP{}_{}".format(results_dir, n_components, run_name))
+    if n_post_samples < 100:
+        os.system("touch {}/WARNING_SMALL_SAMPLE_SIZE_{}".format(results_dir, run_name))
 
 
 if __name__ == "__main__":
