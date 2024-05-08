@@ -8,7 +8,7 @@
 DNestModel::DNestModel() : logjitter(0.0) {
 
     sky_model = new SkyModel();
-    int ncomp = 3;
+    int ncomp = 2;
     for (int i=0; i<ncomp; i++) {
         auto* comp = new CGComponent();
         sky_model->add_component(comp);
