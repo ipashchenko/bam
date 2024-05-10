@@ -168,8 +168,10 @@ def get_data_file_from_ehtim(uvfits, outname, avg_time_sec=0, average_using="dif
     df = pd.DataFrame.from_records(rec)
     df["vis_re"] = np.real(df["vis"])
     df["vis_im"] = np.imag(df["vis"])
-    # df["error"] = df["sigma"]
-    df["error"] = df.apply(lambda x: get_rms(obs, x.t1, x.t2), axis=1)
+    # From weights
+    df["error"] = df["sigma"]
+    # Successive differences approach
+    # df["error"] = df.apply(lambda x: get_rms(obs, x.t1, x.t2), axis=1)
     df = df[["t1", "t2", "u", "v", "vis_re", "vis_im", "error"]]
     df = df.replace({"t1": obs.tkey})
     df = df.replace({"t2": obs.tkey})
@@ -229,7 +231,7 @@ def get_data_file_from_ehtim_multiple_IFs(uvfits, outname, avg_time_sec=0, avera
         df["vis_im"] = np.imag(df["vis"])
         df["error"] = df["sigma"]
 
-        df["error"] = df.apply(lambda x: get_rms(obs, x.t1, x.t2), axis=1)
+        # df["error"] = df.apply(lambda x: get_rms(obs, x.t1, x.t2), axis=1)
 
         df = df[["t1", "t2", "u", "v", "vis_re", "vis_im", "error"]]
         df = df.replace({"t1": obs.tkey})
@@ -337,12 +339,20 @@ def radplot(df, fig=None, color=None, label=None, style="ap", savefname=None, sh
 
 
 if __name__ == "__main__":
+    import glob
     # uvfits_file = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28.uvf"
-    uvfits_file = "/home/ilya/data/VLBI_Gaia/J1443+0809_C_2013_04_22_pet_vis.fits"
-    # out_fname = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28_60sec_antennas.csv"
-    out_fname = "/home/ilya/data/VLBI_Gaia/J1443+0809_C_2013_04_22_pet_vis.csv"
-    # This uses antenna sites for per-antenna jitter.
-    df = get_data_file_from_ehtim(uvfits_file, out_fname, avg_time_sec=0, average_using="difmap")
+    uvfits_dir = "/home/ilya/data/VLBI_Gaia/2comp"
+    uvfits_files = glob.glob(os.path.join(uvfits_dir, "*_vis.fits"))
+    for uvfits_file in uvfits_files:
+        print("Processing UVFITS : ", uvfits_file)
+        _, uvfits_fn = os.path.split(uvfits_file)
+        # if uvfits_fn == "J1443+0809_C_2013_04_22_pet_vis.fits"
+
+        out_fn = uvfits_fn.split(".")[0] + ".csv"
+        # out_fname = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28_60sec_antennas.csv"
+        out_fname = os.path.join(uvfits_dir, out_fn)
+        # This uses antenna sites for per-antenna jitter.
+        df = get_data_file_from_ehtim(uvfits_file, out_fname, avg_time_sec=60, average_using="difmap")
 
 
     sys.exit(0)
