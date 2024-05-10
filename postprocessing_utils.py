@@ -7,6 +7,7 @@ import pickle
 from matplotlib.patches import Ellipse, Circle
 from itertools import cycle
 import seaborn as sns
+from corner import corner
 from astropy import units as u
 from astropy import constants as const
 from sklearn.cluster import DBSCAN, HDBSCAN, OPTICS, cluster_optics_dbscan, SpectralClustering
@@ -766,51 +767,82 @@ def cluster_hdbscan(samples, n_comp):
     plot(X, hdb.labels_, hdb.probabilities_)
 
 
+def plot_corner(samples, cluster_membership, n_comps):
+    """
+    :param samples:
+        Samples w/o jitter of type returned by ``get_samples_for_each_n`` function.
+    :param cluster_membership:
+        labels_dict[n_comp]
+    """
+    # Cluster components
+
+    components = list()
+    components_cluster_dict = dict()
+    unique_cluster_ids = list(np.unique(cluster_membership))
+    for cluster_id in unique_cluster_ids:
+        components_cluster_dict[cluster_id] = list()
+    for sample in samples:
+        # print(f"Splitting sample {sample} into components")
+        splitted = np.split(sample, n_comps)
+        for comp in splitted:
+            # print(f"Appending component {comp}")
+            components.append(comp)
+
+    for comp, cluster_id in zip(components, cluster_membership):
+        components_cluster_dict[cluster_id].append(comp)
+
+    # Drop non-cluster points
+    unique_cluster_ids.remove(-1)
+    components_cluster_dict.pop(-1)
+
+    for cluster_id in unique_cluster_ids:
+        components_cluster_dict[cluster_id] = np.atleast_2d(components_cluster_dict[cluster_id])
+
+    # Convert size from log scale
+    for cluster_id in unique_cluster_ids:
+        components_cluster_dict[cluster_id][:, 3] = np.exp(components_cluster_dict[cluster_id][:, 3]) 
+
+    # Some components are in -1 class (no cluster). Trim other clusters to the minimal common size.
+    minimal_common_len = min([components_cluster_dict[cluster_id].shape[0] for cluster_id in unique_cluster_ids])
+    for cluster_id in unique_cluster_ids:
+        components_cluster_dict[cluster_id] = components_cluster_dict[cluster_id][:minimal_common_len, :]
+
+    median_fluxes_dict = dict()
+    for cluster_id in unique_cluster_ids:
+        median_fluxes_dict[cluster_id] = np.median(components_cluster_dict[cluster_id][:, 2])
+    # Sort cluster IDs in decreasing of the median flux
+    clusters_id_flux_sorted = sorted(median_fluxes_dict, key=lambda x: median_fluxes_dict[x], reverse=True)
+    # Concatenate in the same order in a single 2D array
+    new_samples = np.concatenate([components_cluster_dict[i] for i in clusters_id_flux_sorted], axis=1)
+
+    # Construct labels
+    labels = list()
+    for i in range(n_comps):
+        labels.extend([r"RA$_{}$".format(i+1),
+                       r"DEC$_{}$".format(i+1),
+                       r"$S_{}$".format(i+1),
+                       r"$\theta_{}$".format(i+1)])
+
+    fig = corner(new_samples, show_titles=True, title_fmt=".3f", quantiles=[0.16, 0.50, 0.84], labels=labels)
+    fig.savefig("test.png", bbox_inches="tight", dpi=100)
+    plt.show()
+
+
 if __name__ == "__main__":
 
-    # uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03.uvf"
-    # uvfits = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11.uvf"
-    # uvfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.uvf"
-    # uvfits = "/home/ilya/Downloads/mojave/1502+106/1502+106.u.2011_02_27.uvf"
-    # uvfits = "/home/ilya/Downloads/mojave/0136+176/0136+176.u.2012_06_25.uvf"
-    # uvfits = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/ta60_0136+176.u.2009_05_28.uvf"
-    uvfits = "/home/ilya/data/VLBI_Gaia/J1443+0809_C_2013_04_22_pet_vis.fits"
-    # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_07_01_60sec.txt"
-    # df = pd.read_csv(data_file, names=["u", "v", "vis_re", "vis_im", "error"], delim_whitespace=True)
-    # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2023_05_03_60sec_antennas.txt"
-    # data_file = "/home/ilya/Downloads/mojave/0851+202/0851+202.u.2012_11_11_60sec_antennas.txt"
-    # data_file = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15_60sec_antennas.txt"
-    # data_file = "/home/ilya/Downloads/mojave/1502+106/4comp.txt"
-    # data_file = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28_60sec_antennas.csv"
-    data_file = "/home/ilya/data/VLBI_Gaia/J1443+0809_C_2013_04_22_pet_vis.csv"
+    data_file = "/home/ilya/data/VLBI_Gaia/2comp/J0823-0939_X_2017_02_24_pus_vis.csv"
     df = pd.read_csv(data_file)
-    posterior_file = "/home/ilya/data/VLBI_Gaia/posterior_sample_test.txt"
-    # posterior_file = "/home/ilya/github/bam/posterior_sample.txt"
-    # posterior_file = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/eg/posterior_sample.txt"
-    # posterior_file = "/home/ilya/github/bam/Release/posterior_sample.txt"
-    # posterior_file = "/home/ilya/Downloads/mojave/0136+176/2012_06_25/eg/posterior_sample.txt"
-    # old
-    # posterior_file = "/home/ilya/github/bam/posterior_sample_rjell.txt"
-    # save_dir = "/home/ilya/data/rjbam/0851+202/2023_05_03/jitters_offsets"
-    # save_dir = "/home/ilya/data/rjbam/0851+202/2012_11_11/jitters_offsets/circular"
-    # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/jitters_offsets"
+    posterior_file = "/home/ilya/data/VLBI_Gaia/2comp/posterior_sample_J0823-0939_X_2017_02_24.txt"
     # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/jitters_offsets/circular_2Dprior/"
     # save_dir = "/home/ilya/data/rjbam/1502+106/4comp_jitters_2D"
-    # save_dir = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/eg_noj"
-    save_dir = "/home/ilya/data/VLBI_Gaia"
-    # save_dir = "/home/ilya/data/rjbam/0212+735/2019_08_15/old"
+    save_dir = "/home/ilya/data/VLBI_Gaia/2comp"
     save_rj_ncomp_distribution_file = os.path.join(save_dir, "ncomponents_distribution.png")
-    # original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2023_05_03.icn.fits"
-    # original_ccfits = "/home/ilya/data/rjbam/0851+202/0851+202.u.2012_11_11.icn.fits"
-    # original_ccfits = "/home/ilya/data/rjbam/0212+735/2019_08_15/0212+735.u.2019_08_15.icn.fits"
-    # original_ccfits = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28.icn.fits"
-    original_ccfits = "/home/ilya/data/VLBI_Gaia/J1443+0809_C_2013_04_22_pet_map.fits"
-    n_max = 2
-    n_antennas = 0
-    n_jitters = n_antennas
+    original_ccfits = "/home/ilya/data/VLBI_Gaia/2comp/J0823-0939_X_2017_02_24_pus_map.fits"
+    n_max = 10 
+    n_jitters = 1
     # Plot all samples - for easy handling component cluster membership
     n_max_samples_to_plot = 1000
-    jitter_first = False
+    jitter_first = True
     skip_hp = True
     component_type = "cg"
     if component_type == "cg":
@@ -824,12 +856,12 @@ if __name__ == "__main__":
     posterior_samples = np.loadtxt(posterior_file)
     import matplotlib
     matplotlib.use("TkAgg")
-    save_basename = os.path.split(uvfits)[-1].split(".uvf")[0]
+    save_basename = os.path.split(data_file)[-1].split(".csv")[0]
 
 
-    plot_per_antenna_jitters_and_offsets(posterior_samples, uvfits=uvfits, save_dir=save_dir,
-                                         save_basename=save_basename, plot_offsets=False,
-                                         n_antennas=n_antennas)
+    # plot_per_antenna_jitters_and_offsets(posterior_samples, uvfits=uvfits, save_dir=save_dir,
+    #                                      save_basename=save_basename, plot_offsets=False,
+    #                                      n_antennas=n_antennas)
 
     fig = rj_plot_ncomponents_distribution(posterior_file, picture_fn=save_rj_ncomp_distribution_file,
                                            jitter_first=jitter_first, n_jitters=n_jitters, type=component_type,
