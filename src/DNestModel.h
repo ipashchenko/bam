@@ -13,7 +13,8 @@
 
 const double mas_to_rad = 4.84813681109536e-09;
 extern const ComponentType component_type;
-extern const bool use_jitters;
+extern const bool use_per_antenna_jitters;
+extern const bool use_single_jitter;
 extern const bool use_offsets;
 
 class DNestModel {
@@ -58,12 +59,14 @@ class DNestModel {
 		std::shared_ptr<T> make_prior( Args&&... args ) { return std::make_shared<T>(args...); }
 
     private:
-		bool fixed {true};
-		int max_number_of_components {2};
+		bool fixed {false};
+		int max_number_of_components {10};
 		
 		std::unordered_map<ComponentType, int> component_length{{circular, 4}, {sphere, 4}, {elliptical, 6}};
 		
 		std::vector<double> per_antenna_logjitter = std::vector<double>(Data::get_instance().n_antennas());
+		std::shared_ptr<DNest4::ContinuousDistribution> Jsprior;
+        double logjitter;
 		std::shared_ptr<DNest4::ContinuousDistribution> Jprior;
 		std::vector<double> per_antenna_offset = std::vector<double>(Data::get_instance().n_antennas());
 		std::shared_ptr<DNest4::ContinuousDistribution> Oprior;

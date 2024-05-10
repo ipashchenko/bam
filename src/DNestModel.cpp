@@ -19,7 +19,8 @@ DNestModel::DNestModel()
 
 void DNestModel::setPriors()
 {
-	Jprior = make_prior<DNest4::Gaussian>(-5., 1.);
+	Jsprior = make_prior<DNest4::Gaussian>(-5., 1.);
+	Jprior = make_prior<DNest4::Gaussian>(-5., 2.);
 	Oprior = make_prior<DNest4::TruncatedCauchy>(1.0, 0.05, 0., 2.);
 }
 
@@ -27,9 +28,10 @@ void DNestModel::from_prior(DNest4::RNG &rng) {
 	
 	setPriors();
 	
+    logjitter = Jprior->generate(rng);
 	for(double & logj : per_antenna_logjitter)
 	{
-		logj = Jprior->generate(rng);
+		logj = Jsprior->generate(rng);
 	}
 	for(double & off : per_antenna_offset)
 	{
@@ -60,7 +62,7 @@ void DNestModel::calculate_var()
 	const std::valarray<double>& sigma = Data::get_instance().get_sigma();
 	// Measured variance
 	std::valarray<double> measured_var = sigma*sigma;
-	if(use_jitters)
+	if(use_per_antenna_jitters)
 	{
 		// Jitter
 		std::valarray<double> current_jitter(0.0, sigma.size());
@@ -70,6 +72,10 @@ void DNestModel::calculate_var()
 		}
 		var = measured_var + exp(current_jitter);
 	}
+    else if(use_single_jitter)
+    {
+		var = measured_var + exp(2.*logjitter);
+    }
 	else
 	{
 		var = measured_var;
@@ -94,7 +100,7 @@ double DNestModel::perturb(DNest4::RNG &rng) {
 	
 	double r_jitter = 0.0;
 	double r_offset = 0.0;
-	if (use_jitters) {
+	if (use_per_antenna_jitters || use_single_jitter) {
 		r_jitter = 0.2;
 	}
 	if (use_offsets) {
@@ -105,10 +111,15 @@ double DNestModel::perturb(DNest4::RNG &rng) {
     // Perturb jitter
     if(u < r_jitter) {
 	
-		int which_antenna = rng.rand_int(per_antenna_logjitter.size());
-		auto perturbed_jitter = per_antenna_logjitter[which_antenna];
-		Jprior->perturb(perturbed_jitter, rng);
-		per_antenna_logjitter[which_antenna] = perturbed_jitter;
+        if(use_per_antenna_jitters) {
+            int which_antenna = rng.rand_int(per_antenna_logjitter.size());
+            auto perturbed_jitter = per_antenna_logjitter[which_antenna];
+            Jsprior->perturb(perturbed_jitter, rng);
+            per_antenna_logjitter[which_antenna] = perturbed_jitter;
+        }
+        else if (use_single_jitter) {
+            Jprior->perturb(logjitter, rng);
+        }
         // No need to re-calculate model. Re-calculate variance and calculate loglike.
 		calculate_var();
     }
@@ -254,13 +265,17 @@ double DNestModel::log_likelihood() const {
 
 
 void DNestModel::print(std::ostream &out) const {
-	if(use_jitters)
+	if(use_per_antenna_jitters)
 	{
 		for (double logj : per_antenna_logjitter)
 		{
 			out << logj << '\t';
 		}
 	}
+    if(use_single_jitter)
+    {
+        out << logjitter << '\t';
+    }
 	if(use_offsets)
 	{
 		for (double off : per_antenna_offset)
@@ -276,11 +291,15 @@ std::string DNestModel::description() const
 {
 	std::string descr;
 	
-	if (use_jitters) {
+	if (use_per_antenna_jitters) {
 		for (int i = 0; i < per_antenna_logjitter.size(); i++) {
 			descr += "logjitter[" + std::to_string(i) + "] ";
 		}
 	}
+
+    if(use_single_jitter) {
+        descr += "logjitter ";
+    }
 	
 	if (use_offsets) {
 		for (int i = 0; i < per_antenna_offset.size(); i++) {
