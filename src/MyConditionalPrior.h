@@ -17,8 +17,8 @@ class MyConditionalPrior:public DNest4::ConditionalPrior
     public:
         MyConditionalPrior();
 		
-		std::shared_ptr<DNest4::Uniform> raPrior;
-		std::shared_ptr<DNest4::Uniform> decPrior;
+		std::shared_ptr<DNest4::Gaussian> raPrior;
+		std::shared_ptr<DNest4::Gaussian> decPrior;
 		std::shared_ptr<Gaussian2D> FluxSizePrior;
 		std::shared_ptr<DNest4::Kumaraswamy> ePrior;
 		std::shared_ptr<DNest4::Uniform> bpaPrior;
