@@ -1,10 +1,9 @@
 import os
+import pathlib
 from collections import OrderedDict
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
-from matplotlib.patches import Ellipse, Circle
 from itertools import cycle
 import seaborn as sns
 from corner import corner
@@ -12,12 +11,36 @@ from astropy import units as u
 from astropy import constants as const
 from sklearn.cluster import DBSCAN, HDBSCAN, OPTICS, cluster_optics_dbscan, SpectralClustering
 import ehtim as eh
+import matplotlib
+# import scienceplots
+matplotlib.use("Agg")
+# import scienceplots
+import matplotlib.pyplot as plt
+from cycler import cycler
+# For tics and line widths.
+# plt.style.use('science')
+# Default color scheme
+matplotlib.rcParams['axes.prop_cycle'] = cycler('color', ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
+# Default figure size
+matplotlib.rcParams['figure.figsize'] = (6.4, 4.8)
+label_size = 14
+matplotlib.rcParams['xtick.labelsize'] = label_size
+matplotlib.rcParams['ytick.labelsize'] = label_size
+matplotlib.rcParams['axes.titlesize'] = label_size
+matplotlib.rcParams['axes.labelsize'] = label_size
+matplotlib.rcParams['font.size'] = label_size
+matplotlib.rcParams['legend.fontsize'] = label_size
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
+from matplotlib.patches import Ellipse, Circle
+
 from data_utils import radplot, gaussian_circ_ft, gaussian_ell_ft, optically_thin_sphere_ft, point_ft
 import sys
 sys.path.insert(0, '/home/ilya/github/ve/vlbi_errors')
 from from_fits import create_clean_image_from_fits_file
 from image import plot as iplot
 from spydiff import find_bbox, find_image_std, import_difmap_model
+
 
 degree_to_rad = u.deg.to(u.rad)
 mas_to_rad = u.mas.to(u.rad)
@@ -828,8 +851,148 @@ def plot_corner(samples, cluster_membership, n_comps):
     plt.show()
 
 
-if __name__ == "__main__":
+def postprocess_run(save_basename, posterior_file, data_file, original_ccfits, save_dir,
+                    n_max, has_jitter, component_type, skip_hp=True, pixsize_mas=None,
+                    plot_type="reim"):
+    save_rj_ncomp_distribution_file = os.path.join(save_dir, f"{save_basename}_ncomponents_distribution.png")
+    n_jitters = 1
+    # Plot all samples - for easy handling component cluster membership
+    n_max_samples_to_plot = 1000
+    jitter_first = has_jitter
+    if component_type == "cg":
+        comp_length = 4
+    elif component_type == "eg":
+        comp_length = 6
+    else:
+        raise Exception
+    posterior_samples = np.loadtxt(posterior_file)
+    import matplotlib
+    matplotlib.use("Agg")
 
+
+    fig = rj_plot_ncomponents_distribution(posterior_file, picture_fn=save_rj_ncomp_distribution_file,
+                                           jitter_first=jitter_first, n_jitters=n_jitters, type=component_type,
+                                           normed=True, show=False, skip_hyperparameters=skip_hp)
+
+    labels_dict = clusterization(posterior_file, jitter_first=jitter_first, n_jitters=n_jitters, n_max=n_max,
+                                 skip_hyperparameters=skip_hp, component_type=component_type,
+                                 algorithm="hdbscan",
+                                 dbscan_min_core_samples_frac_of_posterior_size=0.3,
+                                 dbscan_eps=0.2,
+                                 hdbscan_min_cluster_frac_of_posterior_size=0.5)
+
+    plot_model_predictions(posterior_file, data_file, rj=True, n_jitters=n_jitters, component_type=component_type,
+                           style=plot_type, n_samples_to_plot=1000, alpha_model=0.01, skip_hyperparameters=skip_hp,
+                           savefname=os.path.join(save_dir, f"{save_basename}_radplot.png"))
+
+
+    samples_for_each_n = get_samples_for_each_n(posterior_samples, jitter_first,
+                                                n_jitters=n_jitters, n_max=n_max,
+                                                skip_hyperparameters=skip_hp,
+                                                type=component_type)
+    n_components_spread = samples_for_each_n.keys()
+
+    ccimage = create_clean_image_from_fits_file(original_ccfits)
+    beam = ccimage.beam
+    if pixsize_mas is not None:
+        npixels_beam = int(np.pi*beam[0]*beam[1]/(4.*np.log(2)*pixsize_mas**2))
+        print(f"Estimated beam area (pixels) = {npixels_beam}")
+    else:
+        npixels_beam = 30
+
+    std = find_image_std(ccimage.image, npixels_beam, min_num_pixels_used_to_estimate_std=100,
+                         blc=None, trc=None)
+    blc, trc = find_bbox(ccimage.image, level=4*std, min_maxintensity_jyperbeam=10*std,
+                         min_area_pix=3*npixels_beam, delta=5)
+    fig = iplot(ccimage.image, x=ccimage.x, y=ccimage.y,
+                min_abs_level=3*std, beam=(beam[0], beam[1], np.rad2deg(beam[2])), show_beam=True, blc=blc, trc=trc,
+                components=None, close=False, plot_colorbar=False, show=False,
+                contour_linewidth=0.25, contour_color='k')
+    fig.savefig(os.path.join(save_dir, f"{save_basename}_CLEAN_image.png"), dpi=600)
+    for n_component in n_components_spread:
+        # Remove jitters & offsets
+        samples_to_plot = samples_for_each_n[n_component][:, n_jitters:]
+        # Sort samples by r
+        sorted_samples_to_plot = sort_samples_by_r(samples_to_plot, n_component, comp_length=comp_length, jitter_first=False)
+        n_samples = len(samples_to_plot)
+        if n_samples > n_max_samples_to_plot:
+            n_samples = n_max_samples_to_plot
+        fig_p = pickle.loads(pickle.dumps(fig))
+        fig_p1 = pickle.loads(pickle.dumps(fig))
+        fig_p2 = pickle.loads(pickle.dumps(fig))
+
+        # Vanilla
+        fig_out = plot_position_posterior(samples_to_plot[:n_max_samples_to_plot, :],
+                                          savefn=None, ra_lim=None, dec_lim=None,
+                                          difmap_model_fn=None, type=component_type, s=3.0, figsize=None,
+                                          sorted_componets=False, fig=fig_p,
+                                          inverse_xaxis=False,
+                                          alpha_opacity=0.3)
+        fig_out.savefig(os.path.join(save_dir, f"{save_basename}_CLEAN_image_ncomp_{n_component}.png"), dpi=600)
+        plt.close(fig_out)
+
+        # Sorted samples
+        fig_out = plot_position_posterior(sorted_samples_to_plot[:n_max_samples_to_plot, :],
+                                          savefn=None, ra_lim=None, dec_lim=None,
+                                          difmap_model_fn=None, type=component_type, s=3.0, figsize=None,
+                                          sorted_componets=True, fig=fig_p1,
+                                          inverse_xaxis=False,
+                                          alpha_opacity=0.3)
+        fig_out.savefig(os.path.join(save_dir, f"{save_basename}_CLEAN_image_ncomp_{n_component}_sorted.png"), dpi=600)
+        plt.close(fig_out)
+
+        fig_out = plot_position_posterior_clustered(samples_to_plot,
+                                                    savefn=None, ra_lim=None, dec_lim=None,
+                                                    difmap_model_fn=None, type=component_type, s=1.0, figsize=None,
+                                                    sorted_componets=False, fig=fig_p2,
+                                                    inverse_xaxis=False,
+                                                    alpha_opacity=0.3,
+                                                    cluster_membership=labels_dict[n_component])
+        fig_out.savefig(os.path.join(save_dir, f"{save_basename}_CLEAN_image_ncomp_{n_component}_clusters.png"), dpi=600)
+        plt.close(fig_out)
+
+        # f = plot_size_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :],
+        #                                  savefn=os.path.join(save_dir, f"r_R_ncomp_{n_component}.png"),
+        #                                  type=component_type)
+        # plt.close(f)
+        #
+        # f = plot_tb_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :], freq_ghz, type=component_type,
+        #                                savefn=os.path.join(save_dir, f"r_Tb_ncomp_{n_component}.png"))
+        # plt.close(f)
+
+
+if __name__ == "__main__":
+    data_file = "/home/ilya/data/VLBI_Gaia/2comp/J0823-0939_X_2017_02_24_pus_vis.csv"
+    data_fn = os.path.split(data_file)[-1]
+    source, band, year, month, day, author, product = data_fn.split("_")
+    product = product.split(".")[0]
+    assert product == "vis"
+    save_basename = f"{source}_{band}_{year}_{month}_{day}"
+    posterior_file = f"/home/ilya/data/VLBI_Gaia/2comp/posterior_sample_{save_basename}.txt"
+    if not os.path.exists(posterior_file):
+        raise Exception(f"No posterior file : {posterior_file}")
+    original_ccfits = f"/home/ilya/data/VLBI_Gaia/2comp/{save_basename}_{author}_map.fits"
+    if not os.path.exists(original_ccfits):
+        raise Exception(f"No CCFITS image : {original_ccfits}")
+
+
+    save_dir = f"/home/ilya/data/VLBI_Gaia/2comp/{save_basename}"
+    pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
+        
+    n_max = 10 
+    has_jitter = True
+    component_type = "cg"
+    pixsize_mas = 0.2
+    plot_type = "reim"
+
+    postprocess_run(save_basename, posterior_file, data_file, original_ccfits, save_dir,
+                    n_max, has_jitter, component_type, skip_hp=True, pixsize_mas=pixsize_mas,
+                    plot_type=plot_type)
+
+
+
+
+    sys.exit(0)
     data_file = "/home/ilya/data/VLBI_Gaia/2comp/J0823-0939_X_2017_02_24_pus_vis.csv"
     df = pd.read_csv(data_file)
     posterior_file = "/home/ilya/data/VLBI_Gaia/2comp/posterior_sample_J0823-0939_X_2017_02_24.txt"
@@ -900,7 +1063,7 @@ if __name__ == "__main__":
     ccimage = create_clean_image_from_fits_file(original_ccfits)
     beam = ccimage.beam
     # Number of pixels in beam
-    npixels_beam = np.pi*beam[0]*beam[1]/(4*np.log(2)*pixsize_mas**2)
+    npixels_beam = 100
 
     std = find_image_std(ccimage.image, npixels_beam, min_num_pixels_used_to_estimate_std=100,
                          blc=None, trc=None)
