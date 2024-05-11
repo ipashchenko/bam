@@ -340,20 +340,18 @@ def radplot(df, fig=None, color=None, label=None, style="ap", savefname=None, sh
 
 if __name__ == "__main__":
     import glob
-    # uvfits_file = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28.uvf"
     uvfits_dir = "/home/ilya/data/VLBI_Gaia/2comp"
     uvfits_files = glob.glob(os.path.join(uvfits_dir, "*_vis.fits"))
     for uvfits_file in uvfits_files:
         print("Processing UVFITS : ", uvfits_file)
-        _, uvfits_fn = os.path.split(uvfits_file)
-        # if uvfits_fn == "J1443+0809_C_2013_04_22_pet_vis.fits"
-
-        out_fn = uvfits_fn.split(".")[0] + ".csv"
-        # out_fname = "/home/ilya/Downloads/mojave/0136+176/2009_05_28/0136+176.u.2009_05_28_60sec_antennas.csv"
+        uvfits_fn = os.path.split(uvfits_file)[-1]
+        source, band, year, month, day, author, product = uvfits_fn.split("_")
+        product = product.split(".")[0]
+        assert product == "vis"
+        save_basename = f"{source}_{band}_{year}_{month}_{day}"
+        out_fn = f"{save_basename}_{author}_{product}.csv"
         out_fname = os.path.join(uvfits_dir, out_fn)
-        # This uses antenna sites for per-antenna jitter.
         df = get_data_file_from_ehtim(uvfits_file, out_fname, avg_time_sec=60, average_using="difmap")
-
 
     sys.exit(0)
 
