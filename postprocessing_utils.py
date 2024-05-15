@@ -801,60 +801,17 @@ def plot_corner(samples, n_comps, cluster_membership=None, savefig=None, compone
         labels_dict[n_comp]. If ``None`` then assume that samples are sorted somehow.
         (default: ``None``)
     """
-    # Cluster components
-
-    components = list()
-    components_cluster_dict = dict()
-    unique_cluster_ids = list(np.unique(cluster_membership))
-    for cluster_id in unique_cluster_ids:
-        components_cluster_dict[cluster_id] = list()
-    for sample in samples:
-        # print(f"Splitting sample {sample} into components")
-        splitted = np.split(sample, n_comps)
-        for comp in splitted:
-            # print(f"Appending component {comp}")
-            components.append(comp)
-
-    for comp, cluster_id in zip(components, cluster_membership):
-        components_cluster_dict[cluster_id].append(comp)
-
-    # Drop non-cluster points
-    try:
-        unique_cluster_ids.remove(-1)
-        components_cluster_dict.pop(-1)
-    # If all samples lie in clusters
-    except ValueError:
-        pass
-
-    for cluster_id in unique_cluster_ids:
-        components_cluster_dict[cluster_id] = np.atleast_2d(components_cluster_dict[cluster_id])
-
-    # Convert size from log scale
-    for cluster_id in unique_cluster_ids:
-        components_cluster_dict[cluster_id][:, 3] = np.exp(components_cluster_dict[cluster_id][:, 3]) 
-
-    # Some components are in -1 class (no cluster). Trim other clusters to the minimal common size.
-    minimal_common_len = min([components_cluster_dict[cluster_id].shape[0] for cluster_id in unique_cluster_ids])
-    for cluster_id in unique_cluster_ids:
-        components_cluster_dict[cluster_id] = components_cluster_dict[cluster_id][:minimal_common_len, :]
-
-    median_fluxes_dict = dict()
-    for cluster_id in unique_cluster_ids:
-        median_fluxes_dict[cluster_id] = np.median(components_cluster_dict[cluster_id][:, 2])
-    # Sort cluster IDs in decreasing of the median flux
-    clusters_id_flux_sorted = sorted(median_fluxes_dict, key=lambda x: median_fluxes_dict[x], reverse=True)
-    # Concatenate in the same order in a single 2D array
-    new_samples = np.concatenate([components_cluster_dict[i] for i in clusters_id_flux_sorted], axis=1)
-
     # Construct labels
     labels = list()
     if component_type == "cg" or component_type == "sphere":
+        comp_length = 4
         for i in range(n_comps):
             labels.extend([r"RA$_{}$".format(i+1),
                            r"DEC$_{}$".format(i+1),
                            r"$S_{}$".format(i+1),
                            r"$\theta_{}$".format(i+1)])
     elif component_type == "eg":
+        comp_length = 6
         for i in range(n_comps):
             labels.extend([r"RA$_{}$".format(i+1),
                            r"DEC$_{}$".format(i+1),
@@ -865,6 +822,59 @@ def plot_corner(samples, n_comps, cluster_membership=None, savefig=None, compone
     else:
         raise Exception("component_type must be cg, eg or sphere!")
 
+    # Cluster components
+    if cluster_membership is not None:
+        components = list()
+        components_cluster_dict = dict()
+        unique_cluster_ids = list(np.unique(cluster_membership))
+        for cluster_id in unique_cluster_ids:
+            components_cluster_dict[cluster_id] = list()
+        for sample in samples:
+            # print(f"Splitting sample {sample} into components")
+            splitted = np.split(sample, n_comps)
+            for comp in splitted:
+                # print(f"Appending component {comp}")
+                components.append(comp)
+
+        for comp, cluster_id in zip(components, cluster_membership):
+            components_cluster_dict[cluster_id].append(comp)
+
+        # Drop non-cluster points
+        try:
+            unique_cluster_ids.remove(-1)
+            components_cluster_dict.pop(-1)
+        # If all samples lie in clusters
+        except ValueError:
+            pass
+
+        for cluster_id in unique_cluster_ids:
+            components_cluster_dict[cluster_id] = np.atleast_2d(components_cluster_dict[cluster_id])
+
+        # Convert size from log scale
+        for cluster_id in unique_cluster_ids:
+            components_cluster_dict[cluster_id][:, 3] = np.exp(components_cluster_dict[cluster_id][:, 3]) 
+
+        # Some components are in -1 class (no cluster). Trim other clusters to the minimal common size.
+        minimal_common_len = min([components_cluster_dict[cluster_id].shape[0] for cluster_id in unique_cluster_ids])
+        for cluster_id in unique_cluster_ids:
+            components_cluster_dict[cluster_id] = components_cluster_dict[cluster_id][:minimal_common_len, :]
+
+        median_fluxes_dict = dict()
+        for cluster_id in unique_cluster_ids:
+            median_fluxes_dict[cluster_id] = np.median(components_cluster_dict[cluster_id][:, 2])
+        # Sort cluster IDs in decreasing of the median flux
+        clusters_id_flux_sorted = sorted(median_fluxes_dict, key=lambda x: median_fluxes_dict[x], reverse=True)
+        # Concatenate in the same order in a single 2D array
+        new_samples = np.concatenate([components_cluster_dict[i] for i in clusters_id_flux_sorted], axis=1)
+
+    else:
+        # Just sorted samples
+        new_samples = samples
+        # Convert sizes from log-scale
+        for i in range(n_comps):
+            new_samples[:, 3 + i*comp_length] = np.exp(new_samples[:, 3 + i*comp_length])
+
+
     fig = corner(new_samples, show_titles=True, title_fmt=".3f", quantiles=[0.16, 0.50, 0.84], labels=labels)
     if savefig is not None:
         fig.savefig(savefig, bbox_inches="tight", dpi=100)
@@ -873,7 +883,7 @@ def plot_corner(samples, n_comps, cluster_membership=None, savefig=None, compone
 
 def postprocess_run(save_basename, posterior_file, data_file, original_ccfits, save_dir,
                     n_max, has_jitter, component_type, skip_hp=True, pixsize_mas=None,
-                    plot_type="reim"):
+                    plot_type="reim", corner_with_clustered=True):
     save_rj_ncomp_distribution_file = os.path.join(save_dir, f"{save_basename}_ncomponents_distribution.png")
     n_jitters = 1
     # Plot all samples - for easy handling component cluster membership
@@ -971,8 +981,12 @@ def postprocess_run(save_basename, posterior_file, data_file, original_ccfits, s
         fig_out.savefig(os.path.join(save_dir, f"{save_basename}_CLEAN_image_ncomp_{n_component}_clusters.png"), dpi=600)
         plt.close(fig_out)
 
-        plot_corner(samples_to_plot, n_component, cluster_membership=labels_dict[n_component],
-                    savefig=os.path.join(save_dir, f"{save_basename}_corner.png"))
+        if corner_with_clustered:
+            plot_corner(samples_to_plot, n_component, cluster_membership=labels_dict[n_component],
+                        savefig=os.path.join(save_dir, f"{save_basename}_corner.png"))
+        else:
+            plot_corner(sorted_samples_to_plot, n_component, cluster_membership=None,
+                        savefig=os.path.join(save_dir, f"{save_basename}_corner.png"))
 
         # f = plot_size_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :],
         #                                  savefn=os.path.join(save_dir, f"r_R_ncomp_{n_component}.png"),
@@ -986,11 +1000,11 @@ def postprocess_run(save_basename, posterior_file, data_file, original_ccfits, s
 
 if __name__ == "__main__":
     pixsize_band_dict = {"Q": 0.03, "U": 0.1, "X": 0.2, "C": 0.3, "S": 0.5}
-    data_files_dir = "/home/ilya/data/VLBI_Gaia/2comp"
+    data_files_dir = "/home/ilya/data/VLBI_Gaia/3comp"
     data_files = glob.glob(os.path.join(data_files_dir, "*.csv"))
     print("Found data files: ", data_files)
     for data_file in data_files:
-        if data_file != "/home/ilya/data/VLBI_Gaia/2comp/J1229+0203_Q_2007_08_30_mar_vis.csv":
+        if data_file != "/home/ilya/data/VLBI_Gaia/3comp/J0000-3221_S_2017_01_16_pet_vis.csv":
             continue
         # data_file = "/home/ilya/data/VLBI_Gaia/2comp/J0823-0939_X_2017_02_24_pus_vis.csv"
         data_fn = os.path.split(data_file)[-1]
@@ -1010,7 +1024,7 @@ if __name__ == "__main__":
         save_dir = results_dir
         # pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
             
-        n_max = 2 
+        n_max = 3 
         has_jitter = True
         component_type = "cg"
         pixsize_mas = pixsize_band_dict[band]
@@ -1018,7 +1032,7 @@ if __name__ == "__main__":
 
         postprocess_run(save_basename, posterior_file, data_file, original_ccfits, save_dir,
                         n_max, has_jitter, component_type, skip_hp=True, pixsize_mas=pixsize_mas,
-                        plot_type=plot_type)
+                        plot_type=plot_type, corner_with_clustered=False)
 
 
 
