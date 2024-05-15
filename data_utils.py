@@ -146,14 +146,17 @@ def get_rms(obs, t1, t2):
 
 # For now better average using difmap, that assures that weights are reasonable
 # 08.05.2024: Now it uses successive differences approach and does not trust the weights
-def get_data_file_from_ehtim(uvfits, outname, avg_time_sec=0, average_using="difmap"):
+def get_data_file_from_ehtim(uvfits, outname, avg_time_sec=0, average_using="difmap",
+                             working_dir=None):
 
     assert average_using in ("difmap", "eht-imager")
+    if working_dir is None:
+        working_dir = os.getcwd()
 
     if avg_time_sec > 0:
         if average_using == "difmap":
             uvfits_dir, uvfits_fname = os.path.split(uvfits)
-            uvfits_ta = os.path.join(uvfits_dir, f"ta{avg_time_sec}_{uvfits_fname}")
+            uvfits_ta = os.path.join(working_dir, f"ta{avg_time_sec}_{uvfits_fname}")
             # difmap uses vector weighted averaging
             time_average(uvfits, uvfits_ta, time_sec=avg_time_sec)
             uvfits = uvfits_ta
