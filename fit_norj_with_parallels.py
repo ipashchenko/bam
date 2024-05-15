@@ -28,16 +28,15 @@ base_UVFITS_dir = "/mnt/jet1/yyk/VLBI/RFC/images"
 # Directory to save the results
 base_save_dir = "/mnt/storage/ilya/VLBI_Gaia"
 n_jobs = 2
+# Average time in difmap. It uses weighted vector averaging and
+# also re-calculate weights. This is helpful when they are not reliable.
+difmap_avg_time_sec = 60
 
 # FIXME: Choose executable depending on ``component_type``
 executable_dict = {2: "/home/ilya/github/bam/Release/bam_2",
                    3: "/home/ilya/github/bam/Release/bam_3"}
 executable = "/home/ilya/github/bam/Release/bam"
 
-# Average time in difmap. It uses weighted vector averaging and
-# also re-calculate weights. This is helpful when they are not reliable.
-# FIXME: Use function from create_data_from_ehtim
-difmap_avg_time_sec = 60
 template_options = "/home/ilya/github/bam/OPTIONS_gen"
 
 
