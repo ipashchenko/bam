@@ -7,6 +7,43 @@ from data_utils import get_data_file_from_ehtim
 from tempfile import TemporaryDirectory
 
 
+def reformat_table(original_csv):
+    df = pd.read_csv(original_csv)
+
+    uvfits_files = list()
+    ccfits_files = list()
+    ncomps = list()
+    base_UVFITS_dir = "/mnt/jet1/yyk/VLBI/RFC/images"
+    for row in df.itertuples():
+        source = row.source
+        obs1 = row.obs1
+        obs2 = row.obs2
+        uvfits = f"{base_UVFITS_dir}/{source}/{obs1}_vis.fits"
+        if not os.path.exists(uvfits):
+            raise Exception(f"No UVFITS {uvfits}")
+        ccfits = f"{base_UVFITS_dir}/{source}/{obs1}_map.fits"
+        if not os.path.exists(ccfits):
+            raise Exception(f"No CCFITS {ccfits}")
+        uvfits_files.append(uvfits)
+        ccfits_files.append(ccfits)
+        ncomps.append(2)
+
+        uvfits = f"{base_UVFITS_dir}/{source}/{obs2}_vis.fits"
+        if not os.path.exists(uvfits):
+            raise Exception(f"No UVFITS {uvfits}")
+        ccfits = f"{base_UVFITS_dir}/{source}/{obs2}_map.fits"
+        if not os.path.exists(ccfits):
+            raise Exception(f"No CCFITS {ccfits}")
+        uvfits_files.append(uvfits)
+        ccfits_files.append(ccfits)
+        ncomps.append(2)
+
+    dic = {"uvfits": uvfits_files, "ccfits": ccfits_files, "ncomps": ncomps}
+    df = pd.DataFrame.from_dict(dic)
+    df.to_csv("full_table_ncomp_2.csv", header=True, index=False)
+    return df
+
+
 def choose_maxnsaves(n_comps, n_vis):
     if n_vis < 100:
         maxnsaves = 3000
