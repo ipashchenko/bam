@@ -6,6 +6,18 @@ import pathlib
 from data_utils import get_data_file_from_ehtim
 
 
+def choose_maxnsaves(n_comps, n_vis):
+    if n_vis < 100:
+        maxnsaves = 3000
+    elif 100 <= n_vis < 300:
+        maxnsaves = 5000
+    elif 300 <= n_vis < 600:
+        maxnsaves = 7000
+    else:
+        maxnsaves = 10000
+    return int(n_comps*maxnsaves/2)
+
+
 dry_run = False
 # table_file = "/home/ilya/data/VLBI_Gaia/obs_pairs_good_8.csv"
 table_file = "/home/ilya/data/VLBI_Gaia/test.csv"
@@ -15,7 +27,6 @@ base_UVFITS_dir = "/mnt/jet1/yyk/VLBI/RFC/images"
 # Directory to save the results
 base_save_dir = "/mnt/storage/ilya/VLBI_Gaia"
 n_jobs = 2
-maxnsaves = 100
 
 # FIXME: Choose executable depending on ``component_type``
 executable_dict = {1: "/home/ilya/github/bam/Release/bam_1",
@@ -29,6 +40,7 @@ executable = "/home/ilya/github/bam/Release/bam"
 
 # Average time in difmap. It uses weighted vector averaging and
 # also re-calculate weights. This is helpful when they are not reliable.
+# FIXME: Use function from create_data_from_ehtim
 difmap_avg_time_sec = 60
 template_options = "/home/ilya/github/bam/OPTIONS_gen"
 
@@ -39,6 +51,7 @@ n_components = list()
 results_dirs = list()
 basenames = list()
 data_files = list()
+maxnsaves_list = list()
 for row in df.itertuples():
     uvfits = row.uvfits
     ccfits = row.ccfits
@@ -56,11 +69,19 @@ for row in df.itertuples():
     pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
     out_fname = os.path.join(results_dir, f"{save_basename}.csv")
     df = get_data_file_from_ehtim(uvfits, out_fname)
+    n_vis = len(df)
+    print("Number of vis = ", n_vis)
+    print("Number of comps = ", ncomps)
+    maxnsaves = choose_maxnsaves(ncomps, n_vis)
+    print("Chosen maxnsaves = ", maxnsaves)
+    maxnsaves_list.append(str(maxnsaves))
+
     data_files.append(out_fname)
 
 
 args = " ".join(["{:s} {:s} {:s}".format(i, j, k) for (i, j, k) in zip(basenames, data_files, results_dirs)])
 
+maxnsaves = " ".join(maxnsaves_list)
 basenames = " ".join(basenames)
 data_files = " ".join(data_files)
 results_dirs = " ".join(results_dirs)
@@ -68,6 +89,7 @@ results_dirs = " ".join(results_dirs)
 print("basenames\n", basenames)
 print("data_files\n", data_files)
 print("results_dirs\n", results_dirs)
+print("maxnsaves\n", maxnsaves)
 print("args\n", args)
 
 if dry_run:
@@ -78,10 +100,10 @@ if dry_run:
                                                                                    basenames, data_files, results_dirs))
 else:
     os.system('parallel --files --results {}/res_{{1}} --joblog {}/joblog --jobs {} --link '
-              '"python fit_mojave_uvfits_single_ncomponents.py --executable {} --maxnsaves {} --template_options {} --basename {{1}} '
-              '--data_file {{2}} --results_dir {{3}}" ::: {} ::: {} ::: {}'.format(base_save_dir, base_save_dir, n_jobs,
-                                                                                   executable, maxnsaves, template_options,
-                                                                                   basenames, data_files, results_dirs))
+              '"python fit_mojave_uvfits_single_ncomponents.py --executable {} --template_options {} --basename {{1}} '
+        '--data_file {{2}} --results_dir {{3}} --maxnsaves {{4}}" ::: {} ::: {} ::: {} ::: {}'.format(base_save_dir, base_save_dir, n_jobs,
+                                                                                   executable, template_options,
+                                                                                   basenames, data_files, results_dirs, maxnsaves))
 
 # This works in bash
 # $ parallel -k  --link --dryrun "python fit_mojave_uvfits_single_ncomponents.py --uvfits \"uvfits\" --results_dir \"results_dir\" --ncomps {1} --maxnsaves {2}" ::: 1 2 ::: 1000 2000
