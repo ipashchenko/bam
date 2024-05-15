@@ -13,8 +13,8 @@ def run(basename, maxnsaves, data_file, results_dir, template_options, excecutab
     run_name = basename
     result_options = os.path.join(results_dir, "OPTIONS_{}".format(run_name))
     options = {'nparticles': 1,
-               'newlevel': 10000,
-               'saveinterval': 10000,
+               'newlevel': 30000,
+               'saveinterval': 30000,
                'threadsteps': 100,
                'maxnlevels': 0,
                'lambda': 30,
