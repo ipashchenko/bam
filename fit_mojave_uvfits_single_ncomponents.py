@@ -1,5 +1,6 @@
 import os
 import sys
+import pathlib
 from string import Template
 import numpy as np
 import argparse
@@ -76,6 +77,8 @@ if __name__ == "__main__":
     results_dir = args.results_dir
     executable = args.executable
     template_options = args.template_options
+
+    pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
 
     print("Basename = ", basename)
     print("Data file = ", data_file)
