@@ -18,20 +18,20 @@ def reformat_table(original_csv):
         source = row.source
         obs1 = row.obs1
         obs2 = row.obs2
-        uvfits = f"{base_UVFITS_dir}/{source}/{obs1}_vis.fits"
+        uvfits = f"{base_UVFITS_dir}/{source}/{source}_{obs1}_vis.fits"
         if not os.path.exists(uvfits):
             raise Exception(f"No UVFITS {uvfits}")
-        ccfits = f"{base_UVFITS_dir}/{source}/{obs1}_map.fits"
+        ccfits = f"{base_UVFITS_dir}/{source}/{source}_{obs1}_map.fits"
         if not os.path.exists(ccfits):
             raise Exception(f"No CCFITS {ccfits}")
         uvfits_files.append(uvfits)
         ccfits_files.append(ccfits)
         ncomps.append(2)
 
-        uvfits = f"{base_UVFITS_dir}/{source}/{obs2}_vis.fits"
+        uvfits = f"{base_UVFITS_dir}/{source}/{source}_{obs2}_vis.fits"
         if not os.path.exists(uvfits):
             raise Exception(f"No UVFITS {uvfits}")
-        ccfits = f"{base_UVFITS_dir}/{source}/{obs2}_map.fits"
+        ccfits = f"{base_UVFITS_dir}/{source}/{source}_{obs2}_map.fits"
         if not os.path.exists(ccfits):
             raise Exception(f"No CCFITS {ccfits}")
         uvfits_files.append(uvfits)
