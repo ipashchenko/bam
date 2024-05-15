@@ -1,5 +1,6 @@
 import os
 import pathlib
+import glob
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
@@ -790,12 +791,15 @@ def cluster_hdbscan(samples, n_comp):
     plot(X, hdb.labels_, hdb.probabilities_)
 
 
-def plot_corner(samples, cluster_membership, n_comps):
+def plot_corner(samples, n_comps, cluster_membership=None, savefig=None, component_type="cg"):
     """
     :param samples:
         Samples w/o jitter of type returned by ``get_samples_for_each_n`` function.
-    :param cluster_membership:
-        labels_dict[n_comp]
+    :param n_comps:
+        Number of components in a model.
+    :param cluster_membership: (optional)
+        labels_dict[n_comp]. If ``None`` then assume that samples are sorted somehow.
+        (default: ``None``)
     """
     # Cluster components
 
@@ -815,8 +819,12 @@ def plot_corner(samples, cluster_membership, n_comps):
         components_cluster_dict[cluster_id].append(comp)
 
     # Drop non-cluster points
-    unique_cluster_ids.remove(-1)
-    components_cluster_dict.pop(-1)
+    try:
+        unique_cluster_ids.remove(-1)
+        components_cluster_dict.pop(-1)
+    # If all samples lie in clusters
+    except ValueError:
+        pass
 
     for cluster_id in unique_cluster_ids:
         components_cluster_dict[cluster_id] = np.atleast_2d(components_cluster_dict[cluster_id])
@@ -840,15 +848,27 @@ def plot_corner(samples, cluster_membership, n_comps):
 
     # Construct labels
     labels = list()
-    for i in range(n_comps):
-        labels.extend([r"RA$_{}$".format(i+1),
-                       r"DEC$_{}$".format(i+1),
-                       r"$S_{}$".format(i+1),
-                       r"$\theta_{}$".format(i+1)])
+    if component_type == "cg" or component_type == "sphere":
+        for i in range(n_comps):
+            labels.extend([r"RA$_{}$".format(i+1),
+                           r"DEC$_{}$".format(i+1),
+                           r"$S_{}$".format(i+1),
+                           r"$\theta_{}$".format(i+1)])
+    elif component_type == "eg":
+        for i in range(n_comps):
+            labels.extend([r"RA$_{}$".format(i+1),
+                           r"DEC$_{}$".format(i+1),
+                           r"$S_{}$".format(i+1),
+                           r"$\bmaj_{}$".format(i+1),
+                           r"$\e_{}$".format(i+1),
+                           r"$\bpa_{}$".format(i+1)])
+    else:
+        raise Exception("component_type must be cg, eg or sphere!")
 
     fig = corner(new_samples, show_titles=True, title_fmt=".3f", quantiles=[0.16, 0.50, 0.84], labels=labels)
-    fig.savefig("test.png", bbox_inches="tight", dpi=100)
-    plt.show()
+    if savefig is not None:
+        fig.savefig(savefig, bbox_inches="tight", dpi=100)
+    plt.close()
 
 
 def postprocess_run(save_basename, posterior_file, data_file, original_ccfits, save_dir,
@@ -951,6 +971,9 @@ def postprocess_run(save_basename, posterior_file, data_file, original_ccfits, s
         fig_out.savefig(os.path.join(save_dir, f"{save_basename}_CLEAN_image_ncomp_{n_component}_clusters.png"), dpi=600)
         plt.close(fig_out)
 
+        plot_corner(samples_to_plot, n_component, cluster_membership=labels_dict[n_component],
+                    savefig=os.path.join(save_dir, f"{save_basename}_corner.png"))
+
         # f = plot_size_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :],
         #                                  savefn=os.path.join(save_dir, f"r_R_ncomp_{n_component}.png"),
         #                                  type=component_type)
@@ -962,32 +985,40 @@ def postprocess_run(save_basename, posterior_file, data_file, original_ccfits, s
 
 
 if __name__ == "__main__":
-    data_file = "/home/ilya/data/VLBI_Gaia/2comp/J0823-0939_X_2017_02_24_pus_vis.csv"
-    data_fn = os.path.split(data_file)[-1]
-    source, band, year, month, day, author, product = data_fn.split("_")
-    product = product.split(".")[0]
-    assert product == "vis"
-    save_basename = f"{source}_{band}_{year}_{month}_{day}"
-    posterior_file = f"/home/ilya/data/VLBI_Gaia/2comp/posterior_sample_{save_basename}.txt"
-    if not os.path.exists(posterior_file):
-        raise Exception(f"No posterior file : {posterior_file}")
-    original_ccfits = f"/home/ilya/data/VLBI_Gaia/2comp/{save_basename}_{author}_map.fits"
-    if not os.path.exists(original_ccfits):
-        raise Exception(f"No CCFITS image : {original_ccfits}")
+    pixsize_band_dict = {"Q": 0.03, "U": 0.1, "X": 0.2, "C": 0.3, "S": 0.5}
+    data_files_dir = "/home/ilya/data/VLBI_Gaia/2comp"
+    data_files = glob.glob(os.path.join(data_files_dir, "*.csv"))
+    print("Found data files: ", data_files)
+    for data_file in data_files:
+        if data_file != "/home/ilya/data/VLBI_Gaia/2comp/J1229+0203_Q_2007_08_30_mar_vis.csv":
+            continue
+        # data_file = "/home/ilya/data/VLBI_Gaia/2comp/J0823-0939_X_2017_02_24_pus_vis.csv"
+        data_fn = os.path.split(data_file)[-1]
+        source, band, year, month, day, author, product = data_fn.split("_")
+        product = product.split(".")[0]
+        assert product == "vis"
+        save_basename = f"{source}_{band}_{year}_{month}_{day}"
+        results_dir = os.path.join(data_files_dir, save_basename)
+        posterior_file = os.path.join(results_dir, f"posterior_sample_{save_basename}.txt")
+        if not os.path.exists(posterior_file):
+            raise Exception(f"No posterior file : {posterior_file}")
+        original_ccfits = os.path.join(data_files_dir, f"{save_basename}_{author}_map.fits")
+        if not os.path.exists(original_ccfits):
+            raise Exception(f"No CCFITS image : {original_ccfits}")
 
 
-    save_dir = f"/home/ilya/data/VLBI_Gaia/2comp/{save_basename}"
-    pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
-        
-    n_max = 10 
-    has_jitter = True
-    component_type = "cg"
-    pixsize_mas = 0.2
-    plot_type = "reim"
+        save_dir = results_dir
+        # pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
+            
+        n_max = 2 
+        has_jitter = True
+        component_type = "cg"
+        pixsize_mas = pixsize_band_dict[band]
+        plot_type = "reim"
 
-    postprocess_run(save_basename, posterior_file, data_file, original_ccfits, save_dir,
-                    n_max, has_jitter, component_type, skip_hp=True, pixsize_mas=pixsize_mas,
-                    plot_type=plot_type)
+        postprocess_run(save_basename, posterior_file, data_file, original_ccfits, save_dir,
+                        n_max, has_jitter, component_type, skip_hp=True, pixsize_mas=pixsize_mas,
+                        plot_type=plot_type)
 
 
 
