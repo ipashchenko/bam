@@ -4,6 +4,7 @@ import os
 import glob
 import pathlib
 from data_utils import get_data_file_from_ehtim
+from tempfile import TemporaryDirectory
 
 
 def choose_maxnsaves(n_comps, n_vis):
@@ -27,16 +28,15 @@ base_UVFITS_dir = "/mnt/jet1/yyk/VLBI/RFC/images"
 # Directory to save the results
 base_save_dir = "/mnt/storage/ilya/VLBI_Gaia"
 n_jobs = 2
+# Average time in difmap. It uses weighted vector averaging and
+# also re-calculate weights. This is helpful when they are not reliable.
+difmap_avg_time_sec = 60
 
 # FIXME: Choose executable depending on ``component_type``
 executable_dict = {2: "/home/ilya/github/bam/Release/bam_2",
                    3: "/home/ilya/github/bam/Release/bam_3"}
 executable = "/home/ilya/github/bam/Release/bam"
 
-# Average time in difmap. It uses weighted vector averaging and
-# also re-calculate weights. This is helpful when they are not reliable.
-# FIXME: Use function from create_data_from_ehtim
-difmap_avg_time_sec = 60
 template_options = "/home/ilya/github/bam/OPTIONS_gen"
 
 
@@ -58,13 +58,14 @@ for row in df.itertuples():
     source, band, year, month, day, author, product = uvfits_fn.split("_")
     product = product.split(".")[0]
     assert product == "vis"
-    save_basename = f"{source}_{band}_{year}_{month}_{day}_{author}"
+    save_basename = f"{source}_{band}_{year}_{month}_{day}_{author}_ncomp_{ncomps}"
     basenames.append(save_basename)
-    results_dir = os.path.join(base_save_dir, save_basename)
+    results_dir = os.path.join(base_save_dir, f"{source}_{band}_{year}_{month}_{day}_{author}")
     results_dirs.append(results_dir)
     pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
-    out_fname = os.path.join(results_dir, f"{save_basename}.csv")
-    df = get_data_file_from_ehtim(uvfits, out_fname)
+    out_fname = os.path.join(results_dir, f"{source}_{band}_{year}_{month}_{day}_{author}_avg_{difmap_avg_time_sec}sec.csv")
+    with TemporaryDirectory() as working_dir:
+        df = get_data_file_from_ehtim(uvfits, out_fname, avg_time_sec=difmap_avg_time_sec, working_dir=working_dir)
     n_vis = len(df)
     print("Number of vis = ", n_vis)
     print("Number of comps = ", ncomps)
