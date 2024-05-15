@@ -6,7 +6,7 @@ import pathlib
 from data_utils import get_data_file_from_ehtim
 
 
-dry_run = True
+dry_run = False
 # table_file = "/home/ilya/data/VLBI_Gaia/obs_pairs_good_8.csv"
 table_file = "/home/ilya/data/VLBI_Gaia/test.csv"
 # Path to UVFITS, path to FITS, n_components
@@ -14,8 +14,8 @@ df = pd.read_csv(table_file)
 base_UVFITS_dir = "/mnt/jet1/yyk/VLBI/RFC/images"
 # Directory to save the results
 base_save_dir = "/mnt/storage/ilya/VLBI_Gaia"
-n_jobs = 5
-maxnsaves = 1000
+n_jobs = 2
+maxnsaves = 100
 
 # FIXME: Choose executable depending on ``component_type``
 executable_dict = {1: "/home/ilya/github/bam/Release/bam_1",
@@ -38,7 +38,7 @@ ccfits_file = list()
 n_components = list()
 results_dirs = list()
 basenames = list()
-out_fnames = list()
+data_files = list()
 for row in df.itertuples():
     uvfits = row.uvfits
     ccfits = row.ccfits
@@ -52,35 +52,36 @@ for row in df.itertuples():
     save_basename = f"{source}_{band}_{year}_{month}_{day}_{author}"
     basenames.append(save_basename)
     results_dir = os.path.join(base_save_dir, save_basename)
+    results_dirs.append(results_dir)
     pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
     out_fname = os.path.join(results_dir, f"{save_basename}.csv")
     df = get_data_file_from_ehtim(uvfits, out_fname)
-    out_fnames.append(out_fname)
+    data_files.append(out_fname)
 
 
-args = " ".join(["{:s} {:s} {:s}".format(i, j, k) for (i, j, k) in zip(basenames, out_fnames, results_dirs)])
+args = " ".join(["{:s} {:s} {:s}".format(i, j, k) for (i, j, k) in zip(basenames, data_files, results_dirs)])
 
 basenames = " ".join(basenames)
-out_fnames = " ".join(out_fnames)
+data_files = " ".join(data_files)
 results_dirs = " ".join(results_dirs)
 
 print("basenames\n", basenames)
-print("outfnames\n", out_fnames)
+print("data_files\n", data_files)
 print("results_dirs\n", results_dirs)
 print("args\n", args)
 
 if dry_run:
     os.system('parallel --files --results {}/res_{{1}} --joblog {}/joblog --jobs {} --dryrun --link '
               '"python fit_mojave_uvfits_single_ncomponents.py --executable {} --maxnsaves {} --template_options {} --basename {{1}} '
-              '--data_file {{2}} --results_dir {{3}}" ::: {} ::: {} ::: {}'.format(results_dir, results_dir, n_jobs,
+              '--data_file {{2}} --results_dir {{3}}" ::: {} ::: {} ::: {}'.format(base_save_dir, base_save_dir, n_jobs,
                                                                                    executable, maxnsaves, template_options,
-                                                                                   basenames, out_fnames, results_dirs))
+                                                                                   basenames, data_files, results_dirs))
 else:
     os.system('parallel --files --results {}/res_{{1}} --joblog {}/joblog --jobs {} --link '
               '"python fit_mojave_uvfits_single_ncomponents.py --executable {} --maxnsaves {} --template_options {} --basename {{1}} '
-              '--data_file {{2}} --results_dir {{3}}" ::: {} ::: {} ::: {}'.format(results_dir, results_dir, n_jobs,
+              '--data_file {{2}} --results_dir {{3}}" ::: {} ::: {} ::: {}'.format(base_save_dir, base_save_dir, n_jobs,
                                                                                    executable, maxnsaves, template_options,
-                                                                                   basenames, out_fnames, results_dirs))
+                                                                                   basenames, data_files, results_dirs))
 
 # This works in bash
 # $ parallel -k  --link --dryrun "python fit_mojave_uvfits_single_ncomponents.py --uvfits \"uvfits\" --results_dir \"results_dir\" --ncomps {1} --maxnsaves {2}" ::: 1 2 ::: 1000 2000
