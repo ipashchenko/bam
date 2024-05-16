@@ -58,11 +58,8 @@ def choose_maxnsaves(n_comps, n_vis):
 
 
 def run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_jobs, difmap_avg_time_sec, dry_run=False):
-
-
-
     uvfits_files = list()
-    ccfits_file = list()
+    ccfits_files = list()
     n_components = list()
     results_dirs = list()
     basenames = list()
@@ -89,7 +86,9 @@ def run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_
                 df = get_data_file_from_ehtim(uvfits, out_fname, avg_time_sec=difmap_avg_time_sec, working_dir=working_dir)
             except:
                 signal_file = os.path.join(base_save_dir, f"FAILED_CREATING_DATA_FILE_{source}_{band}_{year}_{month}_{day}_{author}.info")
+                signal_file_home = os.path.join(results_dir, f"FAILED_CREATING_DATA_FILE_{source}_{band}_{year}_{month}_{day}_{author}.info")
                 os.system(f"touch {signal_file}")
+                os.system(f"touch {signal_file_home}")
                 failed_uvfits.append(uvfits)
                 continue
 
@@ -104,6 +103,7 @@ def run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_
         maxnsaves_list.append(str(maxnsaves))
         n_components.append(ncomps)
         data_files.append(out_fname)
+        ccfits_files.append(ccfits)
 
         try:
             executables.append(executable_dict[ncomps])
@@ -115,58 +115,64 @@ def run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_
         for fn in failed_uvfits:
             fo.write(fn + "\n")
 
-    args = " ".join(["{:s} {:s} {:s}".format(i, j, k) for (i, j, k) in zip(basenames, data_files, results_dirs)])
-
-    maxnsaves = " ".join(maxnsaves_list)
-    executables = " ".join(executables)
-    basenames = " ".join(basenames)
-    data_files = " ".join(data_files)
-    results_dirs = " ".join(results_dirs)
-
-    print("basenames\n", basenames)
-    print("data_files\n", data_files)
-    print("results_dirs\n", results_dirs)
-    print("maxnsaves\n", maxnsaves)
-    print("executables\n", executables)
-
-    # 536 is OK!
-    # 609 failed!
-    print(f"Length of the argument is {len(maxnsaves_list)}")
+    maxnsaves_file = "maxnsaves.data"
+    with open(maxnsaves_file, "w") as fo:
+        for item in maxnsaves_list:
+            fo.write(item + "\n")
+    executables_file = "executables.data"
+    with open(executables_file, "w") as fo:
+        for item in executables:
+            fo.write(item + "\n")
+    basenames_file = "basenames.data"
+    with open(basenames_file, "w") as fo:
+        for item in basenames:
+            fo.write(item + "\n")
+    data_files_file = "data_files.data"
+    with open(data_files_file, "w") as fo:
+        for item in data_files:
+            fo.write(item + "\n")
+    results_dirs_file = "results_dirs.data"
+    with open(results_dirs_file, "w") as fo:
+        for item in results_dirs:
+            fo.write(item + "\n")
+    ccfits_files_file = "cfits_files.data"
+    with open(ccfits_files_file, "w") as fo:
+        for item in ccfits_files:
+            fo.write(item + "\n")
 
     if dry_run:
         os.system('parallel --files --results {}/res_{{1}} --joblog {}/joblog --jobs {} --dryrun --link '
-                  '"python fit_mojave_uvfits_single_ncomponents.py --template_options {} --basename {{1}} '
-            '--data_file {{2}} --results_dir {{3}} --maxnsaves {{4}} --executable {{5}}" ::: {} ::: {} ::: {} ::: {} ::: {}'.format(base_save_dir, base_save_dir, n_jobs,
+                  '--xapply "python fit_mojave_uvfits_single_ncomponents.py --template_options {} --basename {{1}} '
+            '--data_file {{2}} --results_dir {{3}} --maxnsaves {{4}} --executable {{5}}" :::: {} :::: {} :::: {} :::: {} :::: {}'.format(base_save_dir, base_save_dir, n_jobs,
                                                                                        template_options,
-                                                                                       basenames, data_files, results_dirs, maxnsaves, executables))
+                                                                                       basenames_file, data_files_file, results_dirs_file, maxnsaves_file, executables_file))
     else:
         os.system('parallel --files --results {}/res_{{1}} --joblog {}/joblog --jobs {} --link '
-                  '"python fit_mojave_uvfits_single_ncomponents.py --template_options {} --basename {{1}} '
-            '--data_file {{2}} --results_dir {{3}} --maxnsaves {{4}} --executable {{5}}" ::: {} ::: {} ::: {} ::: {} ::: {}'.format(base_save_dir, base_save_dir, n_jobs,
+                  '--xapply "python fit_mojave_uvfits_single_ncomponents.py --template_options {} --basename {{1}} '
+            '--data_file {{2}} --results_dir {{3}} --maxnsaves {{4}} --executable {{5}} --ccfits_file {{6}}" :::: {} :::: {} :::: {} :::: {} :::: {} :::: {}'.format(base_save_dir, base_save_dir, n_jobs,
                                                                                        template_options,
-                                                                                       basenames, data_files, results_dirs, maxnsaves, executables))
+                                                                                       basenames_file, data_files_file, results_dirs_file, maxnsaves_file, executables_file, ccfits_files_file))
     df_log = pd.read_csv(f"{base_save_dir}/joblog", sep="\t")
     return df_log
 # This works in bash
 # $ parallel -k  --link --dryrun "python fit_mojave_uvfits_single_ncomponents.py --uvfits \"uvfits\" --results_dir \"results_dir\" --ncomps {1} --maxnsaves {2}" ::: 1 2 ::: 1000 2000
 
 
-# Path to UVFITS, path to FITS, n_components
-table_file = "/home/ilya/data/VLBI_Gaia/full_table_ncomp_2.csv"
-n_jobs = 10
-# Average time in difmap. It uses weighted vector averaging and
-# also re-calculate weights. This is helpful when they are not reliable.
-difmap_avg_time_sec = 60
-# Directory to save the results
-base_save_dir = "/mnt/storage/ilya/VLBI_Gaia"
-# FIXME: Choose executable depending on ``component_type``
-executable_dict = {2: "/home/ilya/github/bam/Release/bam_2"}
-                   #3: "/home/ilya/github/bam/Release/bam_3"}
-template_options = "/home/ilya/github/bam/OPTIONS_gen"
+if __name__ == "__main__":
+    # Path to UVFITS, path to FITS, n_components
+    table_file = "/home/ilya/data/VLBI_Gaia/full_table_ncomp_2.csv"
+    n_jobs = 15
+    # Average time in difmap. It uses weighted vector averaging and
+    # also re-calculate weights. This is helpful when they are not reliable.
+    difmap_avg_time_sec = 60
+    # Directory to save the results
+    base_save_dir = "/mnt/storage/ilya/VLBI_Gaia"
+    # FIXME: Choose executable depending on ``component_type``
+    executable_dict = {2: "/home/ilya/github/bam/Release/bam_2"}
+                       #3: "/home/ilya/github/bam/Release/bam_3"}
+    template_options = "/home/ilya/github/bam/OPTIONS_gen"
 
-logs_list = list() 
-df_full = pd.read_csv(table_file)
-# df = df_full.head(600)
-df = df_full[:100]
-df_log = run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_jobs, difmap_avg_time_sec, dry_run=False)
-logs_list.append(df_log)
+    df_full = pd.read_csv(table_file)
+    # df = df_full.head(600)
+    df = df_full
+    df_log = run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_jobs, difmap_avg_time_sec, dry_run=False)
