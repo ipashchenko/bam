@@ -57,7 +57,7 @@ def choose_maxnsaves(n_comps, n_vis):
     return int(n_comps*maxnsaves/2)
 
 
-def run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_jobs, difmap_avg_time_sec, dry_run=False):
+def run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_jobs, difmap_avg_time_sec):
     uvfits_files = list()
     ccfits_files = list()
     n_components = list()
@@ -140,18 +140,12 @@ def run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_
         for item in ccfits_files:
             fo.write(item + "\n")
 
-    if dry_run:
-        os.system('parallel --files --results {}/res_{{1}} --joblog {}/joblog --jobs {} --dryrun --link '
-                  '--xapply "python fit_mojave_uvfits_single_ncomponents.py --template_options {} --basename {{1}} '
-            '--data_file {{2}} --results_dir {{3}} --maxnsaves {{4}} --executable {{5}}" :::: {} :::: {} :::: {} :::: {} :::: {}'.format(base_save_dir, base_save_dir, n_jobs,
-                                                                                       template_options,
-                                                                                       basenames_file, data_files_file, results_dirs_file, maxnsaves_file, executables_file))
-    else:
-        os.system('parallel --files --results {}/res_{{1}} --joblog {}/joblog --jobs {} --link '
-                  '--xapply "python fit_mojave_uvfits_single_ncomponents.py --template_options {} --basename {{1}} '
-            '--data_file {{2}} --results_dir {{3}} --maxnsaves {{4}} --executable {{5}} --ccfits_file {{6}}" :::: {} :::: {} :::: {} :::: {} :::: {} :::: {}'.format(base_save_dir, base_save_dir, n_jobs,
-                                                                                       template_options,
-                                                                                       basenames_file, data_files_file, results_dirs_file, maxnsaves_file, executables_file, ccfits_files_file))
+    os.system('parallel --files --results {}/res_{{1}} --joblog {}/joblog --jobs {} --link '
+              '--xapply "python fit_mojave_uvfits_single_ncomponents.py --template_options {} --basename {{1}} '
+        '--data_file {{2}} --results_dir {{3}} --maxnsaves {{4}} --executable {{5}} --ccfits_file {{6}}" :::: {} :::: {} :::: {} :::: {} :::: {} :::: {}'.format(base_save_dir, base_save_dir, n_jobs,
+                                                                                   template_options,
+                                                                                   basenames_file, data_files_file, results_dirs_file, maxnsaves_file, executables_file, ccfits_files_file))
+
     df_log = pd.read_csv(f"{base_save_dir}/joblog", sep="\t")
     return df_log
 # This works in bash
@@ -175,4 +169,4 @@ if __name__ == "__main__":
     df_full = pd.read_csv(table_file)
     # df = df_full.head(600)
     df = df_full
-    df_log = run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_jobs, difmap_avg_time_sec, dry_run=False)
+    df_log = run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_jobs, difmap_avg_time_sec)
