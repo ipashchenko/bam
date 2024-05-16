@@ -883,7 +883,7 @@ def plot_corner(samples, n_comps, cluster_membership=None, savefig=None, compone
 
 def postprocess_run(save_basename, posterior_file, data_file, original_ccfits, save_dir,
                     n_max, has_jitter, component_type, skip_hp=True, pixsize_mas=None,
-                    plot_type="reim", corner_with_clustered=True):
+                    plot_type="reim"):
     save_rj_ncomp_distribution_file = os.path.join(save_dir, f"{save_basename}_ncomponents_distribution.png")
     n_jitters = 1
     # Plot all samples - for easy handling component cluster membership
@@ -981,12 +981,10 @@ def postprocess_run(save_basename, posterior_file, data_file, original_ccfits, s
         fig_out.savefig(os.path.join(save_dir, f"{save_basename}_CLEAN_image_ncomp_{n_component}_clusters.png"), dpi=600)
         plt.close(fig_out)
 
-        if corner_with_clustered:
-            plot_corner(samples_to_plot, n_component, cluster_membership=labels_dict[n_component],
-                        savefig=os.path.join(save_dir, f"{save_basename}_corner.png"))
-        else:
-            plot_corner(sorted_samples_to_plot, n_component, cluster_membership=None,
-                        savefig=os.path.join(save_dir, f"{save_basename}_corner.png"))
+        plot_corner(samples_to_plot, n_component, cluster_membership=labels_dict[n_component],
+                    savefig=os.path.join(save_dir, f"{save_basename}_corner_clustered.png"))
+        plot_corner(sorted_samples_to_plot, n_component, cluster_membership=None,
+                    savefig=os.path.join(save_dir, f"{save_basename}_corner.png"))
 
         # f = plot_size_distance_posterior(samples_to_plot[:n_max_samples_to_plot, :],
         #                                  savefn=os.path.join(save_dir, f"r_R_ncomp_{n_component}.png"),
@@ -1032,7 +1030,7 @@ if __name__ == "__main__":
 
         postprocess_run(save_basename, posterior_file, data_file, original_ccfits, save_dir,
                         n_max, has_jitter, component_type, skip_hp=True, pixsize_mas=pixsize_mas,
-                        plot_type=plot_type, corner_with_clustered=False)
+                        plot_type=plot_type)
 
 
 

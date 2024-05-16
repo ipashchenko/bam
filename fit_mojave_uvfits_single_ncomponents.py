@@ -3,12 +3,15 @@ import sys
 import pathlib
 from string import Template
 import numpy as np
+import astropy.io.fits as pf
+import astropy.units as u
 import argparse
 sys.path.insert(0, '/home/ilya/github/dnest4post')
 from postprocess import postprocess
+from postprocessing_utils import postprocess_run 
 
 
-def run(basename, maxnsaves, data_file, results_dir, template_options, excecutable):
+def run(basename, maxnsaves, data_file, results_dir, template_options, excecutable, ccfits_file):
 
     run_name = basename
     result_options = os.path.join(results_dir, "OPTIONS_{}".format(run_name))
@@ -30,9 +33,10 @@ def run(basename, maxnsaves, data_file, results_dir, template_options, excecutab
     with open(result_options, "w") as fo:
         print(result, file=fo)
 
-    executable_dir = os.path.split(executable)[0]
+    executable_dir, executable_name = os.path.split(executable)
+    n_max = int(executable_name.split("_")[1])
     os.chdir(executable_dir)
-    os.system("{} -t 4 -o {} -d {}".format(excecutable,
+    os.system("{} -t 3 -o {} -d {}".format(excecutable,
                                            result_options,
                                            data_file))
     print("POSTPROCESSING DNEST OUTPUT...")
@@ -54,12 +58,22 @@ def run(basename, maxnsaves, data_file, results_dir, template_options, excecutab
         os.system("touch {}/WARNING_SMALL_SAMPLE_SIZE_{}".format(results_dir, run_name))
 
 
+    # Obtain pixsize from CCFITS
+    header = pf.getheader(ccfits_file)
+    pixsize_mas = abs(header["CDELT1"])*u.deg.to(u.mas)
+    postprocess_run(basename, post_samples_file, data_file, ccfits_file, results_dir,
+                    n_max, has_jitter=True, component_type="cg", skip_hp=True, pixsize_mas=pixsize_mas,
+                    plot_type="reim")
+
+
 if __name__ == "__main__":
 
     CLI = argparse.ArgumentParser()
     CLI.add_argument("--basename",
                      type=str)
     CLI.add_argument("--data_file",
+                     type=str)
+    CLI.add_argument("--ccfits_file",
                      type=str)
     CLI.add_argument("--maxnsaves",
                      type=int)
@@ -73,6 +87,7 @@ if __name__ == "__main__":
 
     basename = args.basename
     data_file = args.data_file
+    ccfits_file = args.ccfits_file
     maxnsaves = args.maxnsaves
     results_dir = args.results_dir
     executable = args.executable
@@ -83,4 +98,4 @@ if __name__ == "__main__":
     print("Basename = ", basename)
     print("Data file = ", data_file)
     print("Results dir = ", results_dir)
-    run(basename, maxnsaves, data_file, results_dir, template_options, executable)
+    run(basename, maxnsaves, data_file, results_dir, template_options, executable, ccfits_file)
