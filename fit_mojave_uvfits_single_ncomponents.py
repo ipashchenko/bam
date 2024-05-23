@@ -54,9 +54,12 @@ def run(basename, maxnsaves, data_file, results_dir, template_options, excecutab
 
     post_samples = np.loadtxt(post_samples_file)
     n_post_samples = len(post_samples)
+    # Remove old caution file
+    caution_file = os.path.join(results_dir, f"WARNING_SMALL_SAMPLE_SIZE_{run_name}")
+    if os.path.exists(caution_file):
+        os.unlink(caution_file)
     if n_post_samples < 100:
-        os.system("touch {}/WARNING_SMALL_SAMPLE_SIZE_{}".format(results_dir, run_name))
-
+        os.system(f"touch {caution_file}")
 
     # Obtain pixsize from CCFITS
     header = pf.getheader(ccfits_file)
