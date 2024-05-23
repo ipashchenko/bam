@@ -8,7 +8,7 @@ from data_utils import get_data_file_from_ehtim
 from tempfile import TemporaryDirectory
 
 
-def reformat_table(original_csv):
+def reformat_table(original_csv, n_components):
     df = pd.read_csv(original_csv)
     csv_dir, _ = os.path.split(original_csv)
 
@@ -28,7 +28,7 @@ def reformat_table(original_csv):
             raise Exception(f"No CCFITS {ccfits}")
         uvfits_files.append(uvfits)
         ccfits_files.append(ccfits)
-        ncomps.append(2)
+        ncomps.append(n_components)
 
         uvfits = f"{base_UVFITS_dir}/{source}/{source}_{obs2}_vis.fits"
         if not os.path.exists(uvfits):
@@ -38,11 +38,13 @@ def reformat_table(original_csv):
             raise Exception(f"No CCFITS {ccfits}")
         uvfits_files.append(uvfits)
         ccfits_files.append(ccfits)
-        ncomps.append(2)
+        ncomps.append(n_components)
 
     dic = {"uvfits": uvfits_files, "ccfits": ccfits_files, "ncomps": ncomps}
     df = pd.DataFrame.from_dict(dic)
-    df.to_csv(os.path.join(csv_dir, "full_table_ncomp_2.csv"), header=True, index=False)
+    # Delete identical rows
+    df.drop_duplicates(inplace=True)
+    df.to_csv(os.path.join(csv_dir, f"full_table_ncomp_{n_components}.csv"), header=True, index=False)
     return df
 
 
@@ -100,6 +102,8 @@ def get_small_sample_runs(base_dir,
 
     dict_2_df = {"uvfits": uvfits_files, "ccfits": ccfits_files, "ncomps": n_components}
     df = pd.DataFrame.from_dict(dict_2_df)
+    # Delete identical rows
+    df.drop_duplicates(inplace=True)
     df.to_csv(os.path.join(save_csv_dir, "small_posterior_sample_sized.csv"), header=True, index=False)
     return df
 
@@ -216,8 +220,9 @@ def run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_
 
 if __name__ == "__main__":
     # Path to UVFITS, path to FITS, n_components
-    table_file = "/home/ilya/data/VLBI_Gaia/full_table_ncomp_3.csv"
-    n_jobs = 15
+    # table_file = "/home/ilya/data/VLBI_Gaia/full_table_ncomp_3.csv"
+    table_file = "/home/ilya/data/VLBI_Gaia/small_posterior_sample_sized.csv"
+    n_jobs = 8
     # Average time in difmap. It uses weighted vector averaging and
     # also re-calculate weights. This is helpful when they are not reliable.
     difmap_avg_time_sec = 60
