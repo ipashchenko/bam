@@ -1,4 +1,5 @@
 import pandas as pd
+import shutil
 import sys
 import os
 import glob
@@ -7,7 +8,7 @@ from data_utils import get_data_file_from_ehtim
 from tempfile import TemporaryDirectory
 
 
-def reformat_table(original_csv):
+def reformat_table(original_csv, n_components):
     df = pd.read_csv(original_csv)
     csv_dir, _ = os.path.split(original_csv)
 
@@ -27,7 +28,7 @@ def reformat_table(original_csv):
             raise Exception(f"No CCFITS {ccfits}")
         uvfits_files.append(uvfits)
         ccfits_files.append(ccfits)
-        ncomps.append(2)
+        ncomps.append(n_components)
 
         uvfits = f"{base_UVFITS_dir}/{source}/{source}_{obs2}_vis.fits"
         if not os.path.exists(uvfits):
@@ -37,11 +38,13 @@ def reformat_table(original_csv):
             raise Exception(f"No CCFITS {ccfits}")
         uvfits_files.append(uvfits)
         ccfits_files.append(ccfits)
-        ncomps.append(2)
+        ncomps.append(n_components)
 
     dic = {"uvfits": uvfits_files, "ccfits": ccfits_files, "ncomps": ncomps}
     df = pd.DataFrame.from_dict(dic)
-    df.to_csv(os.path.join(csv_dir, "full_table_ncomp_2.csv"), header=True, index=False)
+    # Delete identical rows
+    df.drop_duplicates(inplace=True)
+    df.to_csv(os.path.join(csv_dir, f"full_table_ncomp_{n_components}.csv"), header=True, index=False)
     return df
 
 
@@ -55,6 +58,69 @@ def choose_maxnsaves(n_comps, n_vis):
     else:
         maxnsaves = 10000
     return int(n_comps*maxnsaves/2)
+
+
+def get_failed_jobs(logfile, savefile=None):
+    failed_jobs = list()
+    df = pd.read_csv(logfile, sep="\t")
+    df = df.sort_values(["Seq", "Starttime"])
+    gb = df.groupby("Command")
+    for state, frame in gb:
+        source = state.split(" ")[5]
+        last_exit_val = frame.tail(1)["Exitval"].values[0]
+        if last_exit_val == 1:
+            failed_jobs.append(source)
+    if savefile is not None:
+        with open(savefile, "w") as fo:
+            for source in failed_jobs:
+                fo.write(source + "\n")
+    return failed_jobs
+
+
+def get_small_sample_runs(base_dir,
+                          base_UVFITS_dir="/mnt/jet1/yyk/VLBI/RFC/images",
+                          save_csv_dir=None):
+    if save_csv_dir is None:
+        save_csv_dir = os.getcwd()
+    uvfits_files = list()
+    ccfits_files = list()
+    n_components = list()
+    dirs = [ name for name in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, name)) ]
+    for directory in dirs:
+        caution_files = glob.glob(os.path.join(base_dir, directory, f"WARNING_SMALL_SAMPLE_SIZE_{directory}_ncomp_*"))
+        if not caution_files:
+            continue
+        else:
+            for caution_file in caution_files:
+                caution_file = os.path.split(caution_file)[-1]
+                n_comp = caution_file.split("_")[-1]
+                uvfits = f"{base_UVFITS_dir}/{directory}_vis.fits"
+                ccfits = f"{base_UVFITS_dir}/{directory}_map.fits"
+                n_components.append(n_comp)
+                uvfits_files.append(uvfits)
+                ccfits_files.append(ccfits)
+
+    dict_2_df = {"uvfits": uvfits_files, "ccfits": ccfits_files, "ncomps": n_components}
+    df = pd.DataFrame.from_dict(dict_2_df)
+    # Delete identical rows
+    df.drop_duplicates(inplace=True)
+    df.to_csv(os.path.join(save_csv_dir, "small_posterior_sample_sized.csv"), header=True, index=False)
+    return df
+
+
+# # FIXME:
+# def remove_dirs_with_failed_jobs(logfile, working_dir="/mnt/storage/ilya/VLBI_Gaia", test=True):
+#     failed_sources = get_sources_with_failed_jobs(logfile)
+#     for source in failed_sources:
+#         dir_to_rm = os.path.join(working_dir, source)
+#         print("Removig directory ", dir_to_rm)
+#         try:
+#             if test:
+#                 print("TEST: Removing ", dir_to_rm)
+#             else:
+#                 shutil.rmtree(dir_to_rm)
+#         except FileNotFoundError:
+#             print("No directory {} found! Skipping.".format(dir_to_rm))
 
 
 def run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_jobs, difmap_avg_time_sec):
@@ -154,16 +220,17 @@ def run_parallels_on_df(df, base_save_dir, executable_dict, template_options, n_
 
 if __name__ == "__main__":
     # Path to UVFITS, path to FITS, n_components
-    table_file = "/home/ilya/data/VLBI_Gaia/full_table_ncomp_2.csv"
-    n_jobs = 15
+    # table_file = "/home/ilya/data/VLBI_Gaia/full_table_ncomp_3.csv"
+    table_file = "/home/ilya/data/VLBI_Gaia/small_posterior_sample_sized.csv"
+    n_jobs = 8
     # Average time in difmap. It uses weighted vector averaging and
     # also re-calculate weights. This is helpful when they are not reliable.
     difmap_avg_time_sec = 60
     # Directory to save the results
     base_save_dir = "/mnt/storage/ilya/VLBI_Gaia"
     # FIXME: Choose executable depending on ``component_type``
-    executable_dict = {2: "/home/ilya/github/bam/Release/bam_2"}
-                       #3: "/home/ilya/github/bam/Release/bam_3"}
+    executable_dict = {2: "/home/ilya/github/bam/Release/bam_2",
+                       3: "/home/ilya/github/bam/Release/bam_3"}
     template_options = "/home/ilya/github/bam/OPTIONS_gen"
 
     df_full = pd.read_csv(table_file)
