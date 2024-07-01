@@ -101,7 +101,9 @@ if __name__ == "__main__":
 
     simulate = True
     time_average_sec = 120
-    save_dir = "/home/ilya/github/time_machine/bam/artificial_data"
+    # Assuming we run this script from root project folder:
+    curdir = os.getcwd()
+    save_dir = os.path.join(curdir, "artificial_data")
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
     # Coordinates relative to the true jet origin
