@@ -29,8 +29,6 @@ SkyModel::SkyModel(const SkyModel &other)
         Component* comp = other_comp->clone();
         components_.push_back(comp);
     }
-    perturbed = other.perturbed;
-//    mu = other.mu;
 }
 
 
@@ -52,8 +50,6 @@ SkyModel& SkyModel::operator=(const SkyModel& other)
         Component* comp = other_comp->clone();
         components_.push_back(comp);
     }
-    perturbed = other.perturbed;
-//    mu = other.mu;
     return *this;
 }
 
@@ -74,25 +70,9 @@ SkyModel* SkyModel::clone()
 }
 
 
-void SkyModel::set_perturbed(std::vector<bool> new_perturbed)
-{
-	perturbed = new_perturbed;
-}
-
-std::vector<bool> SkyModel::get_perturbed()
-{
-	return perturbed;
-}
-
-void SkyModel::reset_perturbed()
-{
-	fill(perturbed.begin(), perturbed.end(), false);
-}
-
 void SkyModel::add_component(Component *component)
 {
     components_.push_back(component);
-    perturbed.push_back(false);
 }
 
 ArrayXcd SkyModel::ft_from_all(double nu, const ArrayXd& u, const ArrayXd& v)
@@ -106,31 +86,6 @@ ArrayXcd SkyModel::ft_from_all(double nu, const ArrayXd& u, const ArrayXd& v)
 		mu = (mu + comp->ft(nu, u, v)).eval();
     }
 	
-	return mu;
-}
-
-
-ArrayXcd SkyModel::ft_from_perturbed(double nu, const ArrayXd& u, const ArrayXd& v)
-{
-	if (std::find(std::begin(perturbed), std::end(perturbed), true) == std::end(perturbed)) // All false
-	{
-		std::cout << "All perturbed = false, but we in SkyModel.ft_from_perturbed!!!!!!\n";
-	}
-	// Zero prediction
-	// TODO: Can't I multiply mu on ``0``?
-	ArrayXcd mu = ArrayXcd::Zero(u.size());
-    for(size_t i=0; i<perturbed.size(); i++)
-    {
-        if(perturbed[i])
-        {
-			DEBUG("FT only from component # " + std::to_string(i));
-            auto comp = components_[i];
-			DEBUG("Before adding perturbed component prediction mu[0] = " + std::to_string(mu[0].real()) + ", " + std::to_string(mu[0].imag()));
-            mu = (mu + comp->ft(nu, u, v)).eval();
-			DEBUG("After adding perturbed component prediction mu[0] = " + std::to_string(mu[0].real()) + ", " + std::to_string(mu[0].imag()));
-			//! I can't reset perturbed flag here, because it calculates FT for several bands!
-        }
-    }
 	return mu;
 }
 
@@ -170,7 +125,6 @@ double SkyModel::perturb(DNest4::RNG &rng) {
 		which = 0;
 	}
 	DEBUG("In SkyModel.perturb() - perturbing component # " + std::to_string(which));
-    perturbed[which] = true;
     return components_[which]->perturb(rng);
 }
 

@@ -11,36 +11,28 @@
 #endif
 
 
-DNestModel::DNestModel() : use_logjitter(true), use_speedup(true), use_image_shifts_from_core(true), component_ft_counter(0)
+DNestModel::DNestModel()
 {
-	size_t number_of_jet_components = 7;
+	size_t number_of_jet_components = 2;
     sky_model = new SkyModel(number_of_jet_components);
-	old_sky_model = sky_model->clone();
 	DEBUG("DM ctor sky_model : " + sky_model->print());
-	DEBUG("DM ctor old_sky_model : " + old_sky_model->print());
 }
 
 
 DNestModel::~DNestModel()
 {
     delete sky_model;
-	delete old_sky_model;
 }
 
 
-DNestModel::DNestModel(const DNestModel& other)
+DNestModel::DNestModel(const DNestModel& other) //: sky_model(new SkyModel(*other.sky_model)), old_sky_model(new SkyModel(*other.old_sky_model))
 {
     sky_model = new SkyModel(*other.sky_model);
-	old_sky_model = new SkyModel(*other.old_sky_model);
     logjitter = other.logjitter;
-    use_logjitter = other.use_logjitter;
-	use_speedup = other.use_speedup;
-	use_image_shifts_from_core = other.use_image_shifts_from_core;
 	sky_model_mu = other.sky_model_mu;
 	mu_full = other.mu_full;
 	jet_origin_x = other.jet_origin_x;
 	jet_origin_y = other.jet_origin_y;
-	component_ft_counter = other.component_ft_counter;
 }
 
 
@@ -49,16 +41,11 @@ DNestModel& DNestModel::operator=(const DNestModel& other)
     if (this != &other)
 	{
         *(sky_model) = *(other.sky_model);
-        *(old_sky_model) = *(other.old_sky_model);
         logjitter = other.logjitter;
-        use_logjitter = other.use_logjitter;
-		use_speedup = other.use_speedup;
-		use_image_shifts_from_core = other.use_image_shifts_from_core;
 		sky_model_mu = other.sky_model_mu;
 		mu_full = other.mu_full;
 		jet_origin_x = other.jet_origin_x;
 		jet_origin_y = other.jet_origin_y;
-		component_ft_counter = other.component_ft_counter;
     }
     return *this;
 }
@@ -83,9 +70,7 @@ void DNestModel::from_prior(DNest4::RNG &rng)
 	}
     sky_model->from_prior(rng);
 	// old SkyModel now is the copy of the current one
-	old_sky_model = sky_model->clone();
 	DEBUG("DM from_prior sky_model : " + sky_model->print());
-	DEBUG("DM from_prior old_sky_model : " + old_sky_model->print());
 	calculate_sky_mu(false);
 	shift_sky_mu();
 }
@@ -125,9 +110,6 @@ double DNestModel::perturb(DNest4::RNG &rng)
 		DEBUG("Perturb: sky_model before perturb : " + sky_model->print());
 		logH += sky_model->perturb(rng);
 		DEBUG("Perturb: sky_model after perturb : " + sky_model->print());
-		DEBUG("Perturb: old_sky_model after perturb : " + old_sky_model->print());
-		// Now the old sky_model has the same boolean perturbed vector
-		old_sky_model->set_perturbed(sky_model->get_perturbed());
         // Pre-reject
         if(rng.rand() >= exp(logH))
 		{
@@ -137,38 +119,9 @@ double DNestModel::perturb(DNest4::RNG &rng)
             logH = 0.0;
 
         // This shouldn't be called in case of pre-rejection
-        calculate_sky_mu(true);
+        calculate_sky_mu(false);
 		shift_sky_mu();
-		
-		// Reset perturbed flag here
-		sky_model->reset_perturbed();
-		old_sky_model->reset_perturbed();
-		DEBUG("DNestModel.calculate_sky_mu - reset both sky_model counters");
-		
-		// Some checks
-		auto old_perturbed = old_sky_model->get_perturbed();
-		auto perturbed = sky_model->get_perturbed();
-		if (std::find(std::begin(perturbed), std::end(perturbed), true) == std::end(perturbed)) // All false
-		{
-			DEBUG("All perturbed = false after resetting in sky_model");
-		}
-		else
-		{
-			DEBUG("All perturbed != false after resetting in sky_model!!!");
-		}
-		if (std::find(std::begin(old_perturbed), std::end(old_perturbed), true) == std::end(old_perturbed)) // All false
-		{
-			DEBUG("All perturbed = false after resetting in old_sky_model");
-		}
-		else
-		{
-			DEBUG("All perturbed != false after resetting in old_sky_model");
-		}
-		
-		// Make old - copy of the current
-		old_sky_model = sky_model->clone();
 		DEBUG("Perturb: sky_model after cloning : " + sky_model->print());
-		DEBUG("Perturb: old_sky_model after cloning : " + old_sky_model->print());
     }
 	
 	// Perturb per-band phase centers
@@ -220,34 +173,13 @@ double DNestModel::perturb(DNest4::RNG &rng)
 
 void DNestModel::calculate_sky_mu(bool update)
 {
-	DEBUG("Starting DM:calculate_sky_mu with ft_counter = " + std::to_string(component_ft_counter));
 	const std::unordered_map<std::string, double> band_freq_map = Data::get_instance().get_band_freq_map();
 	for (const auto& [band, freq] : band_freq_map)
 	{
 		const ArrayXd &u = Data::get_instance().get_u(band);
 		const ArrayXd &v = Data::get_instance().get_v(band);
-		
-		if(use_speedup && update && component_ft_counter < 30)
-		{
-			DEBUG("DNestModel.calculate_sky_mu - Speed up with counter = " + std::to_string(component_ft_counter));
-			// Change the model prediction by the difference between predictions of the new ond old perturbed component
-			// FIXME: ???
-			sky_model_mu[band] += (sky_model->ft_from_perturbed(freq, u, v) - old_sky_model->ft_from_perturbed(freq, u, v)).eval();
-		}
-		else
-		{
-			DEBUG("DNestModel.calculate_sky_mu - Full : will reset counter!");
-			sky_model_mu[band] = sky_model->ft_from_all(freq, u, v);
-		}
-	}
-	
-	if(use_speedup && update && component_ft_counter < 30)
-	{
-		component_ft_counter += 1;
-	}
-	else
-	{
-		component_ft_counter = 0;
+		DEBUG("DNestModel.calculate_sky_mu - Full : will reset counter!");
+		sky_model_mu[band] = sky_model->ft_from_all(freq, u, v);
 	}
 }
 
@@ -262,9 +194,6 @@ void DNestModel::shift_sky_mu()
 	{
 		std::pair<double, double> reference{0., 0.};
 		// Obtain core position at given band relative to jet origin
-		if(use_image_shifts_from_core){
-			reference = sky_model->get_core_position(freq);
-		}
 		ArrayXd &u = Data::get_instance().get_u(band);
 		ArrayXd &v = Data::get_instance().get_v(band);
 		mu_full[band] = sky_model_mu[band] * exp(2 * M_PI * j * mas_to_rad * (u*(-reference.first + jet_origin_x[band]) +

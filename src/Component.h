@@ -28,12 +28,6 @@ class Component {
         virtual std::string description() const = 0;
         virtual void from_prior(DNest4::RNG& rng) = 0;
         virtual double perturb(DNest4::RNG& rng) = 0;
-//        virtual double perturb_all_params(DNest4::RNG& rng) = 0;
-//        virtual double perturb_position(DNest4::RNG& rng) = 0;
-//        virtual double perturb_flux(DNest4::RNG& rng) = 0;
-//        virtual double perturb_size(DNest4::RNG& rng) = 0;
-//        virtual double perturb_flux_position(DNest4::RNG& rng) = 0;
-//        virtual double perturb_size_position(DNest4::RNG& rng) = 0;
         // See also https://softwareengineering.stackexchange.com/a/337565 for unique_ptr
 		// Should be implemented in each derived class:
         virtual Component* clone() = 0;

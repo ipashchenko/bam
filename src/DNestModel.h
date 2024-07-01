@@ -7,6 +7,9 @@
 #include "DNest4.h"
 
 
+extern const bool use_logjitter;
+extern const bool image_shifts_from_core;
+
 class DNestModel {
     public:
 
@@ -32,14 +35,10 @@ class DNestModel {
 
     private:
 		std::map<std::string, double> logjitter;
-        bool use_logjitter;
-		bool use_image_shifts_from_core;
 		// Per-band position of the jet base relative to the phase center
 		std::map<std::string, double> jet_origin_x;
 		std::map<std::string, double> jet_origin_y;
         SkyModel* sky_model;
-        SkyModel* old_sky_model;
-        std::vector<bool> perturbed_components;
         // Prediction of SkyModel only
         std::unordered_map<std::string, ArrayXcd> sky_model_mu;
 		// Predictions with shift
@@ -47,8 +46,6 @@ class DNestModel {
         // This runs ``ft`` method of SkyModel with (u, v) from Data and updates SkyModel predictions
         void calculate_sky_mu(bool update);
 		void shift_sky_mu();
-		size_t component_ft_counter;
-		bool use_speedup;
 };
 
 #endif //BAM_DNESTMODEL_H

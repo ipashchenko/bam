@@ -18,11 +18,6 @@ class SkyModel
 
         void add_component(Component* component);
 		ArrayXcd ft_from_all(double nu, const ArrayXd& u, const ArrayXd& v);
-		ArrayXcd ft_from_perturbed(double nu, const ArrayXd& u, const ArrayXd& v);
-//        ArrayXcd get_mu() const { return mu; }
-		void set_perturbed(std::vector<bool> perturbed);
-		std::vector<bool> get_perturbed();
-		void reset_perturbed();
         void print(std::ostream& out) const;
 		std::string print() const;
         [[nodiscard]] std::string description() const;
@@ -32,10 +27,7 @@ class SkyModel
 		std::pair<double, double> get_core_position(double nu);
 
     private:
-        std::vector<bool> perturbed{};
         std::vector<Component*> components_{};
-        // SkyModel prediction
-//		ArrayXcd mu{};
 };
 
 
