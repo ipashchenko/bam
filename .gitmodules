@@ -1,0 +1,3 @@
+[submodule "ve"]
+	path = ve
+	url = git@github.com:ipashchenko/ve.git

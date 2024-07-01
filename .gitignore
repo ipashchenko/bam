@@ -16,4 +16,5 @@
 
 # unignore files
 !.gitignore
+!.gitmodules
 !README.md
