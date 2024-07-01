@@ -7,6 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 import sys
 import ehtim as eh
+from subprocess import Popen, PIPE
 
 mas_to_rad = units.mas.to(units.rad)
 

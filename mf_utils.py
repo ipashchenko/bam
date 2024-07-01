@@ -4,13 +4,11 @@ import astropy.io.fits as pf
 import matplotlib
 import numpy as np
 import pandas as pd
-
 # matplotlib.use("TkAgg")
-from data_utils import get_data_file_from_ehtim, add_noise, radplot, gaussian_circ_ft, mas_to_rad
+from data_utils import time_average, get_data_file_from_ehtim, add_noise, radplot, gaussian_circ_ft, mas_to_rad
 sys.path.insert(0, 've/vlbi_errors')
 from uv_data import UVData
-from spydiff import time_average
-matplotlib.use("QtAgg")
+# matplotlib.use("TkAgg")
 
 
 def load_from_fits(uvfits):
