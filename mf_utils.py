@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 
 # matplotlib.use("TkAgg")
-from data_utils import create_data_file_v2, add_noise, radplot, gaussian_circ_ft, mas_to_rad
-sys.path.insert(0, '/home/ilya/github/ve/vlbi_errors')
+from data_utils import get_data_file_from_ehtim, add_noise, radplot, gaussian_circ_ft, mas_to_rad
+sys.path.insert(0, 've/vlbi_errors')
 from uv_data import UVData
 from spydiff import time_average
 matplotlib.use("QtAgg")
@@ -70,13 +70,14 @@ def create_data_files_from_real_uvfits(band_uvfits_files_dict, save_dir, time_av
         uvdata = UVData(uvfits)
         freq_ghz = uvdata.frequency/1E+09
         out_fname = os.path.join(save_dir, "{}_{:.2f}".format(band, freq_ghz))
-        df = create_data_file_v2(uvfits, out_fname, time_average_sec=time_average_sec_dict[band])
+        df = get_data_file_from_ehtim(uvfits, out_fname, avg_time_sec=time_average_sec_dict[band], average_using="difmap", working_dir=None)
         fig = radplot(df, label="Data")
         plt.show()
 
 
 if __name__ == "__main__":
-    #
+
+    # Generation of real data set
     # # band_uvfits_files_dict = {"c1": "/home/ilya/Downloads/MF/0851+202.c1.2009_02_02.uvf",
     # #                           "c2": "/home/ilya/Downloads/MF/0851+202.c2.2009_02_02.uvf",
     # #                           "k1": "/home/ilya/Downloads/MF/0851+202.k1.2009_02_02.uvf",
@@ -100,23 +101,23 @@ if __name__ == "__main__":
     # sys.exit(0)
 
 
-    # save_to_uvfits("/home/ilya/Downloads/MF/ta120sec_0851+202.c1.2009_02_02.uvf")
-    # sys.exit(0)
     simulate = True
     time_average_sec = 120
-    save_dir = "/home/ilya/github/bam/mf/artificial/core_2jc"
+    save_dir = "/home/ilya/github/time_machine/bam/artificial_data"
+    if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
     # Coordinates relative to the true jet origin
     # a, PA, size_1GHz, k_r, S_1GHz, alpha
     core_component = (3.0, np.pi/6, 1.0, 1.0, 2.0, 0.0)
     # RA, DEC, Size, nu_max, S_nu_max, alpha_thick, alpha_thin
     jet_components = [(3.0, 4.5, 0.5, 10.0, 1.0, 1.5, -0.5),
                       (9.0, 10.0, 1.5, 5.0, 0.5, 2.0, -0.5)]
-    band_uvfits_files_dict = {"c1": "/home/ilya/Downloads/MF/0851+202.c1.2009_02_02.uvf",
+    band_uvfits_files_dict = {"c1": "data/0851+202.c1.2009_02_02.uvf",
                               # "c2": "/home/ilya/Downloads/MF/0851+202.c2.2009_02_02.uvf",
-                              "k1": "/home/ilya/Downloads/MF/0851+202.k1.2009_02_02.uvf",
-                              "q1": "/home/ilya/Downloads/MF/0851+202.q1.2009_02_02.uvf",
-                              "u1": "/home/ilya/Downloads/MF/0851+202.u1.2009_02_02.uvf",
-                              "x1": "/home/ilya/Downloads/MF/0851+202.x1.2009_02_02.uvf"}
+                              "k1": "data/0851+202.k1.2009_02_02.uvf",
+                              "q1": "data/0851+202.q1.2009_02_02.uvf",
+                              "u1": "data/0851+202.u1.2009_02_02.uvf",
+                              "x1": "data/0851+202.x1.2009_02_02.uvf"}
                               # "x2": "/home/ilya/Downloads/MF/0851+202.x2.2009_02_02.uvf"}
 
     for band, uvfits in band_uvfits_files_dict.items():
@@ -131,6 +132,7 @@ if __name__ == "__main__":
         save_uvfits = to_read_uvfits
         time_average(uvfits, to_read_uvfits, time_sec=time_average_sec)
         df = load_from_fits(to_read_uvfits)
+
 
         if simulate:
             u = df["u"].values
@@ -191,4 +193,5 @@ if __name__ == "__main__":
         else:
             df_updated = df
         df_updated.to_csv(out_fname, sep=" ", index=False, header=False)
-        save_to_uvfits(save_uvfits, re=df_updated["vis_re"], im=df_updated["vis_im"])
+        # save_to_uvfits(save_uvfits, re=df_updated["vis_re"], im=df_updated["vis_im"])
+        os.unlink(to_read_uvfits)

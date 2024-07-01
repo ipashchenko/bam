@@ -8,6 +8,9 @@
 # unignore folders
 !src
 
+# unignore submoduel
+!ve
+
 # unignore data folder
 !data/
 
