@@ -8,7 +8,7 @@
 
 
 extern const bool use_logjitter;
-extern const bool image_shifts_from_core;
+// extern const bool image_shifts_from_core;
 
 class DNestModel {
     public:

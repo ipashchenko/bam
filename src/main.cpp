@@ -4,8 +4,8 @@
 
 using namespace DNest4;
 
-const bool use_logjiter = true;
-const bool image_shifts_from_core = true;
+const bool use_logjitter = true;
+// const bool image_shifts_from_core = true;
 
 
 int main(int argc, char** argv)

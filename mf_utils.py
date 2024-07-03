@@ -8,6 +8,7 @@ import pandas as pd
 from data_utils import time_average, get_data_file_from_ehtim, add_noise, radplot, gaussian_circ_ft, mas_to_rad
 sys.path.insert(0, 've/vlbi_errors')
 from uv_data import UVData
+from subprocess import Popen, PIPE
 # matplotlib.use("TkAgg")
 
 
@@ -101,9 +102,7 @@ if __name__ == "__main__":
 
     simulate = True
     time_average_sec = 120
-    # Assuming we run this script from root project folder:
-    curdir = os.getcwd()
-    save_dir = os.path.join(curdir, "artificial_data")
+    save_dir = "/home/sonya/bam/artificial_data"
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
     # Coordinates relative to the true jet origin
@@ -128,7 +127,7 @@ if __name__ == "__main__":
         # df = create_data_file_v2(uvfits, out_fname, time_average_sec=120)
 
         path, fname = os.path.split(uvfits)
-        to_read_uvfits = os.path.join(path, "ta{}sec_{}".format(time_average_sec, fname))
+        to_read_uvfits = os.path.join(path, "{}".format(fname))
         save_uvfits = to_read_uvfits
         time_average(uvfits, to_read_uvfits, time_sec=time_average_sec)
         df = load_from_fits(to_read_uvfits)
