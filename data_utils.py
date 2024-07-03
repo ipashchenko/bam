@@ -8,11 +8,12 @@ from tqdm import tqdm
 import sys
 import ehtim as eh
 from subprocess import Popen, PIPE
+import datetime
 
 mas_to_rad = units.mas.to(units.rad)
 
 
-def time_average(uvfits, outfname, time_sec=60, show_difmap_output=True,
+def time_average_subprocess(uvfits, outfname, time_sec=60, show_difmap_output=True,
                  reweight=True):
     if reweight:
         cmd = "observe " + uvfits + ", {}, true\n".format(time_sec)
@@ -26,6 +27,27 @@ def time_average(uvfits, outfname, time_sec=60, show_difmap_output=True,
     if show_difmap_output:
         print(outs)
         print(errs)
+
+def time_average(uvfits, outfname, time_sec=60, show_difmap_output=True,
+                 reweight=True):
+    stamp = datetime.datetime.now()
+    command_file = "difmap_commands_{}".format(stamp.isoformat())
+
+    difmapout = open(command_file, "w")
+    if reweight:
+        difmapout.write("observe " + uvfits + ", {}, true\n".format(time_sec))
+    else:
+        difmapout.write("observe " + uvfits + ", {}, false\n".format(time_sec))
+    difmapout.write("wobs {}\n".format(outfname))
+    difmapout.write("exit\n")
+    difmapout.close()
+    shell_command = "difmap < " + command_file + " 2>&1"
+    if not show_difmap_output:
+        shell_command += " >/dev/null"
+    os.system(shell_command)
+
+    # Remove command file
+    os.unlink(command_file)
 
 
 def gaussian_circ_ft(flux, RA, DEC, bmaj, uv):
