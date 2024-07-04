@@ -17,7 +17,7 @@ int main(int argc, char** argv)
 //    Data::get_instance().load("x2_8.43");
     Data::get_instance().load("u1_15.35");
     Data::get_instance().load("k1_23.79");
-    Data::get_instance().load("q1_43.21");
+    // Data::get_instance().load("q1_43.21");
     // Run DNest4
     CommandLineOptions options(argc, argv);
     // Load sampler options from file

@@ -127,8 +127,8 @@ if __name__ == "__main__":
         # df = create_data_file_v2(uvfits, out_fname, time_average_sec=120)
 
         path, fname = os.path.split(uvfits)
-        to_read_uvfits = os.path.join(path, "{}".format(fname))
-        save_uvfits = to_read_uvfits
+        to_read_uvfits = os.path.join(path, "ta{}sec_{}".format(time_average_sec, fname))
+        # save_uvfits = to_read_uvfits
         time_average(uvfits, to_read_uvfits, time_sec=time_average_sec)
         df = load_from_fits(to_read_uvfits)
 

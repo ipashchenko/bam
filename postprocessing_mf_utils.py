@@ -10,7 +10,7 @@ from matplotlib.patches import Circle
 import matplotlib.ticker as ticker
 from cycler import cycler
 from data_utils import gaussian_circ_ft, mas_to_rad
-sys.path.insert(0, '/home/ilya/github/ve/vlbi_errors')
+sys.path.insert(0, 've/vlbi_errors')
 from spydiff import export_difmap_model_from_tuples, join_difmap_models, create_difmap_file_from_single_component
 
 matplotlib.use("TkAgg")
@@ -342,12 +342,12 @@ if __name__ == "__main__":
     jitter = True
     # freqs_ghz = (15.4, 23.8, 43.2)
     # freqs_ghz = (4.6, 5.0, 8.1, 8.43, 15.4, 23.8, 43.2)
-    freqs_ghz = (4.6, 8.1, 15.4, 23.8, 43.2)
+    freqs_ghz = (4.6, 8.1, 15.4, 23.8)
     n_bands = len(freqs_ghz)
-    posterior_file = "/home/ilya/github/bam/mf/artificial/core_2jc/u_k_q/posterior_sample.txt"
+    posterior_file = "/home/sonya/bam/Release/posterior_sample.txt"
     # posterior_file = "/home/ilya/github/bam/mf/artificial/core_2jc/posterior_sample.txt"
     # save_dir = "/home/ilya/github/bam/mf/all_bands/7jc"
-    save_dir = "/home/ilya/github/bam/mf/artificial/core_2jc/u_k_q"
+    save_dir = "/home/sonya/bam/artificial_data/c_x_u_k"
     # save_dir = "/home/ilya/github/bam/mf/artificial/core_2jc"
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
@@ -355,5 +355,5 @@ if __name__ == "__main__":
     df = convert_posterior_file_to_pandas_df(posterior_file)
     n_jc = count_jet_components(df, n_bands, jitter)
     plot_components_info(df, n_bands, jitter, freqs_ghz, save_dir=save_dir, opacity_each_line=0.01)
-    fig = plot_posterior_samples_on_map(posterior_file, n_bands, freqs_ghz, ra_lims=(-20, 20), dec_lims=(-20, 20),
+    fig = plot_posterior_samples_on_map(posterior_file, n_bands, freqs_ghz, ra_lims=(-50, 50), dec_lims=(-50, 50),
                                         alpha_jet=0.01, alpha_core=0.01, jitter=jitter, each=3)

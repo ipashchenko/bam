@@ -28,7 +28,7 @@ def time_average_subprocess(uvfits, outfname, time_sec=60, show_difmap_output=Tr
         print(outs)
         print(errs)
 
-def time_average(uvfits, outfname, time_sec=60, show_difmap_output=True,
+def time_average(uvfits, outfname, time_sec, show_difmap_output=True,
                  reweight=True):
     stamp = datetime.datetime.now()
     command_file = "difmap_commands_{}".format(stamp.isoformat())
@@ -41,7 +41,7 @@ def time_average(uvfits, outfname, time_sec=60, show_difmap_output=True,
     difmapout.write("wobs {}\n".format(outfname))
     difmapout.write("exit\n")
     difmapout.close()
-    shell_command = "difmap < " + command_file + " 2>&1"
+    shell_command = "/home/sonya/uvf_difmap_2.5q/difmap < " + command_file + " 2>&1"
     if not show_difmap_output:
         shell_command += " >/dev/null"
     os.system(shell_command)
