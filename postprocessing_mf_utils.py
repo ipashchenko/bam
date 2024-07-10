@@ -355,5 +355,5 @@ if __name__ == "__main__":
     df = convert_posterior_file_to_pandas_df(posterior_file)
     n_jc = count_jet_components(df, n_bands, jitter)
     plot_components_info(df, n_bands, jitter, freqs_ghz, save_dir=save_dir, opacity_each_line=0.01)
-    fig = plot_posterior_samples_on_map(posterior_file, n_bands, freqs_ghz, ra_lims=(-50, 50), dec_lims=(-50, 50),
+    fig = plot_posterior_samples_on_map(posterior_file, n_bands, freqs_ghz, ra_lims=(-10, 10), dec_lims=(-10, 10),
                                         alpha_jet=0.01, alpha_core=0.01, jitter=jitter, each=3)

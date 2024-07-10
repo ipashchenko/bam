@@ -230,8 +230,10 @@ double CoreComponent::get_logflux(double nu)
 
 std::pair<double, double> CoreComponent::get_pos(double nu)
 {
-	double distance = a_*pow(nu, -1/k_r_);
-	return {distance*sin(PA_), distance*cos(PA_)};
+	double distance_1 = a_*pow(nu, -1/k_r_);
+	// return {distance*sin(PA_), distance*cos(PA_)};
+	double distance_2 = p*(log(sqrt(2*t*(2*t+p)) + 2*t)-log(sqrt(-2*t*(2*t+p)) + 2*t)-log(-1)) / 4 + pow(2, 1.5)*sqrt(t*(2*t+p)) / 4;
+	return t;
 }
 
 void CoreComponent::print(std::ostream &out) const
