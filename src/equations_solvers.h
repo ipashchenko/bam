@@ -6,6 +6,7 @@
 #include <boost/math/tools/roots.hpp>
 #include <limits>
 #include "utils.h"
+#include <cmath>
 
 
 // This aimed to solve n_local given M_local, n_ext, c_ext and eta
@@ -13,22 +14,21 @@ template <class T>
 struct functor_n1deriv
 {
         // Functor returning both 1st derivative.
-        functor_n1deriv(T const& Msq, T const& n_ext, T const& cs_to_c_sq_ext, T const& eta, T const& Gamma) :
-                Msq_(Msq), n_ext_(n_ext), cs_to_c_sq_ext_(cs_to_c_sq_ext), eta_(eta), Gamma_(Gamma)
+        functor_n1deriv(T const& param_c, T const& param_a, double nu, T const& k_r):
+                param_c_(param_c), param_a_(param_a), nu_(nu), k_r_(k_r)
         {}
-        std::tuple<T, T> operator()(T const& x)
+        std::tuple<T, T> operator()(T const& t)
         {
             // Return both f(x) and f'(x).
-            T fx = Msq_ / (4 * M_PI * eta_ * eta_ * m_e * c * c) * x - 1./(Gamma_ - 1.0)*cs_to_c_sq_ext_*pow(x/n_ext_, Gamma_ - 1.0) - 1.0;
-            T dx = Msq_ / (4 * M_PI * eta_ * eta_ * m_e * c * c) - 1. / (pow(n_ext_, Gamma_ - 1.0)) * cs_to_c_sq_ext_ * pow(x, Gamma_ - 2.0);
-            return std::make_tuple(fx, dx);  // 'return' fx, dx.
+            T ft = param_c_ * (asinh(t) + t * sqrt(pow(t, 2) + 1)) - param_a_ * pow(nu_, -1 / k_r_);
+            T dt = 2 * c * sqrt(pow(t, 2) + 1);
+            return std::make_tuple(ft, dt);  // 'return' fx, dx.
         }
     private:
-        T Gamma_;
-        T Msq_;
-        T n_ext_;
-        T cs_to_c_sq_ext_;
-        T eta_;
+        T param_c_;
+        T param_a_;
+        T nu_;
+        T k_r_;
 };
 
 
@@ -95,7 +95,7 @@ T find_n_to_n0_2deriv(T Gamma, T cs_sq_0, T Msq_ratio)
 
 
 template <class T>
-T find_n_local_1deriv(T Msq_local, T n_ext, T cs_to_c_sq_ext, T eta, T Gamma)
+T find_n_local_1deriv(T param_c, T param_a, double nu, T k_r)
 {
     using namespace boost::math::tools;
     const int digits = std::numeric_limits<T>::digits;  // Maximum possible binary digits accuracy for type T.
@@ -106,7 +106,7 @@ T find_n_local_1deriv(T Msq_local, T n_ext, T cs_to_c_sq_ext, T eta, T Gamma)
     boost::uintmax_t maxit = 30;
     //std::cout << "Gamma = " << Gamma << ", cs_sq_0 = " << cs_sq_0 << ", Msq_ratio = " << Msq_ratio << "\n";
     //T result = halley_iterate(functor_2deriv<T>(Gamma, cs_sq_0, Msq_ratio), 0.1, 0.0, 1E+05, get_digits, maxit);
-    T result = newton_raphson_iterate(functor_n1deriv<T>(Msq_local, n_ext, cs_to_c_sq_ext, eta, Gamma), 100.0, 0.0, 1E+08, get_digits, maxit);
+    T result = newton_raphson_iterate(functor_n1deriv<T>(param_c, param_a, nu, k_r), 100.0, 0.0, 1E+08, get_digits, maxit);
     //std::cout << "Found res = " << result << "\n";
     return result;
 }

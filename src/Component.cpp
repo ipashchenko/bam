@@ -5,6 +5,7 @@
 #include <iostream>
 #include <RNG.h>
 #include "Fixed.h"
+#include "equations_solvers.h"
 
 #ifdef NDEBUG
 #define DEBUG(x)
@@ -230,16 +231,19 @@ double CoreComponent::get_logflux(double nu)
 
 std::pair<double, double> CoreComponent::get_pos(double nu)
 {
-	double distance_1 = a_*pow(nu, -1/k_r_);
+	// double distance = a_*pow(nu, -1/k_r_);
 	// return {distance*sin(PA_), distance*cos(PA_)};
-	double distance_2 = p*(log(sqrt(2*t*(2*t+p)) + 2*t)-log(sqrt(-2*t*(2*t+p)) + 2*t)-log(-1)) / 4 + pow(2, 1.5)*sqrt(t*(2*t+p)) / 4;
-	return t;
+
+	double Ra = a_ * pow(find_n_local_1deriv(100, 50, nu, 5), 2);
+	double Dec = 2 * a_ * find_n_local_1deriv(100, 50, nu, 5);
+	// std::cout << Ra << Dec;
+	return {Ra, Dec};
 }
 
 void CoreComponent::print(std::ostream &out) const
 {
 //	out << a_ << "\t" << PA_ << "\t" << logsize_1_ << "\t" << k_r_ << "\t" << logS_1_ << "\t" << alpha_ << "\t";
-	out << a_ << "\t" << PA_ << "\t" << logsize_1_ << "\t" << k_r_ << "\t" << k_theta_ << "\t" << lognu_max_ << "\t" << logS_max_ << "\t" << alpha_thick_ << "\t" << alpha_thin_ << "\t";
+	out << a_ << "\t" << c_ << "\t" << PA_ << "\t" << logsize_1_ << "\t" << k_r_ << "\t" << k_theta_ << "\t" << lognu_max_ << "\t" << logS_max_ << "\t" << alpha_thick_ << "\t" << alpha_thin_ << "\t";
 }
 
 std::string CoreComponent::print() const

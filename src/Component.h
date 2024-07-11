@@ -73,7 +73,7 @@ class CoreComponent : public Component {
 	private:
 		// PA - from N to positive RA axis
 //		double a_{}, PA_{}, logsize_1_{}, k_r_{}, logS_1_{}, alpha_{};
-		double a_{}, PA_{}, logsize_1_{}, k_r_{}, k_theta_{}, lognu_max_{}, logS_max_{}, alpha_thick_{}, alpha_thin_{};
+		double a_{}, PA_{}, logsize_1_{}, k_r_{}, k_theta_{}, lognu_max_{}, logS_max_{}, alpha_thick_{}, alpha_thin_{}, c_{}, nu_{};
 };
 
 #endif //BAM_COMPONENT_H

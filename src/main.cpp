@@ -1,6 +1,8 @@
 #include "Data.h"
 #include "DNestModel.h"
 #include "DNest4.h"
+#include "equations_solvers.h" //optional
+
 
 using namespace DNest4;
 
@@ -27,3 +29,7 @@ int main(int argc, char** argv)
     sampler.run();
     return 0;
 }
+
+// int main(int argc, char** argv){
+    
+// }
