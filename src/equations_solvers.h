@@ -5,7 +5,7 @@
 #include <tuple>
 #include <boost/math/tools/roots.hpp>
 #include <limits>
-#include "utils.h"
+// #include "utils.h"
 #include <cmath>
 
 
@@ -21,7 +21,7 @@ struct functor_n1deriv
         {
             // Return both f(x) and f'(x).
             T ft = param_c_ * (asinh(t) + t * sqrt(pow(t, 2) + 1)) - param_a_ * pow(nu_, -1 / k_r_);
-            T dt = 2 * c * sqrt(pow(t, 2) + 1);
+            T dt = 2 * param_c_ * sqrt(pow(t, 2) + 1);
             return std::make_tuple(ft, dt);  // 'return' fx, dx.
         }
     private:
@@ -107,7 +107,7 @@ T find_n_local_1deriv(T param_c, T param_a, double nu, T k_r)
     //std::cout << "Gamma = " << Gamma << ", cs_sq_0 = " << cs_sq_0 << ", Msq_ratio = " << Msq_ratio << "\n";
     //T result = halley_iterate(functor_2deriv<T>(Gamma, cs_sq_0, Msq_ratio), 0.1, 0.0, 1E+05, get_digits, maxit);
     T result = newton_raphson_iterate(functor_n1deriv<T>(param_c, param_a, nu, k_r), 100.0, 0.0, 1E+08, get_digits, maxit);
-    //std::cout << "Found res = " << result << "\n";
+    // std::cout << "Found res = " << result << "\n";
     return result;
 }
 

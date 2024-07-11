@@ -9,6 +9,7 @@ from data_utils import time_average, get_data_file_from_ehtim, add_noise, radplo
 sys.path.insert(0, 've/vlbi_errors')
 from uv_data import UVData
 from subprocess import Popen, PIPE
+from scipy.optimize import newton
 # matplotlib.use("TkAgg")
 
 
@@ -102,12 +103,12 @@ if __name__ == "__main__":
 
     simulate = True
     time_average_sec = 120
-    save_dir = "/home/sonya/bam/artificial_data"
+    save_dir = "/home/sonya/bam/Release"
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
     # Coordinates relative to the true jet origin
     # a, PA, size_1GHz, k_r, S_1GHz, alpha
-    core_component = (3.0, np.pi/6, 1.0, 1.0, 2.0, 0.0)
+    core_component = (3.0, np.pi/6, 1.0, 1.0, 1.0, 2.0, 0.0)
     # RA, DEC, Size, nu_max, S_nu_max, alpha_thick, alpha_thin
     jet_components = [(3.0, 4.5, 0.5, 10.0, 1.0, 1.5, -0.5),
                       (9.0, 10.0, 1.5, 5.0, 0.5, 2.0, -0.5)]
@@ -152,12 +153,21 @@ if __name__ == "__main__":
                 total_flux += flux
 
             # Core
-            a, PA, size_1GHz, k_r, S_1GHz, alpha = core_component
+            a, PA, c, size_1GHz, k_r, S_1GHz, alpha = core_component
             flux = S_1GHz*freq_ghz**alpha
             print("COre Flux at nu = {:.2f} is S = {:.4f}".format(freq_ghz, flux))
-            distance = a*freq_ghz**(-1/k_r)
-            RA = distance*np.sin(PA)
-            DEC = distance*np.cos(PA)
+
+            def func(t, c, a, freq_ghz, k_r):
+                return c * (np.arcsinh(t) + t * np.sqrt(np.power(t, 2) + 1)) - a * np.power(freq_ghz, -1/k_r)
+            def func_prime(t, c):
+                return 2 * c * np.sqrt(pow(t, 2) + 1)
+            root = newton(lambda t: func(t, c, a, freq_ghz, k_r), x0=0, fprime=lambda t: func_prime(t, c), maxiter=30)
+            Ra_before_rotation = a * np.power(root, 2)
+            Dec_before_rotation = 2 * a * root
+            RA = Ra_before_rotation * np.cos(PA) - Dec_before_rotation * np.sin(PA)
+            DEC = Ra_before_rotation * np.sin(PA) + Dec_before_rotation * np.cos(PA)
+
+
             total_flux += flux
             Size = size_1GHz*freq_ghz**(-1/k_r)
             re, im = gaussian_circ_ft(flux=flux, RA=RA, DEC=DEC, bmaj=Size, uv=uv)

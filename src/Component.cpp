@@ -1,5 +1,5 @@
 #include "Component.h"
-#include "Data.h"
+// #include "Data.h"
 #include <complex>
 #include <cmath>
 #include <iostream>
@@ -234,10 +234,12 @@ std::pair<double, double> CoreComponent::get_pos(double nu)
 	// double distance = a_*pow(nu, -1/k_r_);
 	// return {distance*sin(PA_), distance*cos(PA_)};
 
-	double Ra = a_ * pow(find_n_local_1deriv(100, 50, nu, 5), 2);
-	double Dec = 2 * a_ * find_n_local_1deriv(100, 50, nu, 5);
+	double Ra = a_ * pow(find_n_local_1deriv(c_, a_, nu, k_r_), 2);
+	double Dec = 2 * a_ * find_n_local_1deriv(c_, a_, nu, k_r_);
+	double Ra_after_rotation = Ra * cos(2 * PA_) - Dec * sin(2 * PA_);
+	double Dec_after_rotation = Ra * sin(2 * PA_) + Dec * cos(2 * PA_);
 	// std::cout << Ra << Dec;
-	return {Ra, Dec};
+	return {Ra_after_rotation, Dec_after_rotation};
 }
 
 void CoreComponent::print(std::ostream &out) const
@@ -280,6 +282,23 @@ void CoreComponent::from_prior(DNest4::RNG &rng)
 	lognu_max_ = uniform_numax.generate(rng);
 	alpha_thick_ = gaussian_alpha_thick.generate(rng);
 	alpha_thin_ = gaussian_alpha_thin.generate(rng);
+	c_ = cauchy_pos.generate(rng);
+	p_ = cauchy_pos.generate(rng);
+}
+
+void CoreComponent::set_params(double a, double PA, double logsize_1, double k_r, double k_theta, double lognu_max, double logS_max, double alpha_thick, double alpha_thin, double p, double c)
+{
+	a_ = a;
+	PA_ = PA;
+	logsize_1_ = logsize_1;
+	k_r_ = k_r;
+	k_theta_ = k_theta;
+	lognu_max_ = lognu_max;
+	logS_max_ = logS_max;
+	alpha_thick_ = alpha_thick;
+	alpha_thin_ = alpha_thin;
+	p_ = p;
+	c_ = c;
 }
 
 double CoreComponent::perturb(DNest4::RNG &rng)
