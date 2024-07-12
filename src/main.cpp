@@ -33,7 +33,7 @@ const bool use_logjitter = true;
 
 int main(int argc, char** argv){
     CoreComponent core(Component::Gaussian);
-    double a = 3, PA = 1, logsize_1 = 1, k_r = 1, k_theta = 1, lognu_max = 1, logS_max = 1, alpha_thick = 1, alpha_thin = 1, p = 1, c = 1;
+    double a = 1, PA = 1, logsize_1 = 1, k_r = 1, k_theta = 1, lognu_max = 1, logS_max = 1, alpha_thick = 1, alpha_thin = 1, p = 1, c = 1;
     double nu = 4.6;
     core.set_params(a, PA, logsize_1, k_r, k_theta, lognu_max, logS_max, alpha_thick, alpha_thin, p, c);
     std::pair<double, double> result = core.get_pos(nu);
