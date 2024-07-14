@@ -1,5 +1,5 @@
 #include "Component.h"
-// #include "Data.h"
+#include "Data.h"
 #include <complex>
 #include <cmath>
 #include <iostream>
@@ -200,10 +200,11 @@ CoreComponent::CoreComponent(Shape new_shape) : Component() {
 CoreComponent::CoreComponent(const CoreComponent &other)
 {
 	a_ = other.a_;
+	c_ = other.c_;
 	PA_ = other.PA_;
 	logsize_1_ = other.logsize_1_;
 	k_r_ = other.k_r_;
-  k_theta_ = other.k_theta_;
+	k_theta_ = other.k_theta_;
 //	logS_1_ = other.logS_1_;
 //	alpha_ = other.alpha_;
 	lognu_max_ = other.lognu_max_;
@@ -250,7 +251,7 @@ void CoreComponent::print(std::ostream &out) const
 
 std::string CoreComponent::print() const
 {
-	return  std::to_string(a_) + "\t" + std::to_string(PA_) + "\t" + std::to_string(logsize_1_) + "\t" + std::to_string(k_r_) +
+	return  std::to_string(a_) + "\t" + std::to_string(c_) + "\t" + std::to_string(PA_) + "\t" + std::to_string(logsize_1_) + "\t" + std::to_string(k_r_) +
 	"\t" + std::to_string(k_theta_) + "\t" + std::to_string(lognu_max_) + "\t" + std::to_string(logS_max_) + "\t" + std::to_string(alpha_thick_) + "\t" + std::to_string(alpha_thin_) + "\n";
 }
 
@@ -258,7 +259,7 @@ std::string CoreComponent::description() const
 {
 	std::string descr;
 //	descr += "a\tPA\tlogsize_1\tk_r\tlogS_1\talpha";
-	descr += "a\tPA\tlogsize_1\tk_r\tk_theta\tlognu_max_core\tlogS_max_core\talpha_thick_core\talpha_thin_core";
+	descr += "a\tc\tPA\tlogsize_1\tk_r\tk_theta\tlognu_max_core\tlogS_max_core\talpha_thick_core\talpha_thin_core";
 	return descr;
 }
 
@@ -275,6 +276,7 @@ void CoreComponent::from_prior(DNest4::RNG &rng)
 	DNest4::Gaussian gaussian_alpha_thin(-0.5, 0.25);
 	DNest4::Uniform uniform_numax(0., 4.);
 	a_ = cauchy_pos.generate(rng);
+	c_ = cauchy_pos.generate(rng);
 	PA_ = gaussian_direction.generate(rng);
 	logsize_1_ = gaussian_logsize.generate(rng);
 	k_r_ = gaussian_k.generate(rng);
@@ -282,13 +284,12 @@ void CoreComponent::from_prior(DNest4::RNG &rng)
 	lognu_max_ = uniform_numax.generate(rng);
 	alpha_thick_ = gaussian_alpha_thick.generate(rng);
 	alpha_thin_ = gaussian_alpha_thin.generate(rng);
-	c_ = cauchy_pos.generate(rng);
-	p_ = cauchy_pos.generate(rng);
 }
 
-void CoreComponent::set_params(double a, double PA, double logsize_1, double k_r, double k_theta, double lognu_max, double logS_max, double alpha_thick, double alpha_thin, double p, double c)
+void CoreComponent::set_params(double a, double c, double PA, double logsize_1, double k_r, double k_theta, double lognu_max, double logS_max, double alpha_thick, double alpha_thin)
 {
 	a_ = a;
+	c_ = c;
 	PA_ = PA;
 	logsize_1_ = logsize_1;
 	k_r_ = k_r;
@@ -297,8 +298,6 @@ void CoreComponent::set_params(double a, double PA, double logsize_1, double k_r
 	logS_max_ = logS_max;
 	alpha_thick_ = alpha_thick;
 	alpha_thin_ = alpha_thin;
-	p_ = p;
-	c_ = c;
 }
 
 double CoreComponent::perturb(DNest4::RNG &rng)
