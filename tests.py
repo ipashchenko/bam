@@ -1,57 +1,20 @@
-import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import newton
-from scipy.optimize import curve_fit
-from matplotlib.animation import FuncAnimation
+from postprocessing_mf_utils import convert_posterior_file_to_pandas_df
+import corner
+import numpy as np
 
-def func(t, c, a, nu, k_r):
-    return c * (np.arcsinh(t) + t * np.sqrt(np.power(t, 2) + 1)) - a * np.power(nu, -1/k_r)
-def func_prime(t, c):
-    return 2 * c * np.sqrt(pow(t, 2) + 1)
-def parabola(x, a, b, c):
-    return a * x**2 + b * x + c
+df = convert_posterior_file_to_pandas_df("/home/sonya/bam/Release/posterior_sample.txt")
+a = 3
+p = 0.7
+PA = 0
+PA_1 = np.pi/6
+c = 0.1
+nu = 4.6
+k_r = 1.5
+# print(len(df['p']))
+# array_p = np.full((len(df['p']), 1), 1.5)
 
-# a = 1.0
-PA = np.pi/6
-c = 1.0
-# nu = 4.6
-k_r = 1.0
-
-results = []
-
-for a in np.linspace(-10, 10, 10):
-    Ra = []
-    Dec = []
-    for nu in [4.6, 5.0, 8.1, 8.43, 15.4, 23.8, 43.2]:
-        root = newton(lambda t: func(t, c, a, nu, k_r), x0=0, fprime=lambda t: func_prime(t, c), maxiter=30)
-        Ra_before_rotation = a * np.power(root, 2)
-        Dec_before_rotation = 2 * a * root
-        Ra.append(Ra_before_rotation * np.cos(PA) - Dec_before_rotation * np.sin(PA))
-        Dec.append(Ra_before_rotation * np.sin(PA) + Dec_before_rotation * np.cos(PA))
-    # print(f"freq: {nu}, root: {root}, Ra: {RA}, Dec: {DEC}")
-    popt, _ = curve_fit(parabola, Ra, Dec)
-    results.append((Ra, Dec, popt))
-
-fig, ax = plt.subplots()
-colors = plt.cm.viridis(np.linspace(0, 1, len(results)))
-sc = ax.scatter([], [], color='blue')
-line, = ax.plot([], [], lw=2)
-ax.grid()
-
-def init():
-    sc.set_offsets([])
-    line.set_data([], [])
-    return sc, line
-
-def update(frame):
-    Ra, Dec, popt = results[frame]
-    sc.set_offsets(np.c_[Ra, Dec])
-    x = np.linspace(min(Ra), max(Ra), 100)
-    y = parabola(x, *popt)
-    line.set_data(x, y)
-    line.set_color(colors[frame])
-    sc.set_color(colors[frame])
-    return sc, line
-
-ani = FuncAnimation(fig, update, frames=len(results), init_func=init, blit=True, repeat=False)
+# data = np.vstack([array_p, df["p"]]).T
+figure = corner.corner(df[['a', 'k_r']], labels=['a', 'k_r'], show_titles=True)
+# figure = corner.corner(data, bins=30, labels=['a', 'p'], show_titles=True)
 plt.show()

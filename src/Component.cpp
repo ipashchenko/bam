@@ -200,6 +200,7 @@ CoreComponent::CoreComponent(Shape new_shape) : Component() {
 CoreComponent::CoreComponent(const CoreComponent &other)
 {
 	a_ = other.a_;
+	p_ = other.p_;
 	c_ = other.c_;
 	PA_ = other.PA_;
 	logsize_1_ = other.logsize_1_;
@@ -235,10 +236,10 @@ std::pair<double, double> CoreComponent::get_pos(double nu)
 	// double distance = a_*pow(nu, -1/k_r_);
 	// return {distance*sin(PA_), distance*cos(PA_)};
 
-	double Ra = a_ * pow(find_n_local_1deriv(c_, a_, nu, k_r_), 2);
-	double Dec = 2 * a_ * find_n_local_1deriv(c_, a_, nu, k_r_);
-	double Ra_after_rotation = Ra * cos(2 * PA_) - Dec * sin(2 * PA_);
-	double Dec_after_rotation = Ra * sin(2 * PA_) + Dec * cos(2 * PA_);
+	double Ra = p_ * pow(find_n_local_1deriv(c_, a_, nu, k_r_), 2);
+	double Dec = 2 * p_ * find_n_local_1deriv(c_, a_, nu, k_r_);
+	double Ra_after_rotation = Ra * cos(PA_) - Dec * sin(PA_);
+	double Dec_after_rotation = Ra * sin(PA_) + Dec * cos(PA_);
 	// std::cout << Ra << Dec;
 	return {Ra_after_rotation, Dec_after_rotation};
 }
@@ -246,12 +247,12 @@ std::pair<double, double> CoreComponent::get_pos(double nu)
 void CoreComponent::print(std::ostream &out) const
 {
 //	out << a_ << "\t" << PA_ << "\t" << logsize_1_ << "\t" << k_r_ << "\t" << logS_1_ << "\t" << alpha_ << "\t";
-	out << a_ << "\t" << c_ << "\t" << PA_ << "\t" << logsize_1_ << "\t" << k_r_ << "\t" << k_theta_ << "\t" << lognu_max_ << "\t" << logS_max_ << "\t" << alpha_thick_ << "\t" << alpha_thin_ << "\t";
+	out << a_ << "\t" << p_ << "\t" << c_ << "\t" << PA_ << "\t" << logsize_1_ << "\t" << k_r_ << "\t" << k_theta_ << "\t" << lognu_max_ << "\t" << logS_max_ << "\t" << alpha_thick_ << "\t" << alpha_thin_ << "\t";
 }
 
 std::string CoreComponent::print() const
 {
-	return  std::to_string(a_) + "\t" + std::to_string(c_) + "\t" + std::to_string(PA_) + "\t" + std::to_string(logsize_1_) + "\t" + std::to_string(k_r_) +
+	return  std::to_string(a_) + "\t" + std::to_string(p_) + "\t" + std::to_string(c_) + "\t" + std::to_string(PA_) + "\t" + std::to_string(logsize_1_) + "\t" + std::to_string(k_r_) +
 	"\t" + std::to_string(k_theta_) + "\t" + std::to_string(lognu_max_) + "\t" + std::to_string(logS_max_) + "\t" + std::to_string(alpha_thick_) + "\t" + std::to_string(alpha_thin_) + "\n";
 }
 
@@ -259,7 +260,7 @@ std::string CoreComponent::description() const
 {
 	std::string descr;
 //	descr += "a\tPA\tlogsize_1\tk_r\tlogS_1\talpha";
-	descr += "a\tc\tPA\tlogsize_1\tk_r\tk_theta\tlognu_max_core\tlogS_max_core\talpha_thick_core\talpha_thin_core";
+	descr += "a\tp\tc\tPA\tlogsize_1\tk_r\tk_theta\tlognu_max_core\tlogS_max_core\talpha_thick_core\talpha_thin_core";
 	return descr;
 }
 
@@ -276,6 +277,7 @@ void CoreComponent::from_prior(DNest4::RNG &rng)
 	DNest4::Gaussian gaussian_alpha_thin(-0.5, 0.25);
 	DNest4::Uniform uniform_numax(0., 4.);
 	a_ = cauchy_pos.generate(rng);
+	p_ = cauchy_pos.generate(rng);
 	c_ = cauchy_pos.generate(rng);
 	PA_ = gaussian_direction.generate(rng);
 	logsize_1_ = gaussian_logsize.generate(rng);
@@ -286,9 +288,10 @@ void CoreComponent::from_prior(DNest4::RNG &rng)
 	alpha_thin_ = gaussian_alpha_thin.generate(rng);
 }
 
-void CoreComponent::set_params(double a, double c, double PA, double logsize_1, double k_r, double k_theta, double lognu_max, double logS_max, double alpha_thick, double alpha_thin)
+void CoreComponent::set_params(double a, double p, double c, double PA, double logsize_1, double k_r, double k_theta, double lognu_max, double logS_max, double alpha_thick, double alpha_thin)
 {
 	a_ = a;
+	p_ = p;
 	c_ = c;
 	PA_ = PA;
 	logsize_1_ = logsize_1;
@@ -307,8 +310,8 @@ double CoreComponent::perturb(DNest4::RNG &rng)
 	// Perturb k or a or both
 	if(which == 0)
 	{
-		DNest4::TruncatedCauchy cauchy_pos(0.0, 1.0, 0.0, 3.0);
-		DNest4::Gaussian gaussian_k(2.0, 0.3);
+		DNest4::TruncatedCauchy cauchy_pos(0.0, 1.0, 0.0, 10.0);
+		DNest4::Gaussian gaussian_k(1.0, 0.5);
 		
 //			DNest4::Fixed cauchy_k(1.0);
 		double u = rng.rand();
@@ -317,17 +320,27 @@ double CoreComponent::perturb(DNest4::RNG &rng)
 		{
 			log_H += cauchy_pos.perturb(a_, rng);
 			log_H += gaussian_k.perturb(k_r_, rng);
+			log_H += cauchy_pos.perturb(c_, rng);
+			log_H += cauchy_pos.perturb(p_, rng);
 		}
 		else
 		{
-			int which_a_k_r = rng.rand_int(2);
-			if(which_a_k_r == 0)
+			int which_a_p_c_k_r = rng.rand_int(4);
+			if(which_a_p_c_k_r == 0)
 			{
 				log_H += cauchy_pos.perturb(a_, rng);
 			}
-			else
+			if(which_a_p_c_k_r == 1)
 			{
 				log_H += gaussian_k.perturb(k_r_, rng);
+			}
+			if(which_a_p_c_k_r == 2)
+			{
+				log_H += cauchy_pos.perturb(c_, rng);
+			}
+			else
+			{
+				log_H += cauchy_pos.perturb(p_, rng);
 			}
 		}
 	}
