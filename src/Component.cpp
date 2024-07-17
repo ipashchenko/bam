@@ -266,7 +266,8 @@ std::string CoreComponent::description() const
 
 void CoreComponent::from_prior(DNest4::RNG &rng)
 {
-	DNest4::TruncatedCauchy cauchy_pos(0.0, 1.0, 0.0, 10.0);
+	// DNest4::TruncatedCauchy cauchy_pos(0.0, 1.0, 0.0, 10.0);
+	DNest4::Cauchy cauchy_pos(0.0, 3.0);
 	DNest4::Uniform gaussian_direction(0.0, 2*M_PI);
 	DNest4::Gaussian gaussian_logsize(0.0, 0.7);
 	DNest4::Gaussian gaussian_logflux(1.0, 0.7);
@@ -306,8 +307,8 @@ void CoreComponent::set_params(double a, double p, double c, double PA, double l
 double CoreComponent::perturb(DNest4::RNG &rng)
 {
 	double log_H = 0.;
-	int which = rng.rand_int(8);
-	// Perturb k or a or both
+	int which = rng.rand_int(10);
+	// Perturb k or a or c or all
 	if(which == 0)
 	{
 		DNest4::TruncatedCauchy cauchy_pos(0.0, 1.0, 0.0, 10.0);
