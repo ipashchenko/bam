@@ -155,7 +155,7 @@ if __name__ == "__main__":
             # Core
             a, p, c, PA, size_1GHz, k_r, S_1GHz, alpha = core_component
             flux = S_1GHz*freq_ghz**alpha
-            print("COre Flux at nu = {:.2f} is S = {:.4f}".format(freq_ghz, flux))
+            print("Core Flux at nu = {:.2f} is S = {:.4f}".format(freq_ghz, flux))
 
             def func(t, c, a, freq_ghz, k_r):
                 return c * (np.arcsinh(t) + t * np.sqrt(np.power(t, 2) + 1)) - a * np.power(freq_ghz, -1/k_r)
@@ -202,5 +202,6 @@ if __name__ == "__main__":
         else:
             df_updated = df
         df_updated.to_csv(out_fname, sep=" ", index=False, header=False)
+        # save_uvfits = os.path.join(save_dir, "0851+202.{}.2009_02_02.uvf".format(band))
         # save_to_uvfits(save_uvfits, re=df_updated["vis_re"], im=df_updated["vis_im"])
         os.unlink(to_read_uvfits)

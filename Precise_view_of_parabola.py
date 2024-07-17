@@ -11,12 +11,12 @@ def func_prime(t, c):
 
 t = np.linspace(-10, 10, 1000)
 a = 3
-p = 0.7
+p = 1.5
 PA = 0
 PA_1 = np.pi/6
-c = 0.1
+c = 1.0
 nu = 4.6
-k_r = 1.5
+k_r = 1.0
 
 Ra = []
 Dec = []

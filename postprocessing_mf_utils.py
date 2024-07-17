@@ -11,6 +11,7 @@ import matplotlib.ticker as ticker
 from cycler import cycler
 from data_utils import gaussian_circ_ft, mas_to_rad
 sys.path.insert(0, 've/vlbi_errors')
+from scipy.optimize import newton
 from spydiff import export_difmap_model_from_tuples, join_difmap_models, create_difmap_file_from_single_component
 
 matplotlib.use("TkAgg")
@@ -263,15 +264,28 @@ def plot_posterior_samples_on_map(posterior_file, n_bands, freqs_ghz, ra_lims=(-
             continue
         # "a\tPA\tlogsize_1\tk_r\tlogS_1\talpha"
         a = row[idx_0_cc + 0]
-        PA = row[idx_0_cc + 1]
-        logsize_1 = row[idx_0_cc + 2]
-        k_r = row[idx_0_cc + 3]
+        p = row[idx_0_cc + 1]
+        c = row[idx_0_cc + 2]
+        PA = row[idx_0_cc + 3]
+        logsize_1 = row[idx_0_cc + 4]
+        k_r = row[idx_0_cc + 5]
         ra_core_shifts = list()
         dec_core_shifts = list()
         for i, freq_ghz in enumerate(freqs_ghz):
-            distance = a*freq_ghz**(-1./k_r)
-            ra_core_shift = distance*np.sin(PA)
-            dec_core_shift = distance*np.cos(PA)
+            def func(t, c, a, freq_ghz, k_r):
+                return c * (np.arcsinh(t) + t * np.sqrt(np.power(t, 2) + 1)) - a * np.power(freq_ghz, -1/k_r)
+            def func_prime(t, c):
+                return 2 * c * np.sqrt(pow(t, 2) + 1)
+            root = newton(lambda t: func(t, c, a, freq_ghz, k_r), x0=0, fprime=lambda t: func_prime(t, c), maxiter=30)
+            Ra_before_rotation = p * np.power(root, 2)
+            Dec_before_rotation = 2 * p * root
+            RA = Ra_before_rotation * np.cos(PA) - Dec_before_rotation * np.sin(PA)
+            DEC = Ra_before_rotation * np.sin(PA) + Dec_before_rotation * np.cos(PA)
+
+
+            # distance = a*freq_ghz**(-1./k_r)
+            # ra_core_shift = distance*np.sin(PA)
+            # dec_core_shift = distance*np.cos(PA)
             ra_core_shifts.append(ra_core_shift)
             dec_core_shifts.append(dec_core_shift)
             # axes.scatter(ra_core_shift, dec_core_shift, s=10, alpha=alpha_core, color=colors[i])
@@ -344,10 +358,10 @@ if __name__ == "__main__":
     # freqs_ghz = (4.6, 5.0, 8.1, 8.43, 15.4, 23.8, 43.2)
     freqs_ghz = (4.6, 8.1, 15.4, 23.8)
     n_bands = len(freqs_ghz)
-    posterior_file = "/home/sonya/bam/Release/posterior_sample.txt"
+    posterior_file = "/home/sonya/bam/saved_data/36_posterior_sample.txt"
     # posterior_file = "/home/ilya/github/bam/mf/artificial/core_2jc/posterior_sample.txt"
     # save_dir = "/home/ilya/github/bam/mf/all_bands/7jc"
-    save_dir = "/home/sonya/bam/artificial_data/c_x_u_k"
+    save_dir = "/home/sonya/bam/final_pictures"
     # save_dir = "/home/ilya/github/bam/mf/artificial/core_2jc"
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)

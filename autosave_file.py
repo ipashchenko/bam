@@ -3,8 +3,12 @@ from postprocess import postprocess
 import os
 import time
 import shutil
+import glob
 
 os.chdir('Release')
+files = glob.glob('/home/sonya/bam/saved_data/*')
+for f in files:
+    os.remove(f)
 i = 0
 while True:
     i += 1
