@@ -70,11 +70,11 @@ class CoreComponent : public Component {
 		std::string description() const override;
 		void from_prior(DNest4::RNG& rng) override;
 		double perturb(DNest4::RNG& rng) override;
-		void set_params(double a, double p, double c, double PA, double logsize_1, double k_r, /*double k_theta,*/ double lognu_max, double logS_max, double alpha_thick, double alpha_thin);
+		void set_params(double a, double p, double c, double PA, double logsize_1, double k_r, /*double k_theta,*/ double lognu_max, double logS_max, double alpha /*double alpha_thick, double alpha_thin*/);
 	private:
 		// PA - from N to positive RA axis
 //		double a_{}, PA_{}, logsize_1_{}, k_r_{}, logS_1_{}, alpha_{};
-		double a_{},  p_{}, c_{}, PA_{}, logsize_1_{}, k_r_{}, /*k_theta_{},*/ lognu_max_{}, logS_max_{}, alpha_thick_{}, alpha_thin_{};
+		double a_{},  p_{}, c_{}, PA_{}, logsize_1_{}, k_r_{}, /*k_theta_{},*/ lognu_max_{}, logS_max_{}, alpha_{} /*alpha_thick_{}, alpha_thin_{}*/;
 };
 
 #endif //BAM_COMPONENT_H

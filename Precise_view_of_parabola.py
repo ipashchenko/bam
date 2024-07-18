@@ -12,9 +12,10 @@ def func_prime(t, c):
 t = np.linspace(-10, 10, 1000)
 a = 3
 p = 1.5
-PA = 0
-PA_1 = np.pi/6
+p_1 = 5.66
+PA = np.pi/6
 c = 1.0
+c_1 = 3.64
 nu = 4.6
 k_r = 1.0
 
@@ -32,11 +33,11 @@ for nu in [4.6, 5.0, 8.1, 8.43, 15.4, 23.8, 43.2]:
     # print(f"freq: {nu}, root: {root}, Ra: {RA}, Dec: {DEC}")
 
 for nu in [4.6, 5.0, 8.1, 8.43, 15.4, 23.8, 43.2]:
-    root = newton(lambda t: func(t, c, a, nu, k_r), x0=0, fprime=lambda t: func_prime(t, c), maxiter=30)
-    Ra_before_rotation = p * np.power(root, 2)
-    Dec_before_rotation = 2 * p * root
-    Ra1.append(Ra_before_rotation * np.cos(PA_1) + Dec_before_rotation * np.sin(PA_1))
-    Dec1.append(- Ra_before_rotation * np.sin(PA_1) + Dec_before_rotation * np.cos(PA_1))
+    root = newton(lambda t: func(t, c_1, a, nu, k_r), x0=0, fprime=lambda t: func_prime(t, c_1), maxiter=30)
+    Ra_before_rotation = p_1 * np.power(root, 2)
+    Dec_before_rotation = 2 * p_1 * root
+    Ra1.append(Ra_before_rotation * np.cos(PA) + Dec_before_rotation * np.sin(PA))
+    Dec1.append(- Ra_before_rotation * np.sin(PA) + Dec_before_rotation * np.cos(PA))
 
 # def parabola(x, a, b, c):
 #     return a * x**2 + b * x + c

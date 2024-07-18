@@ -1,7 +1,7 @@
 #include "Data.h"
 #include "DNestModel.h"
 #include "DNest4.h"
-#include "equations_solvers.h" //optional
+// #include "equations_solvers.h" //optional
 #include "Component.h"
 
 
