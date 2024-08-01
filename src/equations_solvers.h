@@ -107,7 +107,7 @@ T find_n_local_1deriv(T param_c, T param_a, double nu, T k_r)
     //std::cout << "Gamma = " << Gamma << ", cs_sq_0 = " << cs_sq_0 << ", Msq_ratio = " << Msq_ratio << "\n";
     //T result = halley_iterate(functor_2deriv<T>(Gamma, cs_sq_0, Msq_ratio), 0.1, 0.0, 1E+05, get_digits, maxit);
     T result = newton_raphson_iterate(functor_n1deriv<T>(param_c, param_a, nu, k_r), 0.0, -25.0, 25.0, get_digits, maxit);
-    // std::cout << "Found res = " << result << "\n";
+    std::cout << "Found res = " << result << "\n";
     return result;
 }
 

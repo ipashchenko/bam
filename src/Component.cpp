@@ -236,7 +236,6 @@ std::pair<double, double> CoreComponent::get_pos(double nu)
 {
 	// double distance = a_*pow(nu, -1/k_r_);
 	// return {distance*sin(PA_), distance*cos(PA_)};
-
 	double Ra = p_ * pow(find_n_local_1deriv(c_, a_, nu, k_r_), 2);
 	double Dec = 2 * p_ * find_n_local_1deriv(c_, a_, nu, k_r_);
 	double Ra_after_rotation = Ra * cos(PA_) - Dec * sin(PA_);
