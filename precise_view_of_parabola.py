@@ -8,7 +8,7 @@ def func(t, c, a, nu, k_r):
 def func_prime(t, c):
     return 2 * c * np.sqrt(pow(t, 2) + 1)
 
-df = convert_posterior_file_to_pandas_df("/home/sonya/bam/saved_data/8_sample.txt")
+df = convert_posterior_file_to_pandas_df("/home/sonya/bam/saved_data/37_sample.txt")
 a = 3
 p = 1.5
 p_1 = 5.66

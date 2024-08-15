@@ -3,7 +3,8 @@ import numpy as np
 import numpy.random as rng
 from loadings import my_loadtxt, loadtxt_rows
 import matplotlib
-matplotlib.use("TkAgg")
+# matplotlib.use("TkAgg") # interactive plots
+matplotlib.use("Agg") # non-interactive plots
 import matplotlib.pyplot as plt
 
 

@@ -3,7 +3,7 @@ from postprocessing_mf_utils import convert_posterior_file_to_pandas_df
 import corner
 import numpy as np
 
-df = convert_posterior_file_to_pandas_df("/home/sonya/bam/saved_data/94_posterior_sample.txt")
+df = convert_posterior_file_to_pandas_df("/home/sonya/bam/saved_data/37_posterior_sample.txt")
 # print(df['a'])
 a = 3
 p = 0.7
