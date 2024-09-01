@@ -107,8 +107,8 @@ if __name__ == "__main__":
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
     # Coordinates relative to the true jet origin
-    # a, p, c, PA, size_1GHz, k_r, S_1GHz, alpha
-    core_component = (3.0, 1.5, 1.0, np.pi/6, 1.0, 1.0, 2.0, 0.0)
+    # a, c, PA, size_1GHz, k_r, S_1GHz, alpha
+    core_component = (3.0, 1.0, np.pi/6, 1.0, 1.0, 2.0, 0.0)
     # RA, DEC, Size, nu_max, S_nu_max, alpha_thick, alpha_thin
     jet_components = [(3.0, 4.5, 0.5, 10.0, 1.0, 1.5, -0.5),
                       (9.0, 10.0, 1.5, 5.0, 0.5, 2.0, -0.5)]
@@ -153,7 +153,7 @@ if __name__ == "__main__":
                 total_flux += flux
 
             # Core
-            a, p, c, PA, size_1GHz, k_r, S_1GHz, alpha = core_component
+            a, c, PA, size_1GHz, k_r, S_1GHz, alpha = core_component
             flux = S_1GHz*freq_ghz**alpha
             print("Core Flux at nu = {:.2f} is S = {:.4f}".format(freq_ghz, flux))
 
@@ -162,8 +162,8 @@ if __name__ == "__main__":
             def func_prime(t, c):
                 return 2 * c * np.sqrt(pow(t, 2) + 1)
             root = newton(lambda t: func(t, c, a, freq_ghz, k_r), x0=0, fprime=lambda t: func_prime(t, c), maxiter=30)
-            Ra_before_rotation = p * np.power(root, 2)
-            Dec_before_rotation = 2 * p * root
+            Ra_before_rotation = c * np.power(root, 2)
+            Dec_before_rotation = 2 * c * root
             RA = Ra_before_rotation * np.cos(PA) - Dec_before_rotation * np.sin(PA)
             DEC = Ra_before_rotation * np.sin(PA) + Dec_before_rotation * np.cos(PA)
 
@@ -183,7 +183,8 @@ if __name__ == "__main__":
             im = df["vis_im"]
             vis = re + 1j*im
             # "-" becaue we want to move in the opposite direction
-            shift = [-RA*mas_to_rad, -DEC*mas_to_rad]
+            # for some time i delete these minuses, beacuse I thank that because of them our sample mirrored in relation to our model
+            shift = [- RA*mas_to_rad, - DEC*mas_to_rad]
             result = np.exp(2.0*np.pi*1j*(uv @ shift))
             # print("In shifting center mass uv = ", uv)
             vis *= result

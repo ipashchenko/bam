@@ -3,7 +3,7 @@ from postprocessing_mf_utils import convert_posterior_file_to_pandas_df
 import corner
 import numpy as np
 
-df = convert_posterior_file_to_pandas_df("/home/sonya/bam/saved_data/37_posterior_sample.txt")
+df = convert_posterior_file_to_pandas_df("/home/sonya/bam/saved_data/317_posterior_sample.txt")
 # print(df['a'])
 a = 3
 p = 0.7
@@ -16,7 +16,7 @@ k_r = 1.5
 # array_p = np.full((len(df['p']), 1), 1.5)
 
 # data = np.vstack([array_p, df["p"]]).T
-figure = corner.corner(df[['a', 'k_r', 'p', 'c', 'PA']], labels=['a', 'k_r', 'p', 'c', 'PA'], show_titles=True)
+figure = corner.corner(df[['a', 'k_r', 'c', 'PA']], labels=['a', 'k_r', 'c', 'PA'], show_titles=True)
 # plt.hist(df.iloc[:, 22], bins=30)
 # figure = corner.corner(data, bins=30, labels=['a', 'p'], show_titles=True)
 plt.show()
