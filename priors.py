@@ -42,7 +42,10 @@ class Gaussian2D(object):
         return self.cdf_inverse(u)
 
 
-g2d = Gaussian2D(-1.74, -0.71, -0.8, 1.62, 1.03)
+# Currently working for BL Lac RJ epochs from 2023
+# g2d = Gaussian2D(-1.74, -0.71, -0.8, 1.62, 1.03)
+# Corrected: account large BL Lac component, slightly fatter tp fill MOJAVE data
+g2d = Gaussian2D(-1.74, -0.71+0.5, -0.8*0.75, 1.62, 1.03)
 # g2d = Gaussian2D(-1.74, -0.71, -0.8, 0.75*1.62, 0.75*1.03)
 samples = list()
 u_samples = list()
@@ -81,9 +84,13 @@ axes.scatter(logflux_orig, logsize_orig, alpha=0.2, s=3)
 logflux_samples = samples[:, 0]
 logsize_samples = samples[:, 1]
 axes.scatter(logflux_samples, logsize_samples, alpha=0.2, s=3)
+axes.scatter(np.log(0.038), 1.25, alpha=1, s=20, color="red")
+axes.scatter(np.log(0.007), 0.95, alpha=1, s=20, color="blue")
 axes.set_xlabel("logflux")
 axes.set_ylabel("logsize")
 plt.show()
+
+sys.exit(0)
 
 plt.hist(logflux_samples, bins=40)
 plt.xlabel("flux")
